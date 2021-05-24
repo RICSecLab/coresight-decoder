@@ -426,35 +426,3 @@ void printPacket(const Packet packet, const std::vector<uint8_t> &trace_data, co
             break;
     }
 }
-
-void process(const std::vector<uint8_t>& trace_data)
-{
-    enum State {
-        IDLE,
-        TRACE
-    };
-
-    size_t offset = 0;
-    State state = IDLE;
-    while (offset < trace_data.size()) {
-        Packet packet = decodePacket(trace_data, offset);
-
-        if (packet.type == ETM4_PKT_I_ASYNC) {
-            state = TRACE;
-        }
-
-        if (state == TRACE) {
-            printPacket(packet, trace_data, offset);
-        }
-
-        offset += packet.size;
-    }
-}
-
-int main(int argc, char const *argv[])
-{
-    const std::vector<uint8_t> trace_data = readBinaryFile(argv[1]);
-    const std::vector<uint8_t> deformat_trace_data = deformatTraceData(trace_data);
-    process(deformat_trace_data);
-    return 0;
-}
