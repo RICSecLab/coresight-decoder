@@ -3,7 +3,7 @@
 
 #include "deformatter.hpp"
 
-std::vector<uint8_t> deformat_trace_data(const std::vector<uint8_t>& data) {
+std::vector<uint8_t> deformatTraceData(const std::vector<uint8_t>& data) {
     std::vector<uint8_t> deformat_data;
     for (size_t data_idx = 0; data_idx < data.size(); data_idx += 16) {
         for (int frame_byte = 0; frame_byte < 15; ++frame_byte) {

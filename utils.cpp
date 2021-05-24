@@ -5,7 +5,7 @@
 #include "utils.hpp"
 
 
-std::vector<uint8_t> read_binary_file(const std::string &filename)
+std::vector<uint8_t> readBinaryFile(const std::string &filename)
 {
     std::ifstream ifs(filename, std::ios::binary | std::ios::ate);
     std::ifstream::pos_type pos = ifs.tellg();
