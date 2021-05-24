@@ -1,15 +1,18 @@
-CC = g++
-CFLAGS = -std=c++14 -Wall -g -fsanitize=undefined -D_GLIBCXX_DEBUG
+CC      = g++
+CFLAGS  = -std=c++14 -Wall -g -fsanitize=undefined -D_GLIBCXX_DEBUG
+
+OBJS    = decoder.o deformatter.o disassembler.o utils.o processor.o
+PROGRAM = processor
 
 # capstone library name (without prefix 'lib' and suffix '.so')
 LIBNAME = capstone
 
 
-disassembler: disassembler.o
-	${CC} $< ${CFLAGS} -l$(LIBNAME) -o $@
+$(PROGRAM): $(OBJS)
+	$(CC) $(CFLAGS) $(OBJS) -l$(LIBNAME) -o $@
 
 %.o: %.c
-	${CC} -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf *.o disassembler
+	rm -rf *.o $(PROGRAM)
