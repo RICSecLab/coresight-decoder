@@ -26,6 +26,15 @@ static const uint16_t branch_opcode[] = {
     ARM64_INS_ERET,
 };
 
+static const uint16_t indirect_branch_opcode[] = {
+    // indirect branch
+    ARM64_INS_BR,
+    ARM64_INS_BLR,
+    ARM64_INS_RET,
+    ARM64_INS_ERET,
+};
+
+
 void disassembleInit(csh* handle)
 {
     // Initialize capstone
@@ -78,4 +87,14 @@ uint64_t getAddressFromInsn(const cs_insn *insn)
     // insn->op_str is #Addr format. ex) 0x72c -> #72c
     uint64_t address = std::stol(insn->op_str + 1, nullptr, 16);
     return address;
+}
+
+bool isIndirectBranch(const cs_insn *insn)
+{
+     for (size_t i = 0; i < sizeof(indirect_branch_opcode) / sizeof(uint16_t); ++i) {
+        if (insn->id == indirect_branch_opcode[i]) {
+            return true;
+        }
+    }
+    return false;
 }

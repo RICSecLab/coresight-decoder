@@ -65,11 +65,21 @@ std::vector<std::pair<uint64_t, uint64_t>> process(const std::vector<uint8_t>& t
 
         if (bts[i].is_atom) { // Atom packet
             cs_insn *insn = disassembleNextBranchInsn(&handle, binary_data, address);
-            if (bts[i].is_taken) { // taken
-                next_address = getAddressFromInsn(insn);
-            } else { // not taken
-                next_address = insn->address + insn->size;
+
+            // Indirect branch命令のとき、Atom packet(E)とAddress packetが生成される。
+            // そのため、Atom packetを一つ消費した後に、Address packetを処理する。
+            if (isIndirectBranch(insn)) {
+                assert(bts[i].is_taken == true);
+                i++;
+                next_address = bts[i].target_address - entry_address;
+            } else {
+                if (bts[i].is_taken) { // taken
+                    next_address = getAddressFromInsn(insn);
+                } else { // not taken
+                    next_address = insn->address + insn->size;
+                }
             }
+
             // release the cache memory when done
             cs_free(insn, 1);
         } else { // Address packet
