@@ -10,9 +10,9 @@
 
 
 struct BranchTrace {
-    bool is_direct;
-    bool is_taken;
-    uint64_t target_address;
+    bool is_atom; // true: Atom packet, false: Address Packet
+    bool is_taken; // for Atom packet
+    uint64_t target_address; // for Address Packet
 };
 
 
@@ -55,7 +55,7 @@ std::vector<std::pair<uint64_t, uint64_t>> process(const std::vector<uint8_t>& t
     const uint64_t entry_address, const csh &handle)
 {
     std::vector<BranchTrace> bts = processTraceData(trace_data);
-    assert(bts.front().is_direct == false);
+    assert(bts.front().is_atom == false);
 
     std::vector<std::pair<uint64_t, uint64_t>> edges;
     uint64_t address = bts.front().target_address - entry_address;
@@ -63,7 +63,7 @@ std::vector<std::pair<uint64_t, uint64_t>> process(const std::vector<uint8_t>& t
     for (size_t i = 1; i < bts.size(); i++) {
         uint64_t next_address = 0;
 
-        if (bts[i].is_direct) { // direct branch
+        if (bts[i].is_atom) { // Atom packet
             cs_insn *insn = disassembleNextBranchInsn(&handle, binary_data, address);
             if (bts[i].is_taken) { // taken
                 next_address = getAddressFromInsn(insn);
@@ -72,7 +72,7 @@ std::vector<std::pair<uint64_t, uint64_t>> process(const std::vector<uint8_t>& t
             }
             // release the cache memory when done
             cs_free(insn, 1);
-        } else { // indirect branch
+        } else { // Address packet
             next_address = bts[i].target_address - entry_address;
         }
 
@@ -112,11 +112,11 @@ std::vector<BranchTrace> processTraceData(const std::vector<uint8_t>& trace_data
                     for (size_t i = 0; i < packet.en_bits_len; ++i) {
                         BranchTrace bt;
                         if (packet.en_bits & (1 << i)) { // E
-                            bt.is_direct      = true;
+                            bt.is_atom      = true;
                             bt.is_taken       = true;
                             bt.target_address = 0;
                         } else { // N
-                            bt.is_direct      = true;
+                            bt.is_atom      = true;
                             bt.is_taken       = false;
                             bt.target_address = 0;
                         }
