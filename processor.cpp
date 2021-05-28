@@ -15,34 +15,62 @@ struct BranchTrace {
     uint64_t target_address; // for Address Packet
 };
 
+struct MemoryMap {
+    std::vector<uint8_t> binary_data;
+    uint64_t start_address;
+    uint64_t end_address;
+};
 
-std::vector<std::pair<uint64_t, uint64_t>> process(const std::vector<uint8_t>& trace_data, const std::vector<uint8_t>& binary_data,
-    const uint64_t entry_address, const csh &handle);
+std::vector<std::pair<uint64_t, uint64_t>> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle);
 std::vector<BranchTrace> processTraceData(const std::vector<uint8_t>& trace_data);
+size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const uint64_t address);
 
 
 int main(int argc, char const *argv[])
 {
-    if (argc != 4) {
-        std::cerr << "Usage: ./processor [trace_data_filename] [binary_data_filename] [binary_entry_address]" << std::endl;
+    if (argc < 6) {
+        std::cerr << "Usage: ./processor [trace_data_filename] [binary_file_num]\
+                        [binary_data1_filename] [binary_data1_start_address] [binary_data1_end_address]\
+                        [binary_data2_filename] [binary_data2_start_address] [binary_data2_end_address]\
+                        ..." << std::endl;
         std::exit(1);
     }
 
+    // Read trace data filename
     const std::string trace_data_filename = argv[1];
-    const std::string binary_data_filename = argv[2];
-    const uint64_t entry_address = std::stol(argv[3], nullptr, 16);
+
+    // Read number of binary files
+    const int binary_file_num = std::stol(argv[2], nullptr, 10);
 
     // Read trace data
     const std::vector<uint8_t> trace_data = readBinaryFile(trace_data_filename);
     const std::vector<uint8_t> deformat_trace_data = deformatTraceData(trace_data);
 
-    // Read binary data
-    const std::vector<uint8_t> binary_data = readBinaryFile(binary_data_filename);
+    // Read binary data and entry point
+    std::vector<MemoryMap> memory_map; {
+        for (size_t i = 0; i < binary_file_num; i++) {
+            // Read binary data
+            const std::string binary_data_filename = argv[3 + i * 3];
+            const std::vector<uint8_t> data = readBinaryFile(binary_data_filename);
+
+            // Read start/end address
+            const std::uint64_t start_address = std::stol(argv[3 + i * 3 + 1], nullptr, 16);
+            const std::uint64_t end_address   = std::stol(argv[3 + i * 3 + 2], nullptr, 16);
+
+            memory_map.emplace_back(
+                MemoryMap {
+                    data,
+                    start_address,
+                    end_address,
+                }
+            );
+        }
+    }
 
     csh handle;
     disassembleInit(&handle);
 
-    std::vector<std::pair<uint64_t, uint64_t>> edges = process(deformat_trace_data, binary_data, entry_address, handle);
+    std::vector<std::pair<uint64_t, uint64_t>> edges = process(deformat_trace_data, memory_map, handle);
     for (const auto& edge : edges) {
         std::cout << std::hex << edge.first << " -> " << edge.second << std::endl;
     }
@@ -51,39 +79,41 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
-std::vector<std::pair<uint64_t, uint64_t>> process(const std::vector<uint8_t>& trace_data, const std::vector<uint8_t>& binary_data,
-    const uint64_t entry_address, const csh &handle)
+std::vector<std::pair<uint64_t, uint64_t>> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle)
 {
     std::vector<BranchTrace> bts = processTraceData(trace_data);
     assert(bts.front().is_atom == false);
 
     std::vector<std::pair<uint64_t, uint64_t>> edges;
-    uint64_t address = bts.front().target_address - entry_address;
+    uint64_t address = bts.front().target_address;
 
     for (size_t i = 1; i < bts.size(); i++) {
         uint64_t next_address = 0;
 
         if (bts[i].is_atom) { // Atom packet
-            cs_insn *insn = disassembleNextBranchInsn(&handle, binary_data, address);
+            const size_t index = getMemoryMapIndex(memory_map, address);
+            const uint64_t offset = address - memory_map[index].start_address;
+            cs_insn *insn = disassembleNextBranchInsn(&handle, memory_map[index].binary_data, offset);
 
             // Indirect branch命令のとき、Atom packet(E)とAddress packetが生成される。
             // そのため、Atom packetを一つ消費した後に、Address packetを処理する。
             if (isIndirectBranch(insn)) {
                 assert(bts[i].is_taken == true);
                 i++;
-                next_address = bts[i].target_address - entry_address;
+                next_address = bts[i].target_address;
             } else {
                 if (bts[i].is_taken) { // taken
-                    next_address = getAddressFromInsn(insn);
+                    next_address = memory_map[index].start_address + getAddressFromInsn(insn);
+
                 } else { // not taken
-                    next_address = insn->address + insn->size;
+                    next_address = memory_map[index].start_address + insn->address + insn->size;
                 }
             }
 
             // release the cache memory when done
             cs_free(insn, 1);
         } else { // Address packet
-            next_address = bts[i].target_address - entry_address;
+            next_address = bts[i].target_address;
         }
 
         edges.emplace_back(std::make_pair(address, next_address));
@@ -151,4 +181,15 @@ std::vector<BranchTrace> processTraceData(const std::vector<uint8_t>& trace_data
     }
 
     return bts;
+}
+
+size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const uint64_t address)
+{
+    for (size_t i = 0; i < memory_map.size(); i++) {
+        if (memory_map[i].start_address <= address and address < memory_map[i].end_address) {
+            return i;
+        }
+    }
+    std::cerr << "Failed to find any binary data that matched the address." << std::endl;
+    std::exit(1);
 }
