@@ -84,8 +84,19 @@ cs_insn* disassembleNextBranchInsn(const csh* handle, const std::vector<uint8_t>
 
 uint64_t getAddressFromInsn(const cs_insn *insn)
 {
-    // insn->op_str is #Addr format. ex) 0x72c -> #72c
-    uint64_t address = std::stol(insn->op_str + 1, nullptr, 16);
+    // insn->op_strに命令のオペランドが格納されている。
+    // op_strのフォーマットは分岐命令の種類によって異なる。
+    //     ex) blやb.ne命令のop_str  -> #0x1b40
+    //     ex) cbzやcbnz命令のop_str -> x0, #0x1c08
+    // '#'のインデックスを求めて、その後ろを16進数のアドレスとして読みとる。
+
+    size_t address_index = 0;
+    while (insn->op_str[address_index] != '#') {
+        address_index++;
+    }
+    address_index++;
+
+    const uint64_t address = std::stol(insn->op_str + address_index, nullptr, 16);
     return address;
 }
 
