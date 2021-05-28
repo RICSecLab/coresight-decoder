@@ -44,4 +44,4 @@ struct Packet
 };
 
 Packet decodePacket(const std::vector<uint8_t> &trace_data, const size_t offset);
-void printPacket(const Packet packet, const std::vector<uint8_t> &trace_data, const size_t offset);
+void printPacket(const Packet packet);

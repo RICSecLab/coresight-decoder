@@ -375,7 +375,7 @@ Packet decodeAtomF6Packet(const std::vector<uint8_t> &trace_data, const size_t o
     return packet;
 }
 
-void printPacket(const Packet packet, const std::vector<uint8_t> &trace_data, const size_t offset)
+void printPacket(const Packet packet)
 {
     switch (packet.type) {
         case ETM4_PKT_I_TRACE_INFO:
