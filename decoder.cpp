@@ -162,11 +162,14 @@ Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_
 Packet decodeTraceInfoPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
 {
     // TODO
-    const size_t size = 3;
+    size_t packet_size = 2;
+    while(trace_data[packet_size - 1] & 0b10000000) {
+        break;
+    }
 
     const Packet packet = {
         ETM4_PKT_I_TRACE_INFO,
-        size,
+        packet_size,
         0,
         0,
         0,
