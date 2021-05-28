@@ -15,6 +15,8 @@ Packet decodeTimestampPacket(const std::vector<uint8_t> &trace_data, const size_
 Packet decodeTraceOnPacket(const std::vector<uint8_t> &trace_data, const size_t offset);
 Packet decodeContextPacket(const std::vector<uint8_t> &trace_data, const size_t offset);
 
+Packet decodeExceptionPacket(const std::vector<uint8_t> &trace_data, const size_t offset);
+
 Packet decodeAddressLong64ISOPacket(const std::vector<uint8_t> &trace_data, const size_t offset);
 
 Packet decodeAtomF1Packet(const std::vector<uint8_t> &trace_data, const size_t offset);
@@ -49,6 +51,10 @@ Packet decodePacket(const std::vector<uint8_t> &trace_data, const size_t offset)
 
         case ETM4_PKT_I_CTXT:
             result = decodeContextPacket(trace_data, offset);
+            break;
+
+        case ETM4_PKT_I_EXCEPT:
+            result = decodeExceptionPacket(trace_data, offset);
             break;
 
         case ETM4_PKT_I_ADDR_L_64IS0:
@@ -106,6 +112,8 @@ PacketType decodePacketHeader(const std::vector<uint8_t> &trace_data, const size
         return ETM4_PKT_I_TIMESTAMP;
     } else if (header == 0x80 or header == 0x81) { // 0b1000000x
         return ETM4_PKT_I_CTXT;
+    } else if (header == 0b00000110) {
+        return ETM4_PKT_I_EXCEPT;
     } else if (header == 0b11110110 or header == 0b11110111) { // 0b1111011x
         return ETM4_PKT_I_ATOM_F1;
     } else if (0b11011000 <= header and header <= 0b11011011) { // 0b110110xx
@@ -197,6 +205,23 @@ Packet decodeContextPacket(const std::vector<uint8_t> &trace_data, const size_t 
     const Packet packet = {
         ETM4_PKT_I_CTXT,
         10,
+        0,
+        0,
+        0,
+    };
+    return packet;
+}
+
+Packet decodeExceptionPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
+{
+    // If c is set, then a second exception information byte follows.
+    // Otherwise, if c is not set, there are no more exception information bytes in the packet.
+    bool c = (trace_data[offset + 1] & 0b10000000) ? true : false;
+    size_t packet_size = c ? 3 : 2;
+
+    const Packet packet = {
+        ETM4_PKT_I_EXCEPT,
+        packet_size,
         0,
         0,
         0,
@@ -392,6 +417,10 @@ void printPacket(const Packet packet)
 
         case ETM4_PKT_I_CTXT:
             printf("ETM4_PKT_I_CTXT\n");
+            break;
+
+        case ETM4_PKT_I_EXCEPT:
+            printf("ETM4_PKT_I_EXCEPT\n");
             break;
 
         case ETM4_PKT_I_ADDR_L_64IS0:

@@ -10,6 +10,9 @@ enum PacketType
     ETM4_PKT_I_TIMESTAMP,
     ETM4_PKT_I_TRACE_ON,
 
+    // Exceptions
+    ETM4_PKT_I_EXCEPT,
+
     // Address
     ETM4_PKT_I_CTXT,
     ETM4_PKT_I_ADDR_L_64IS0,
