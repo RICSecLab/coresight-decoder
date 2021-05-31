@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <cstring>
 
 #include "disassembler.hpp"
 
@@ -88,11 +89,12 @@ uint64_t getAddressFromInsn(const cs_insn *insn)
     // op_strのフォーマットは分岐命令の種類によって異なる。
     //     ex) blやb.ne命令のop_str  -> #0x1b40
     //     ex) cbzやcbnz命令のop_str -> x0, #0x1c08
-    // '#'のインデックスを求めて、その後ろを16進数のアドレスとして読みとる。
+    //     ex) tbzやtbnz命令のop_str -> w24, #0x1d, #0xb01c
+    // 一番最後の'#'のインデックスを求めて、その後ろを16進数のアドレスとして読みとる。
 
-    size_t address_index = 0;
+    size_t address_index = std::strlen(insn->op_str) - 1;
     while (insn->op_str[address_index] != '#') {
-        address_index++;
+        address_index--;
     }
     address_index++;
 
