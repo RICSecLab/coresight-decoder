@@ -8,6 +8,12 @@
 
 #include "disassembler.hpp"
 
+
+#if CS_API_MAJOR < 4
+#error Unsupported capstone version (capstone engine v4 is required)!
+#endif
+
+
 // https://www.mztn.org/dragon/arm6408cond.html
 static const uint16_t branch_opcode[] = {
     // conditional branch
