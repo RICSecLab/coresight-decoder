@@ -28,6 +28,8 @@ size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const uint64_
 
 int main(int argc, char const *argv[])
 {
+    checkCapstoneVersion();
+
     if (argc < 6) {
         std::cerr << "Usage: ./processor [trace_data_filename] [binary_file_num]\
                         [binary_data1_filename] [binary_data1_start_address] [binary_data1_end_address]\

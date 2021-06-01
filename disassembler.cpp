@@ -117,3 +117,15 @@ bool isIndirectBranch(const cs_insn *insn)
     }
     return false;
 }
+
+// Capstoneライブラリのバージョンを確認する。
+// 古いバージョンにはバグがあり、tag:v4.0以降では解決されている。
+// https://github.com/aquynh/capstone/pull/1213
+void checkCapstoneVersion() {
+    int major = 0, minor = 0;
+    cs_version(&major, &minor);
+    if (major < 4) {
+        std::cerr << "Unsupported capstone version (capstone engine v4 is required).";
+        std::exit(1);
+    }
+}
