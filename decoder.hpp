@@ -28,7 +28,8 @@ enum PacketType
     // Extension packets - follow 0x00 header
     ETM4_PKT_I_ASYNC,
 
-    PKT_UNKNOWN
+    PKT_UNKNOWN,
+    PKT_INCOMPLETE,
 };
 
 struct Packet

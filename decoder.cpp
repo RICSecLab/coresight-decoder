@@ -135,6 +135,18 @@ PacketType decodePacketHeader(const std::vector<uint8_t> &trace_data, const size
 
 Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
 {
+    // Header is correct, but packet size is incomplete.
+    const size_t rest_data_size = trace_data.size() - offset;
+    if (rest_data_size < 12) {
+        return Packet{
+            PKT_INCOMPLETE,
+            rest_data_size,
+            0,
+            0,
+            0
+        };
+    }
+
     // Check Async packet
     bool is_async = true;
     for (size_t i = 0; i <= 10; i++) {
@@ -161,6 +173,18 @@ Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_
 
 Packet decodeTraceInfoPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
 {
+    // Header is correct, but packet size is incomplete.
+    const size_t rest_data_size = trace_data.size() - offset;
+    if (rest_data_size < 2) {
+        return Packet{
+            PKT_INCOMPLETE,
+            rest_data_size,
+            0,
+            0,
+            0
+        };
+    }
+
     // TODO
     size_t packet_size = 2;
     while(trace_data[packet_size - 1] & 0b10000000) {
@@ -180,6 +204,18 @@ Packet decodeTraceInfoPacket(const std::vector<uint8_t> &trace_data, const size_
 Packet decodeTimestampPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
 {
     const size_t size = (trace_data[offset] & 0x1) ? 11 : 8;
+
+    // Header is correct, but packet size is incomplete.
+    const size_t rest_data_size = trace_data.size() - offset;
+    if (rest_data_size < size) {
+        return Packet{
+            PKT_INCOMPLETE,
+            rest_data_size,
+            0,
+            0,
+            0
+        };
+    }
 
     Packet packet = {
         ETM4_PKT_I_TIMESTAMP,
@@ -205,6 +241,18 @@ Packet decodeTraceOnPacket(const std::vector<uint8_t> &trace_data, const size_t 
 
 Packet decodeContextPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
 {
+    // Header is correct, but packet size is incomplete.
+    const size_t rest_data_size = trace_data.size() - offset;
+    if (rest_data_size < 10) {
+        return Packet{
+            PKT_INCOMPLETE,
+            rest_data_size,
+            0,
+            0,
+            0
+        };
+    }
+
     const Packet packet = {
         ETM4_PKT_I_CTXT,
         10,
@@ -222,6 +270,18 @@ Packet decodeExceptionPacket(const std::vector<uint8_t> &trace_data, const size_
     bool c = (trace_data[offset + 1] & 0b10000000) ? true : false;
     size_t packet_size = c ? 3 : 2;
 
+    const size_t rest_data_size = trace_data.size() - offset;
+    // Header is correct, but packet size is incomplete.
+    if (rest_data_size < packet_size) {
+        return Packet{
+            PKT_INCOMPLETE,
+            rest_data_size,
+            0,
+            0,
+            0
+        };
+    }
+
     const Packet packet = {
         ETM4_PKT_I_EXCEPT,
         packet_size,
@@ -234,6 +294,18 @@ Packet decodeExceptionPacket(const std::vector<uint8_t> &trace_data, const size_
 
 Packet decodeAddressLong64ISOPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
 {
+    const size_t rest_data_size = trace_data.size() - offset;
+    // Header is correct, but packet size is incomplete.
+    if (rest_data_size < 8) {
+        return Packet{
+            PKT_INCOMPLETE,
+            rest_data_size,
+            0,
+            0,
+            0
+        };
+    }
+
     // trace_data[offset] is header
     const uint64_t address = ((uint64_t)(trace_data[offset + 1] & 0x7F)) << 2 |
                              ((uint64_t)(trace_data[offset + 2] & 0x7F)) << 9 |
