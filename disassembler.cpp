@@ -70,7 +70,7 @@ cs_insn* disassembleNextBranchInsn(const csh* handle, const std::vector<uint8_t>
 
     // disassemble one instruction a time & store the result into @insn variable above
     while(cs_disasm_iter(*handle, &code_ptr, &code_size, &address, insn)) {
-        DEBUG("ADDRESS: %08lx INSTRUCTION: %s %s\n", insn->address, insn->mnemonic, insn->op_str);
+        DEBUG("ADDRESS: 0x%08lx INSTRUCTION_ID: %3d INSTRUCTION: %s %s\n", insn->address, insn->id, insn->mnemonic, insn->op_str);
         // analyze disassembled instruction in @insn variable
         // NOTE: @code_ptr, @code_size & @address variables are all updated
         // to point to the next instruction after each iteration.
