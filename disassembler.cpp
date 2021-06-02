@@ -6,6 +6,7 @@
 #include <fstream>
 #include <cstring>
 
+#include "common.hpp"
 #include "disassembler.hpp"
 
 
@@ -69,13 +70,13 @@ cs_insn* disassembleNextBranchInsn(const csh* handle, const std::vector<uint8_t>
 
     // disassemble one instruction a time & store the result into @insn variable above
     while(cs_disasm_iter(*handle, &code_ptr, &code_size, &address, insn)) {
-        std::cout << "MNEMONIC: " << insn->mnemonic << " ADDRESS: " << std::hex << insn->address << std::endl;
+        DEBUG("ADDRESS: %08lx INSTRUCTION: %s %s\n", insn->address, insn->mnemonic, insn->op_str);
         // analyze disassembled instruction in @insn variable
         // NOTE: @code_ptr, @code_size & @address variables are all updated
         // to point to the next instruction after each iteration.
         for (size_t i = 0; i < sizeof(branch_opcode) / sizeof(uint16_t); ++i) {
             if (insn->id == branch_opcode[i]) {
-                std::cout << "OP_STR: " << insn->op_str << std::endl;
+                DEBUG("Found the branch instruction\n");
                 return insn;
             }
         }
