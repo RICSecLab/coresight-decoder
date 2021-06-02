@@ -15,31 +15,47 @@
 #endif
 
 
-// https://www.mztn.org/dragon/arm6408cond.html
-static const uint16_t branch_opcode[] = {
+// Arm Embedded Trace Macrocell Architecture Specification ETMv4.0 to ETMv4.6
+// F.1 Branch instructionsを参考に、必要になる分岐命令を選ぶ。
+//
+// A64 instruction set, direct branches:
+//     - B
+//     - B.cond
+//     - CBZ/CBNZ
+//     - TBZ/BNZ
+//     - BL
+//     - ISB
+// ※WFI, WFEはThunderX2のTRCIDR2.WFXMODEが0なので、分岐命令に分類されない。
+//
+//
+// A64 instruction set, indirect branches:
+//     - RET
+//     - BR
+//     - BLR
+// ※ERETはユーザ空間のプログラムでは呼ばれないため、とりあえず外している。
+// ※ERETAA/ERETAB, RETAA/RETAB, BRAA/BRAB, BRAAZ/BRABZ, BLRAA/BLRAB, BLRAAZ/BLRABZは
+// ThunderX2がポインタ認証未対応のため、外している。
+//
+// 参考: https://www.mztn.org/dragon/arm6408cond.html
+
+static const uint16_t direct_branch_opcode[] = {
+    // unconditional direct branch
+    ARM64_INS_B, // B, B.cond
+    ARM64_INS_BL,
+
     // conditional branch
     ARM64_INS_CBZ,
     ARM64_INS_CBNZ,
     ARM64_INS_TBZ,
     ARM64_INS_TBNZ,
 
-    // unconditional direct branch
-    ARM64_INS_B,
-    ARM64_INS_BL,
-
-    // indirect branch
-    ARM64_INS_BR,
-    ARM64_INS_BLR,
-    ARM64_INS_RET,
-    ARM64_INS_ERET,
+    ARM64_INS_ISB,
 };
 
 static const uint16_t indirect_branch_opcode[] = {
-    // indirect branch
     ARM64_INS_BR,
     ARM64_INS_BLR,
     ARM64_INS_RET,
-    ARM64_INS_ERET,
 };
 
 
@@ -74,9 +90,15 @@ cs_insn* disassembleNextBranchInsn(const csh* handle, const std::vector<uint8_t>
         // analyze disassembled instruction in @insn variable
         // NOTE: @code_ptr, @code_size & @address variables are all updated
         // to point to the next instruction after each iteration.
-        for (size_t i = 0; i < sizeof(branch_opcode) / sizeof(uint16_t); ++i) {
-            if (insn->id == branch_opcode[i]) {
-                DEBUG("Found the branch instruction\n");
+        for (size_t i = 0; i < sizeof(direct_branch_opcode) / sizeof(uint16_t); ++i) {
+            if (insn->id == direct_branch_opcode[i]) {
+                DEBUG("Found the direct branch instruction\n");
+                return insn;
+            }
+        }
+        for (size_t i = 0; i < sizeof(indirect_branch_opcode) / sizeof(uint16_t); ++i) {
+            if (insn->id == indirect_branch_opcode[i]) {
+                DEBUG("Found the indirect branch instruction\n");
                 return insn;
             }
         }
