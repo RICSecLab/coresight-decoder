@@ -43,6 +43,10 @@ int main(int argc, char const *argv[])
 
     // Read number of binary files
     const int binary_file_num = std::stol(argv[2], nullptr, 10);
+    if (binary_file_num <= 0) {
+        std::cerr << "Specify 1 or more for the number of binary files." << std::endl;
+        std::exit(1);
+    }
 
     // Read trace data
     const std::vector<uint8_t> trace_data = readBinaryFile(trace_data_filename);
@@ -50,7 +54,7 @@ int main(int argc, char const *argv[])
 
     // Read binary data and entry point
     std::vector<MemoryMap> memory_map; {
-        for (size_t i = 0; i < binary_file_num; i++) {
+        for (int i = 0; i < binary_file_num; i++) {
             // Read binary data
             const std::string binary_data_filename = argv[3 + i * 3];
             const std::vector<uint8_t> data = readBinaryFile(binary_data_filename);
