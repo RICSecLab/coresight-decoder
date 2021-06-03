@@ -202,6 +202,6 @@ size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const uint64_
             return i;
         }
     }
-    std::cerr << "Failed to find any binary data that matched the address." << std::endl;
+    std::cerr << "Failed to find any binary data that matched the address: " << std::hex << address << std::endl;
     std::exit(1);
 }
