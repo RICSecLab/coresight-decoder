@@ -50,7 +50,8 @@ int main(int argc, char const *argv[])
 
     // Read trace data
     const std::vector<uint8_t> trace_data = readBinaryFile(trace_data_filename);
-    const std::vector<uint8_t> deformat_trace_data = deformatTraceData(trace_data);
+    // TODO: Trace ID can be specified by command argument
+    const std::vector<uint8_t> deformat_trace_data = deformatTraceData(trace_data, 0x10);
 
     // Read binary data and entry point
     std::vector<MemoryMap> memory_map; {
