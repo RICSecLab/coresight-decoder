@@ -30,8 +30,8 @@ int main(int argc, char const *argv[])
 {
     checkCapstoneVersion();
 
-    if (argc < 6) {
-        std::cerr << "Usage: ./processor [trace_data_filename] [binary_file_num]\
+    if (argc < 7) {
+        std::cerr << "Usage: ./processor [trace_data_filename] [trace_id] [binary_file_num]\
                         [binary_data1_filename] [binary_data1_start_address] [binary_data1_end_address]\
                         [binary_data2_filename] [binary_data2_start_address] [binary_data2_end_address]\
                         ..." << std::endl;
@@ -41,8 +41,11 @@ int main(int argc, char const *argv[])
     // Read trace data filename
     const std::string trace_data_filename = argv[1];
 
+    // Read trace ID
+    const uint8_t trace_id = std::stol(argv[2], nullptr, 16);
+
     // Read number of binary files
-    const int binary_file_num = std::stol(argv[2], nullptr, 10);
+    const int binary_file_num = std::stol(argv[3], nullptr, 10);
     if (binary_file_num <= 0) {
         std::cerr << "Specify 1 or more for the number of binary files." << std::endl;
         std::exit(1);
@@ -50,19 +53,18 @@ int main(int argc, char const *argv[])
 
     // Read trace data
     const std::vector<uint8_t> trace_data = readBinaryFile(trace_data_filename);
-    // TODO: Trace ID can be specified by command argument
-    const std::vector<uint8_t> deformat_trace_data = deformatTraceData(trace_data, 0x10);
+    const std::vector<uint8_t> deformat_trace_data = deformatTraceData(trace_data, trace_id);
 
     // Read binary data and entry point
     std::vector<MemoryMap> memory_map; {
         for (int i = 0; i < binary_file_num; i++) {
             // Read binary data
-            const std::string binary_data_filename = argv[3 + i * 3];
+            const std::string binary_data_filename = argv[4 + i * 3];
             const std::vector<uint8_t> data = readBinaryFile(binary_data_filename);
 
             // Read start/end address
-            const std::uint64_t start_address = std::stol(argv[3 + i * 3 + 1], nullptr, 16);
-            const std::uint64_t end_address   = std::stol(argv[3 + i * 3 + 2], nullptr, 16);
+            const std::uint64_t start_address = std::stol(argv[4 + i * 3 + 1], nullptr, 16);
+            const std::uint64_t end_address   = std::stol(argv[4 + i * 3 + 2], nullptr, 16);
 
             memory_map.emplace_back(
                 MemoryMap {
