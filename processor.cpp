@@ -107,6 +107,11 @@ std::vector<std::pair<uint64_t, uint64_t>> process(const std::vector<uint8_t>& t
             if (isIndirectBranch(insn)) {
                 assert(bts[i].is_taken == true);
                 i++;
+                if (i >= bts.size()) {
+                    std::cerr << "This trace data is incomplete. There is no Address packet following Atom packet." << std::endl;
+                    std::exit(1);
+                }
+                assert(bts[i].is_atom == false);
                 next_address = bts[i].target_address;
             } else {
                 if (bts[i].is_taken) { // taken
