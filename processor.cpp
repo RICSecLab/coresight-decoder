@@ -21,7 +21,13 @@ struct MemoryMap {
     uint64_t end_address;
 };
 
-std::vector<std::pair<uint64_t, uint64_t>> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle);
+struct Coverage {
+    uint64_t address;
+    uint64_t binary_offset;
+    size_t binary_file_index;
+};
+
+std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle);
 std::vector<BranchTrace> processTraceData(const std::vector<uint8_t>& trace_data);
 size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const uint64_t address);
 
@@ -79,31 +85,56 @@ int main(int argc, char const *argv[])
     csh handle;
     disassembleInit(&handle);
 
-    std::vector<std::pair<uint64_t, uint64_t>> edges = process(deformat_trace_data, memory_map, handle);
-    for (const auto& edge : edges) {
-        std::cout << std::hex << edge.first << " -> " << edge.second << std::endl;
+    // Calculate edge coverage from trace data and binary data
+    std::vector<Coverage> coverage = process(deformat_trace_data, memory_map, handle);
+
+    // Print edge coverage
+    bool raw_address_mode = false;
+    std::cout << "Edge Coverage" << std::endl;
+    for (size_t i = 0; i < coverage.size() - 1; i++) {
+        if (raw_address_mode) {
+            std::cout << std::hex << "0x" << coverage[i].address;
+            std::cout << " -> ";
+            std::cout << std::hex << "0x" << coverage[i + 1].address << std::endl;
+        } else {
+            std::cout << std::hex << "0x" << coverage[i].binary_offset << " [" << argv[4 + coverage[i].binary_file_index * 3] << "]";
+            std::cout << " -> ";
+            std::cout << std::hex << "0x" << coverage[i + 1].binary_offset << " [" << argv[4 + coverage[i].binary_file_index * 3] << "]" << std::endl;
+        }
     }
 
     disassembleDelete(&handle);
     return 0;
 }
 
-std::vector<std::pair<uint64_t, uint64_t>> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle)
+std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle)
 {
     std::vector<BranchTrace> bts = processTraceData(trace_data);
     assert(bts.front().is_atom == false);
 
-    std::vector<std::pair<uint64_t, uint64_t>> edges;
+    std::vector<Coverage> coverage;
 
     // The address where the trace was started
     uint64_t address = bts.front().target_address;
 
     for (size_t i = 1; i < bts.size(); i++) {
+
+        const size_t index = getMemoryMapIndex(memory_map, address);
+        const uint64_t offset = address - memory_map[index].start_address;
+
+        // Save coverage information
+        coverage.emplace_back(
+            Coverage {
+                address,
+                offset,
+                index,
+            }
+        );
+
+        // Calculate the next address to save as edge coverage (address -> next_address)
         uint64_t next_address = 0;
 
         if (bts[i].is_atom) { // Atom packet
-            const size_t index = getMemoryMapIndex(memory_map, address);
-            const uint64_t offset = address - memory_map[index].start_address;
             cs_insn *insn = disassembleNextBranchInsn(&handle, memory_map[index].binary_data, offset);
 
             // Indirect branch命令のとき、Atom packet(E)とAddress packetが生成される。
@@ -140,10 +171,10 @@ std::vector<std::pair<uint64_t, uint64_t>> process(const std::vector<uint8_t>& t
             continue;
         }
 
-        edges.emplace_back(std::make_pair(address, next_address));
+        // Update
         address = next_address;
     }
-    return edges;
+    return coverage;
 }
 
 std::vector<BranchTrace> processTraceData(const std::vector<uint8_t>& trace_data)
