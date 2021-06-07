@@ -94,6 +94,8 @@ std::vector<std::pair<uint64_t, uint64_t>> process(const std::vector<uint8_t>& t
     assert(bts.front().is_atom == false);
 
     std::vector<std::pair<uint64_t, uint64_t>> edges;
+
+    // The address where the trace was started
     uint64_t address = bts.front().target_address;
 
     for (size_t i = 1; i < bts.size(); i++) {
@@ -127,7 +129,15 @@ std::vector<std::pair<uint64_t, uint64_t>> process(const std::vector<uint8_t>& t
             // release the cache memory when done
             cs_free(insn, 1);
         } else { // Address packet
-            next_address = bts[i].target_address;
+            // Address packetは下記の3つの場合に生成される。
+            //     1. トレース開始時に、トレース開始アドレスを示すために生成される。
+            //     2. Indirect branchのときに、Atom pakcet(E)に続き、生成される。
+            //     3. トレースが途切れたときに、Trace On packetに続き、生成される。
+            // 3.のとき、
+            //     3.1 トレースが再開されたアドレスを示すAddress packetの場合と、
+            //     3.2 トレースが途切れる前のAtom(E)に続く、Address packetの場合がある。
+            // 3.1の場合は必要ないので無視する。
+            continue;
         }
 
         edges.emplace_back(std::make_pair(address, next_address));
@@ -153,11 +163,11 @@ std::vector<BranchTrace> processTraceData(const std::vector<uint8_t>& trace_data
     while (offset < trace_data.size()) {
         Packet packet = decodePacket(trace_data, offset);
 
-        if (packet.type == ETM4_PKT_I_ASYNC) {
-            state = TRACE;
-        }
-
-        if (state == TRACE) {
+        if (state == IDLE) {
+            if (packet.type == ETM4_PKT_I_ASYNC) {
+                state = TRACE;
+            }
+        } else if (state == TRACE) {
             switch (packet.type) {
                 case ETM4_PKT_I_ATOM_F1:
                 case ETM4_PKT_I_ATOM_F2:
