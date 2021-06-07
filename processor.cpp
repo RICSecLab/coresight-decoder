@@ -140,7 +140,9 @@ std::vector<BranchTrace> processTraceData(const std::vector<uint8_t>& trace_data
 {
     enum State {
         IDLE,
-        TRACE
+        TRACE,
+        EXCEPTION_ADDR1,
+        EXCEPTION_ADDR2,
     };
 
     size_t offset = 0;
@@ -186,10 +188,26 @@ std::vector<BranchTrace> processTraceData(const std::vector<uint8_t>& trace_data
                     bts.emplace_back(bt);
                     break;
                 }
+                // Exception Packetは例外が発生したときに、生成される。
+                // Exceptionパケットに続き、2つのAddress Packetが生成される。
+                // 1つ目はException後に戻るアドレスを示し、
+                // 2つ目は実際にException後に実行が開始されたアドレスを示している。
+                // そのため、ユーザ空間のトレースではこの2つのAddress Packetを無視する。
+                case ETM4_PKT_I_EXCEPT:
+                    state = EXCEPTION_ADDR1;
+                    break;
                 default:
                     break;
             }
-        }
+        } else if (state == EXCEPTION_ADDR1) {
+            if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
+                state = EXCEPTION_ADDR2;
+            }
+        } else if (state == EXCEPTION_ADDR2) {
+            if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
+                state = TRACE;
+            }
+         }
 
         offset += packet.size;
     }
