@@ -99,7 +99,7 @@ int main(int argc, char const *argv[])
         } else {
             std::cout << std::hex << "0x" << coverage[i].binary_offset << " [" << argv[4 + coverage[i].binary_file_index * 3] << "]";
             std::cout << " -> ";
-            std::cout << std::hex << "0x" << coverage[i + 1].binary_offset << " [" << argv[4 + coverage[i].binary_file_index * 3] << "]" << std::endl;
+            std::cout << std::hex << "0x" << coverage[i + 1].binary_offset << " [" << argv[4 + coverage[i + 1].binary_file_index * 3] << "]" << std::endl;
         }
     }
 
