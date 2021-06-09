@@ -109,7 +109,11 @@ int main(int argc, char const *argv[])
 
 std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle)
 {
+    // Trace dataの中から、エッジカバレッジの復元に必要なパケットのみを取り出す。
     std::vector<BranchTrace> bts = processTraceData(trace_data);
+
+    // btsの先頭データは必ずAddress packetである。
+    // そうでないと、トレース開始アドレスがわからない。
     assert(bts.front().is_atom == false);
 
     std::vector<Coverage> coverage;
@@ -177,6 +181,13 @@ std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std:
     return coverage;
 }
 
+// Trace dataの中から、エッジカバレッジの復元に必要な
+//     - Address packet
+//     - Atom packet
+// を取り出す。
+//
+// TODO: 現在、Exceptionによって発生するAddress packetは取り出さす、
+// deterministicなエッジカバレッジになるようにしてある。
 std::vector<BranchTrace> processTraceData(const std::vector<uint8_t>& trace_data)
 {
     enum State {
