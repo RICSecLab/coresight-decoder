@@ -241,9 +241,42 @@ Packet decodeTraceOnPacket(const std::vector<uint8_t> &trace_data, const size_t 
 
 Packet decodeContextPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
 {
-    // Header is correct, but packet size is incomplete.
+    // This bit indicates if the packet has a payload or not.
+    const bool has_payload = (trace_data[offset] & 0x1) ? true : false;
+
+    if (not has_payload) {
+        return Packet {
+            ETM4_PKT_I_CTXT,
+            1,
+            0,
+            0,
+            0,
+        };
+    }
+
+    // A payload is present in the packet. The payload consists of at least an information byte.
+    // However, there is no 1-byte information byte.
     const size_t rest_data_size = trace_data.size() - offset;
-    if (rest_data_size < 10) {
+    if (rest_data_size < 2) {
+        return Packet{
+            PKT_INCOMPLETE,
+            rest_data_size,
+            0,
+            0,
+            0
+        };
+    }
+
+    // Indicates whether the Virtual context identifier section is present in the packet.
+    const bool has_virtual_context = (trace_data[offset + 1] & 0b01000000) ? true : false;
+    // Indicates whether the Context ID section is present in the packet.
+    const bool has_context_id      = (trace_data[offset + 1] & 0b10000000) ? true : false;
+
+    const size_t packet_size = (has_virtual_context and has_context_id) ? 10 :
+                               (has_virtual_context or  has_context_id) ?  6 : 2;
+
+    // There is not enough payload following the information byte.
+    if (rest_data_size < packet_size) {
         return Packet{
             PKT_INCOMPLETE,
             rest_data_size,
@@ -255,7 +288,7 @@ Packet decodeContextPacket(const std::vector<uint8_t> &trace_data, const size_t 
 
     const Packet packet = {
         ETM4_PKT_I_CTXT,
-        10,
+        packet_size,
         0,
         0,
         0,
