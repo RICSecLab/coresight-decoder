@@ -9,6 +9,7 @@ LIBNAME := capstone
 SRCS := decoder.c deformatter.c disassembler.c utils.c processor.c
 OBJS := $(SRCS:.c=.o)
 
+FIB_TEST := tests/fib
 
 all: $(TARGET)
 
@@ -18,7 +19,15 @@ debug: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) -l$(LIBNAME) -o $@
 
+test: fib-test
+
+fib-test:
+	make -C $(FIB_TEST) test
+
 clean:
 	rm -rf *.o $(TARGET)
 
-.PHONY: all debug clean
+dist-clean: clean
+	make -C $(FIB_TEST) clean
+
+.PHONY: all debug test fib-test clean dist-clean
