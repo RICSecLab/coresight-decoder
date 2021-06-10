@@ -203,11 +203,11 @@ Packet decodeTraceInfoPacket(const std::vector<uint8_t> &trace_data, const size_
 
 Packet decodeTimestampPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
 {
-    const size_t size = (trace_data[offset] & 0x1) ? 11 : 8;
+    const size_t packet_size = (trace_data[offset] & 0x1) ? 11 : 8;
 
     // Header is correct, but packet size is incomplete.
     const size_t rest_data_size = trace_data.size() - offset;
-    if (rest_data_size < size) {
+    if (rest_data_size < packet_size) {
         return Packet{
             PKT_INCOMPLETE,
             rest_data_size,
@@ -219,7 +219,7 @@ Packet decodeTimestampPacket(const std::vector<uint8_t> &trace_data, const size_
 
     Packet packet = {
         ETM4_PKT_I_TIMESTAMP,
-        size,
+        packet_size,
         0,
         0,
         0
