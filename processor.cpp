@@ -140,23 +140,24 @@ std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std:
 
     for (size_t i = 1; i < bts.size(); i++) {
 
-        const size_t index = getMemoryMapIndex(memory_map, address);
-        const uint64_t offset = address - memory_map[index].start_address;
-
-        // Save coverage information
-        coverage.emplace_back(
-            Coverage {
-                address,
-                offset,
-                index,
-            }
-        );
-
-        // Calculate the next address to save as edge coverage (address -> next_address)
-        uint64_t next_address = 0;
-
         if (bts[i].is_atom) { // Atom packet
+
+            const size_t index = getMemoryMapIndex(memory_map, address);
+            const uint64_t offset = address - memory_map[index].start_address;
+
+            // Save coverage information
+            coverage.emplace_back(
+                Coverage {
+                    address,
+                    offset,
+                    index,
+                }
+            );
+
             cs_insn *insn = disassembleNextBranchInsn(&handle, memory_map[index].binary_data, offset);
+
+            // Calculate the next address to save as edge coverage (address -> next_address)
+            uint64_t next_address = 0;
 
             // Indirect branch命令のとき、Atom packet(E)とAddress packetが生成される。
             // そのため、Atom packetを一つ消費した後に、Address packetを処理する。
@@ -178,6 +179,9 @@ std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std:
                 }
             }
 
+            // Update
+            address = next_address;
+
             // release the cache memory when done
             cs_free(insn, 1);
         } else { // Address packet
@@ -189,11 +193,7 @@ std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std:
             //     3.1 トレースが再開されたアドレスを示すAddress packetの場合と、
             //     3.2 トレースが途切れる前のAtom(E)に続く、Address packetの場合がある。
             // 3.1の場合は必要ないので無視する。
-            continue;
         }
-
-        // Update
-        address = next_address;
     }
     return coverage;
 }
