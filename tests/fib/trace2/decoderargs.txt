@@ -1,0 +1,1 @@
+ trace2/cstrace.bin 0x10 3 fib 0xaaaaac0b0000 0xaaaaac0b1000 ld-2.31.so 0xffff83b7a000 0xffff83b9b000 libc-2.31.so 0xffff83a07000 0xffff83b7a000
