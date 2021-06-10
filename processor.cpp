@@ -2,6 +2,7 @@
 #include <vector>
 #include <cassert>
 #include <cstdint>
+#include <cstring>
 
 #include "decoder.hpp"
 #include "deformatter.hpp"
@@ -37,10 +38,12 @@ int main(int argc, char const *argv[])
     checkCapstoneVersion();
 
     if (argc < 7) {
-        std::cerr << "Usage: ./processor [trace_data_filename] [trace_id] [binary_file_num]\
-                        [binary_data1_filename] [binary_data1_start_address] [binary_data1_end_address]\
-                        [binary_data2_filename] [binary_data2_start_address] [binary_data2_end_address]\
-                        ..." << std::endl;
+        std::cerr << "Usage: " << argv[0] << "[trace_data_filename] [trace_id] [binary_file_num] "
+                  << "[binary_data1_filename] [binary_data1_start_address] [binary_data1_end_address] ... "
+                  << "[binary_dataN_filename] [binary_dataN_start_address] [binary_dataN_end_address] [OPTIONS]" << std::endl
+                  << "OPTIONS:" << std::endl
+                  << "\t--raw_address_mode ; Use raw address as output for edge coverage, not offset in binary"
+                  << std::endl;
         std::exit(1);
     }
 
@@ -54,6 +57,10 @@ int main(int argc, char const *argv[])
     const int binary_file_num = std::stol(argv[3], nullptr, 10);
     if (binary_file_num <= 0) {
         std::cerr << "Specify 1 or more for the number of binary files." << std::endl;
+        std::exit(1);
+    }
+    if (argc < binary_file_num * 3 + 4) {
+        std::cerr << "Fewer arguments for binary file information." << std::endl;
         std::exit(1);
     }
 
@@ -82,6 +89,17 @@ int main(int argc, char const *argv[])
         }
     }
 
+    // Read options
+    bool raw_address_mode = false;
+    for (int i = binary_file_num * 3 + 4; i < argc; ++i) {
+        if (strcmp(argv[i], "--raw-address-mode") == 0) {
+            raw_address_mode = true;
+        } else {
+            std::cerr << "Invalid option: " << argv[i] << std::endl;
+            std::exit(1);
+        }
+    }
+
     csh handle;
     disassembleInit(&handle);
 
@@ -89,7 +107,6 @@ int main(int argc, char const *argv[])
     std::vector<Coverage> coverage = process(deformat_trace_data, memory_map, handle);
 
     // Print edge coverage
-    bool raw_address_mode = false;
     std::cout << "Edge Coverage" << std::endl;
     for (size_t i = 0; i < coverage.size() - 1; i++) {
         if (raw_address_mode) {
