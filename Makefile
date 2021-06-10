@@ -10,6 +10,7 @@ SRCS := decoder.c deformatter.c disassembler.c utils.c processor.c
 OBJS := $(SRCS:.c=.o)
 
 FIB_TEST := tests/fib
+BRANCHES_TEST := tests/branches
 
 all: $(TARGET)
 
@@ -19,15 +20,19 @@ debug: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) -l$(LIBNAME) -o $@
 
-test: fib-test
+test: fib-test branches-test
 
 fib-test:
 	make -C $(FIB_TEST) test
+
+branches-test:
+	make -C $(BRANCHES_TEST) test
 
 clean:
 	rm -rf *.o $(TARGET)
 
 dist-clean: clean
 	make -C $(FIB_TEST) clean
+	make -C $(BRANCHES_TEST) clean
 
-.PHONY: all debug test fib-test clean dist-clean
+.PHONY: all debug test fib-test branches-test clean dist-clean
