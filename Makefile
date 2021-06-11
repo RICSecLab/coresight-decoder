@@ -1,16 +1,27 @@
 TARGET := processor
 
-CXX := g++
-CXXFLAGS :=-std=c++14 -Wall -g -fsanitize=undefined -D_GLIBCXX_DEBUG
+SRC_DIR := src
+INC_DIR := include
 
 # capstone library name (without prefix 'lib' and suffix '.so')
-LIBNAME := capstone
+LIBCAPSTONE := capstone
 
-SRCS := decoder.c deformatter.c disassembler.c utils.c processor.c
+CXX := g++
+CXXFLAGS := -std=c++14 -Wall -g -fsanitize=undefined -D_GLIBCXX_DEBUG
+CXXFLAGS += -I$(INC_DIR)
+CXXFLAGS += -l$(LIBCAPSTONE)
+
+SRCS :=	$(SRC_DIR)/decoder.c \
+	$(SRC_DIR)/deformatter.c \
+	$(SRC_DIR)/disassembler.c \
+	$(SRC_DIR)/utils.c \
+	$(SRC_DIR)/processor.c
+
 OBJS := $(SRCS:.c=.o)
 
 FIB_TEST := tests/fib
 BRANCHES_TEST := tests/branches
+
 
 all: $(TARGET)
 
@@ -18,7 +29,7 @@ debug: CXXFLAGS += -DDEBUG_BUILD
 debug: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(OBJS) -l$(LIBNAME) -o $@
+	$(CXX) -o $@ $^ $(CXXFLAGS)
 
 test: fib-test branches-test
 
@@ -29,7 +40,7 @@ branches-test:
 	make -C $(BRANCHES_TEST) test
 
 clean:
-	rm -rf *.o $(TARGET)
+	rm -rf $(OBJS) $(TARGET)
 
 dist-clean: clean
 	make -C $(FIB_TEST) clean
