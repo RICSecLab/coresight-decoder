@@ -28,7 +28,8 @@ struct Coverage {
     size_t binary_file_index;
 };
 
-std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle);
+std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle,
+    const uint64_t lower_address_range, const uint64_t uppper_address_range);
 std::vector<BranchTrace> processTraceData(const std::vector<uint8_t>& trace_data);
 size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const uint64_t address);
 
@@ -42,7 +43,9 @@ int main(int argc, char const *argv[])
                   << "[binary_data1_filename] [binary_data1_start_address] [binary_data1_end_address] ... "
                   << "[binary_dataN_filename] [binary_dataN_start_address] [binary_dataN_end_address] [OPTIONS]" << std::endl
                   << "OPTIONS:" << std::endl
-                  << "\t--raw_address_mode ; Use raw address as output for edge coverage, not offset in binary"
+                  << "\t--raw_address_mode  : Use raw address as output for edge coverage, not offset in binary." << std::endl
+                  << "\t--address-range=L,R : Specify the range of addresses to be saved as edge coverage." << std::endl
+                  << "\t                      L and R are hexadecimal values, and the address range is [l, r]."
                   << std::endl;
         std::exit(1);
     }
@@ -91,9 +94,15 @@ int main(int argc, char const *argv[])
 
     // Read options
     bool raw_address_mode = false;
+    uint64_t lower_address_range = 0x0;
+    uint64_t upper_address_range = UINT64_MAX;
     for (int i = binary_file_num * 3 + 4; i < argc; ++i) {
+        uint64_t t1 = 0, t2 = 0;
         if (strcmp(argv[i], "--raw-address-mode") == 0) {
             raw_address_mode = true;
+        } else if (sscanf(argv[i], "--address-range=%lx,%lx", &t1, &t2) == 2) {
+            lower_address_range = t1;
+            upper_address_range = t2;
         } else {
             std::cerr << "Invalid option: " << argv[i] << std::endl;
             std::exit(1);
@@ -104,7 +113,7 @@ int main(int argc, char const *argv[])
     disassembleInit(&handle);
 
     // Calculate edge coverage from trace data and binary data
-    std::vector<Coverage> coverage = process(deformat_trace_data, memory_map, handle);
+    std::vector<Coverage> coverage = process(deformat_trace_data, memory_map, handle, lower_address_range, upper_address_range);
 
     // Print edge coverage
     std::cout << "Edge Coverage" << std::endl;
@@ -124,7 +133,8 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
-std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle)
+std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle,
+    const uint64_t lower_address_range, const uint64_t upper_address_range)
 {
     // Trace dataの中から、エッジカバレッジの復元に必要なパケットのみを取り出す。
     std::vector<BranchTrace> bts = processTraceData(trace_data);
@@ -146,13 +156,15 @@ std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std:
             const uint64_t offset = address - memory_map[index].start_address;
 
             // Save coverage information
-            coverage.emplace_back(
-                Coverage {
-                    address,
-                    offset,
-                    index,
-                }
-            );
+            if (lower_address_range <= address and address < upper_address_range) {
+                coverage.emplace_back(
+                    Coverage {
+                        address,
+                        offset,
+                        index,
+                    }
+                );
+            }
 
             cs_insn *insn = disassembleNextBranchInsn(&handle, memory_map[index].binary_data, offset);
 
