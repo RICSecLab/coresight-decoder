@@ -40,15 +40,6 @@ run trace3 0xaaaae28e071c 0xaaaae28e0940
 run trace4 0xaaaabeaf071c 0xaaaabeaf0940
 
 
-# Compare edge coverage for each trace data
-assert trace1 trace2
-assert trace1 trace3
-assert trace1 trace4
-assert trace2 trace3
-assert trace2 trace4
-assert trace3 trace4
-
-
 # Compare with expected edge coverage
 assert trace1 expected
 assert trace2 expected
