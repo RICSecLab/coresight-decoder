@@ -11,7 +11,9 @@ OUTPUT_FILE_SUFFIX="_edge_coverage.out"
 run () {
     target="$1" # Trace data for calculating edge coverage
     output_file=$target$OUTPUT_FILE_SUFFIX
-    $PROGRAM $(cat $target/decoderargs.txt) > $output_file
+    lower_address="$2"
+    upper_address="$3"
+    $PROGRAM $(cat $target/decoderargs.txt) --address-range=$lower_address,$upper_address > $output_file
 }
 
 
@@ -32,10 +34,10 @@ assert() {
 
 
 # Calculate edge coverage for all trace data
-run trace1
-run trace2
-run trace3
-run trace4
+run trace1 0xaaaaceaa071c 0xaaaaceaa0940
+run trace2 0xaaaae560071c 0xaaaae5600940
+run trace3 0xaaaae28e071c 0xaaaae28e0940
+run trace4 0xaaaabeaf071c 0xaaaabeaf0940
 
 
 # Compare edge coverage for each trace data
