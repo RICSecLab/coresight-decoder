@@ -141,6 +141,11 @@ bool isIndirectBranch(const cs_insn *insn)
     return false;
 }
 
+bool isISBInstruction(const cs_insn *insn)
+{
+    return (insn->id == ARM64_INS_ISB) ? true : false;
+}
+
 // Capstoneライブラリのバージョンを確認する。
 // 古いバージョンにはバグがあり、tag:v4.0以降では解決されている。
 // https://github.com/aquynh/capstone/pull/1213

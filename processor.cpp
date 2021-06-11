@@ -172,8 +172,11 @@ std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std:
                 next_address = bts[i].target_address;
             } else {
                 if (bts[i].is_taken) { // taken
-                    next_address = memory_map[index].start_address + getAddressFromInsn(insn);
-
+                    if (isISBInstruction(insn)) {
+                        next_address = address + insn->size;
+                    } else {
+                        next_address = memory_map[index].start_address + getAddressFromInsn(insn);
+                    }
                 } else { // not taken
                     next_address = memory_map[index].start_address + insn->address + insn->size;
                 }
