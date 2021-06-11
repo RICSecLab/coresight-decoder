@@ -5,3 +5,10 @@
 #else
 # define DEBUG(fmt, ...)
 #endif
+
+
+struct Coverage {
+    uint64_t address;
+    uint64_t binary_offset;
+    size_t binary_file_index;
+};

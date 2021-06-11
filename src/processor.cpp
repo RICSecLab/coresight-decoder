@@ -9,6 +9,7 @@
 #include "disassembler.hpp"
 #include "utils.hpp"
 #include "common.hpp"
+#include "bitmap.hpp"
 
 
 struct BranchTrace {
@@ -21,12 +22,6 @@ struct MemoryMap {
     std::vector<uint8_t> binary_data;
     uint64_t start_address;
     uint64_t end_address;
-};
-
-struct Coverage {
-    uint64_t address;
-    uint64_t binary_offset;
-    size_t binary_file_index;
 };
 
 std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle,
@@ -46,7 +41,9 @@ int main(int argc, char const *argv[])
                   << "OPTIONS:" << std::endl
                   << "\t--raw_address_mode  : Use raw address as output for edge coverage, not offset in binary." << std::endl
                   << "\t--address-range=L,R : Specify the range of addresses to be saved as edge coverage." << std::endl
-                  << "\t                      L and R are hexadecimal values, and the address range is [l, r]."
+                  << "\t                      L and R are hexadecimal values, and the address range is [l, r]." << std::endl
+                  << "\t--bitmap-mode       : Enable bitmap calculation." << std::endl
+                  << "\t--bitmap-size=size  : Specify the bitmap size in hexadecimal. The default size is 0x10000."
                   << std::endl;
         std::exit(1);
     }
@@ -97,13 +94,21 @@ int main(int argc, char const *argv[])
     bool raw_address_mode = false;
     uint64_t lower_address_range = 0x0;
     uint64_t upper_address_range = UINT64_MAX;
+    bool bitmap_mode = false;
+    uint64_t bitmap_size = BITMAP_SIZE;
     for (int i = binary_file_num * 3 + 4; i < argc; ++i) {
         uint64_t t1 = 0, t2 = 0;
+        size_t size;
         if (strcmp(argv[i], "--raw-address-mode") == 0) {
             raw_address_mode = true;
         } else if (sscanf(argv[i], "--address-range=%lx,%lx", &t1, &t2) == 2) {
             lower_address_range = t1;
             upper_address_range = t2;
+        } else if (strcmp(argv[i], "--bitmap-mode") == 0) {
+            bitmap_mode = true;
+        } else if (sscanf(argv[i], "--bitmap-size=%lx", &size) == 1) {
+            // TODO: Check if it is an invalid size
+            bitmap_size = size;
         } else {
             std::cerr << "Invalid option: " << argv[i] << std::endl;
             std::exit(1);
@@ -114,7 +119,16 @@ int main(int argc, char const *argv[])
     disassembleInit(&handle);
 
     // Calculate edge coverage from trace data and binary data
-    std::vector<Coverage> coverage = process(deformat_trace_data, memory_map, handle, lower_address_range, upper_address_range);
+    const std::vector<Coverage> coverage = process(deformat_trace_data, memory_map, handle, lower_address_range, upper_address_range);
+
+    // Create bitmap from edge coverage for fuzzing
+    if (bitmap_mode) {
+        const std::vector<uint8_t> bitmap = createBitmap(coverage, bitmap_size);
+        for (const auto b : bitmap) {
+            std::cout << std::hex << (int)b << " ";
+        }
+        std::cout << std::endl;
+    }
 
     // Print edge coverage
     DEBUG("Edge Coverage");
