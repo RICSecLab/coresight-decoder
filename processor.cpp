@@ -8,6 +8,7 @@
 #include "deformatter.hpp"
 #include "disassembler.hpp"
 #include "utils.hpp"
+#include "common.hpp"
 
 
 struct BranchTrace {
@@ -116,7 +117,7 @@ int main(int argc, char const *argv[])
     std::vector<Coverage> coverage = process(deformat_trace_data, memory_map, handle, lower_address_range, upper_address_range);
 
     // Print edge coverage
-    std::cout << "Edge Coverage" << std::endl;
+    DEBUG("Edge Coverage");
     for (size_t i = 0; i < coverage.size() - 1; i++) {
         if (raw_address_mode) {
             std::cout << std::hex << "0x" << coverage[i].address;
