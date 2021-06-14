@@ -39,11 +39,12 @@ int main(int argc, char const *argv[])
                   << "[binary_data1_filename] [binary_data1_start_address] [binary_data1_end_address] ... "
                   << "[binary_dataN_filename] [binary_dataN_start_address] [binary_dataN_end_address] [OPTIONS]" << std::endl
                   << "OPTIONS:" << std::endl
-                  << "\t--raw_address_mode  : Use raw address as output for edge coverage, not offset in binary." << std::endl
-                  << "\t--address-range=L,R : Specify the range of addresses to be saved as edge coverage." << std::endl
-                  << "\t                      L and R are hexadecimal values, and the address range is [l, r]." << std::endl
-                  << "\t--bitmap-mode       : Enable bitmap calculation." << std::endl
-                  << "\t--bitmap-size=size  : Specify the bitmap size in hexadecimal. The default size is 0x10000."
+                  << "\t--raw_address_mode     : Use raw address as output for edge coverage, not offset in binary." << std::endl
+                  << "\t--address-range=L,R    : Specify the range of addresses to be saved as edge coverage." << std::endl
+                  << "\t                         L and R are hexadecimal values, and the address range is [l, r]." << std::endl
+                  << "\t--bitmap-mode          : Enable bitmap calculation." << std::endl
+                  << "\t--bitmap-size=size     : Specify the bitmap size in hexadecimal. The default size is 0x10000." << std::endl
+                  << "\t--bitmap-filename=name : Specify the file name to save the bitmap. The default name is edge_coverage_bitmap.out"
                   << std::endl;
         std::exit(1);
     }
@@ -96,9 +97,11 @@ int main(int argc, char const *argv[])
     uint64_t upper_address_range = UINT64_MAX;
     bool bitmap_mode = false;
     uint64_t bitmap_size = BITMAP_SIZE;
+    std::string bitmap_filename = BITMAP_FILENAME;
     for (int i = binary_file_num * 3 + 4; i < argc; ++i) {
         uint64_t t1 = 0, t2 = 0;
         size_t size;
+        char buf[64];
         if (strcmp(argv[i], "--raw-address-mode") == 0) {
             raw_address_mode = true;
         } else if (sscanf(argv[i], "--address-range=%lx,%lx", &t1, &t2) == 2) {
@@ -109,6 +112,8 @@ int main(int argc, char const *argv[])
         } else if (sscanf(argv[i], "--bitmap-size=%lx", &size) == 1) {
             // TODO: Check if it is an invalid size
             bitmap_size = size;
+        } else if (sscanf(argv[i], "--bitmap-filename=%s", buf)) {
+            bitmap_filename = std::string(buf);
         } else {
             std::cerr << "Invalid option: " << argv[i] << std::endl;
             std::exit(1);
@@ -121,13 +126,10 @@ int main(int argc, char const *argv[])
     // Calculate edge coverage from trace data and binary data
     const std::vector<Coverage> coverage = process(deformat_trace_data, memory_map, handle, lower_address_range, upper_address_range);
 
-    // Create bitmap from edge coverage for fuzzing
+    // Create a bitmap from edge coverage for fuzzing and save the bitmap
     if (bitmap_mode) {
         const std::vector<uint8_t> bitmap = createBitmap(coverage, bitmap_size);
-        for (const auto b : bitmap) {
-            std::cout << std::hex << (int)b << " ";
-        }
-        std::cout << std::endl;
+        writeBinaryFile(bitmap, bitmap_filename);
     }
 
     // Print edge coverage

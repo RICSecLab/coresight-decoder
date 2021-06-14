@@ -17,3 +17,10 @@ std::vector<uint8_t> readBinaryFile(const std::string &filename)
 
     return result;
 }
+
+void writeBinaryFile(const std::vector<uint8_t> &data, const std::string &filename)
+{
+    std::ofstream ofs(filename, std::ios::out | std::ios::binary);
+    ofs.write((const char*)&data[0], data.size() * sizeof(uint8_t));
+    ofs.close();
+}
