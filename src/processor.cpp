@@ -101,7 +101,7 @@ int main(int argc, char const *argv[])
     for (int i = binary_file_num * 3 + 4; i < argc; ++i) {
         uint64_t t1 = 0, t2 = 0;
         size_t size;
-        char buf[64];
+        char buf[256];
         if (strcmp(argv[i], "--raw-address-mode") == 0) {
             raw_address_mode = true;
         } else if (sscanf(argv[i], "--address-range=%lx,%lx", &t1, &t2) == 2) {
