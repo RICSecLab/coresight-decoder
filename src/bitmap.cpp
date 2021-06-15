@@ -4,7 +4,6 @@
 #include "bitmap.hpp"
 
 
-uint64_t generateBitmapKey(const uint64_t from, const uint64_t to);
 uint64_t mixBits(const uint64_t value);
 
 
@@ -20,27 +19,25 @@ std::vector<uint8_t> createBitmap(const std::vector<Coverage> &coverage, size_t 
     // それを用いて、bitmapのキーを計算する。
 
     for (size_t i = 0; i < coverage.size() - 1; ++i) {
-        // ハッシュ関数を通して、ELF上の位置の値をランダムな値に変換する。
-        const uint64_t from = mixBits(coverage[i].binary_offset);
-        const uint64_t to   = mixBits(coverage[i + 1].binary_offset);
+        const uint64_t from = coverage[i].binary_offset;
+        const uint64_t to   = coverage[i + 1].binary_offset;
 
         // bitmapのキーを計算し、対応する位置の値を増やす。
-        const uint64_t bitmap_size = (uint64_t)bitmap.size();
-        const uint64_t key = generateBitmapKey(from, to) & (bitmap_size - 1);
+        const uint64_t key = generateBitmapKey(from, to, bitmap_size);
         bitmap[key]++;
     }
 
     return bitmap;
 }
 
-uint64_t generateBitmapKey(const uint64_t from, const uint64_t to)
+uint64_t generateBitmapKey(const uint64_t from, const uint64_t to, const size_t bitmap_size)
 {
     // aflのtechnical_details.txtに書いてある通り、AFLのカバレッジの計算は以下のようである。
     //     cur_location = <COMPILE_TIME_RANDOM>;
     //     shared_mem[cur_location ^ prev_location]++;
     //     prev_location = cur_location >> 1;
     //
-    return mixBits(to) ^ (mixBits(from) >> 1);
+    return (mixBits(to) ^ (mixBits(from) >> 1)) & (bitmap_size - 1);
 }
 
 uint64_t mixBits(const uint64_t value)
