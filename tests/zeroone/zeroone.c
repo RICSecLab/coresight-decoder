@@ -2,11 +2,11 @@
 
 #define IFBRANCH(buf, idx, var) \
     __asm__ volatile ( \
-        "   cmp %1, #0x31;" \
+        "   cmp %1, #0x31;" /* compare buf[idx] with '1' */ \
         "   b.eq 1f;" /* if bit is one, branch taken */ \
-        "   mov %0, #0;" \
+        "   mov %0, #0;" /* assign 1 to var */ \
         "   b 2f;" \
-        "1: mov %0, #1;" \
+        "1: mov %0, #1;" /* assign 0 to var */ \
         "   b 2f;" \
         "2: nop;" /* dummy */ \
         : "=r" (var) \

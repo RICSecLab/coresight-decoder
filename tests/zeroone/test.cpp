@@ -35,6 +35,8 @@ std::unordered_map<size_t, uint8_t> GetCoverage(const int bit_seq)
 
     std::unordered_map<size_t, uint8_t> coverage; {
         for (size_t key = 0; key < bitmap.size(); ++key) {
+            // Since zeroone does not pass through the same edge more than once,
+            // the value of the bitmap is 0 or 1 if no hash collision has occurred.
             BOOST_CHECK(bitmap[key] <= 1);
 
             if (bitmap[key] > 0) {
