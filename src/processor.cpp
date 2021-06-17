@@ -18,16 +18,9 @@ struct BranchTrace {
     uint64_t target_address; // for Address Packet
 };
 
-struct MemoryMap {
-    std::vector<uint8_t> binary_data;
-    uint64_t start_address;
-    uint64_t end_address;
-};
-
 std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle,
     const uint64_t lower_address_range, const uint64_t uppper_address_range);
 std::vector<BranchTrace> processTraceData(const std::vector<uint8_t>& trace_data);
-size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const uint64_t address);
 
 
 int main(int argc, char const *argv[])
@@ -164,10 +157,9 @@ std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std:
     std::vector<Coverage> coverage;
 
     // The address where the trace was started
-    uint64_t address = bts.front().target_address;
+    addr_t address = bts.front().target_address;
 
     for (size_t i = 1; i < bts.size(); i++) {
-
         if (bts[i].is_atom) { // Atom packet
 
             const size_t index = getMemoryMapIndex(memory_map, address);
@@ -184,14 +176,16 @@ std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std:
                 );
             }
 
-            cs_insn *insn = disassembleNextBranchInsn(&handle, memory_map[index].binary_data, offset);
+            // TODO: 同じaddressに対するこの処理は、キャッシュ化することができる。
+            // これにより、高速化出来る
+            BranchInsn insn = getNextBranchInsn(handle, address, memory_map);
 
             // Calculate the next address to save as edge coverage (address -> next_address)
-            uint64_t next_address = 0;
+            addr_t next_address = 0;
 
             // Indirect branch命令のとき、Atom packet(E)とAddress packetが生成される。
             // そのため、Atom packetを一つ消費した後に、Address packetを処理する。
-            if (isIndirectBranch(insn)) {
+            if (insn.type == INDIRECT_BRANCH) {
                 assert(bts[i].is_taken == true);
                 i++;
                 if (i >= bts.size()) {
@@ -202,21 +196,14 @@ std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std:
                 next_address = bts[i].target_address;
             } else {
                 if (bts[i].is_taken) { // taken
-                    if (isISBInstruction(insn)) {
-                        next_address = address + insn->size;
-                    } else {
-                        next_address = memory_map[index].start_address + getAddressFromInsn(insn);
-                    }
+                    next_address = insn.taken_address;
                 } else { // not taken
-                    next_address = memory_map[index].start_address + insn->address + insn->size;
+                    next_address = insn.not_taken_address;
                 }
             }
 
             // Update
             address = next_address;
-
-            // release the cache memory when done
-            cs_free(insn, 1);
         } else { // Address packet
             // Address packetは下記の3つの場合に生成される。
             //     1. トレース開始時に、トレース開始アドレスを示すために生成される。
@@ -315,15 +302,4 @@ std::vector<BranchTrace> processTraceData(const std::vector<uint8_t>& trace_data
     }
 
     return bts;
-}
-
-size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const uint64_t address)
-{
-    for (size_t i = 0; i < memory_map.size(); i++) {
-        if (memory_map[i].start_address <= address and address < memory_map[i].end_address) {
-            return i;
-        }
-    }
-    std::cerr << "Failed to find any binary data that matched the address: " << std::hex << address << std::endl;
-    std::exit(1);
 }

@@ -6,13 +6,16 @@
 #include <fstream>
 #include <cstring>
 
-#include "common.hpp"
 #include "disassembler.hpp"
 
 
 #if CS_API_MAJOR < 4
 #error Unsupported capstone version (capstone engine v4 is required)!
 #endif
+
+cs_insn* disassembleNextBranchInsn(const csh* handle, const std::vector<uint8_t> &code, const uint64_t offset);
+uint64_t getAddressFromInsn(const cs_insn *insn);
+BranchType decodeInstOpecode(const cs_insn *insn);
 
 
 // Arm Embedded Trace Macrocell Architecture Specification ETMv4.0 to ETMv4.6
@@ -48,14 +51,16 @@ static const uint16_t direct_branch_opcode[] = {
     ARM64_INS_CBNZ,
     ARM64_INS_TBZ,
     ARM64_INS_TBNZ,
-
-    ARM64_INS_ISB,
 };
 
 static const uint16_t indirect_branch_opcode[] = {
     ARM64_INS_BR,
     ARM64_INS_BLR,
     ARM64_INS_RET,
+};
+
+static const uint16_t isb_branch_opcode[] = {
+    ARM64_INS_ISB,
 };
 
 
@@ -74,8 +79,50 @@ void disassembleDelete(csh* handle)
     cs_close(handle);
 }
 
+// base_address以降のアドレスで、最も近い分岐命令を探す
+BranchInsn getNextBranchInsn(const csh &handle, const addr_t base_address, const std::vector<MemoryMap> &memory_map)
+{
+    const size_t binary_file_index = getMemoryMapIndex(memory_map, base_address);
+    const addr_t binary_file_start_address = memory_map[binary_file_index].start_address;
+
+    const addr_t base_address_offset = base_address - binary_file_start_address;
+    cs_insn *insn = disassembleNextBranchInsn(&handle, memory_map[binary_file_index].binary_data, base_address_offset);
+
+    const BranchType type = decodeInstOpecode(insn);
+
+    const addr_t offset  = insn->address;
+    const addr_t address = binary_file_start_address + offset;
+
+    // 分岐命令のtaken時に、分岐先のアドレスを計算する
+    const addr_t taken_offset  = (type == DIRECT_BRANCH) ? getAddressFromInsn(insn) :
+                                 (type == ISB_BRANCH) ? insn->address + insn->size : 0;
+    const addr_t taken_address = binary_file_start_address + taken_offset;
+
+    // Conditonal branchのとき、分岐命令でnot takenがある。
+    // それ以外の場合、分岐命令でnot takenの場合はない。
+    const addr_t not_taken_offset  = (type == DIRECT_BRANCH) ? offset + insn->size : 0;
+    // DEBUG("NOT TAKEN OFFSET: %lx %lx\n", offset, insn->size);
+    const addr_t not_taken_address = binary_file_start_address + not_taken_offset;
+
+    const BranchInsn branch_insn {
+        type,
+        address,
+        offset,
+        taken_address,
+        taken_offset,
+        not_taken_address,
+        not_taken_offset,
+        binary_file_index,
+    };
+
+    // release the cache memory when done
+    cs_free(insn, 1);
+
+    return branch_insn;
+}
+
 // https://www.capstone-engine.org/iteration.html
-cs_insn* disassembleNextBranchInsn(const csh* handle, const std::vector<uint8_t> code, const uint64_t offset)
+cs_insn* disassembleNextBranchInsn(const csh* handle, const std::vector<uint8_t> &code, const uint64_t offset)
 {
     const uint8_t *code_ptr = &code[0] + offset;
     size_t code_size = code.size() - offset;
@@ -90,17 +137,21 @@ cs_insn* disassembleNextBranchInsn(const csh* handle, const std::vector<uint8_t>
         // analyze disassembled instruction in @insn variable
         // NOTE: @code_ptr, @code_size & @address variables are all updated
         // to point to the next instruction after each iteration.
-        for (size_t i = 0; i < sizeof(direct_branch_opcode) / sizeof(uint16_t); ++i) {
-            if (insn->id == direct_branch_opcode[i]) {
+        BranchType type = decodeInstOpecode(insn);
+
+        switch (type) {
+            case DIRECT_BRANCH:
                 DEBUG("Found the direct branch instruction\n");
                 return insn;
-            }
-        }
-        for (size_t i = 0; i < sizeof(indirect_branch_opcode) / sizeof(uint16_t); ++i) {
-            if (insn->id == indirect_branch_opcode[i]) {
+            case INDIRECT_BRANCH:
                 DEBUG("Found the indirect branch instruction\n");
                 return insn;
-            }
+            case ISB_BRANCH:
+                DEBUG("Found the isb instruction\n");
+                return insn;
+            default:
+                // Not branch instruction
+                break;
         }
     }
 
@@ -131,19 +182,27 @@ uint64_t getAddressFromInsn(const cs_insn *insn)
     return address;
 }
 
-bool isIndirectBranch(const cs_insn *insn)
+BranchType decodeInstOpecode(const cs_insn *insn)
 {
-     for (size_t i = 0; i < sizeof(indirect_branch_opcode) / sizeof(uint16_t); ++i) {
-        if (insn->id == indirect_branch_opcode[i]) {
-            return true;
+    for (size_t i = 0; i < sizeof(direct_branch_opcode) / sizeof(uint16_t); ++i) {
+        if (insn->id == direct_branch_opcode[i]) {
+            return DIRECT_BRANCH;
         }
     }
-    return false;
-}
 
-bool isISBInstruction(const cs_insn *insn)
-{
-    return (insn->id == ARM64_INS_ISB) ? true : false;
+    for (size_t i = 0; i < sizeof(indirect_branch_opcode) / sizeof(uint16_t); ++i) {
+        if (insn->id == indirect_branch_opcode[i]) {
+            return INDIRECT_BRANCH;
+        }
+    }
+
+    for (size_t i = 0; i < sizeof(isb_branch_opcode) / sizeof(uint16_t); ++i) {
+        if (insn->id == isb_branch_opcode[i]) {
+            return ISB_BRANCH;
+        }
+    }
+
+    return NOT_BRANCH;
 }
 
 // Capstoneライブラリのバージョンを確認する。

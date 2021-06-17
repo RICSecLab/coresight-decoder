@@ -3,11 +3,31 @@
 #include <capstone/platform.h>
 #include <capstone/capstone.h>
 
+#include "common.hpp"
+
+enum BranchType {
+    DIRECT_BRANCH,
+    INDIRECT_BRANCH,
+    ISB_BRANCH,
+    NOT_BRANCH,
+};
+
+struct BranchInsn {
+    BranchType type;
+
+    addr_t address;
+    addr_t offset;
+
+    addr_t taken_address;
+    addr_t taken_offset;
+    addr_t not_taken_address;
+    addr_t not_taken_offset;
+
+    size_t binary_file_index;
+};
+
 
 void disassembleInit(csh* handle);
 void disassembleDelete(csh* handle);
-cs_insn* disassembleNextBranchInsn(const csh* handle, const std::vector<uint8_t> code, const uint64_t offset);
-uint64_t getAddressFromInsn(const cs_insn *insn);
-bool isIndirectBranch(const cs_insn *insn);
-bool isISBInstruction(const cs_insn *insn);
+BranchInsn getNextBranchInsn(const csh &handle, const addr_t base_address, const std::vector<MemoryMap> &memory_map);
 void checkCapstoneVersion();

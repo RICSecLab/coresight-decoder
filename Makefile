@@ -16,6 +16,7 @@ SRCS :=	$(SRC_DIR)/decoder.c \
 	$(SRC_DIR)/disassembler.c \
 	$(SRC_DIR)/utils.c \
 	$(SRC_DIR)/bitmap.c \
+	$(SRC_DIR)/common.c \
 	$(SRC_DIR)/processor.c
 
 OBJS := $(SRCS:.c=.o)
