@@ -47,5 +47,25 @@ struct Packet
     uint64_t addr;
 };
 
-Packet decodePacket(const std::vector<uint8_t> &trace_data, const size_t offset);
+
+enum BranchPacketType
+{
+    BRANCH_PKT_ATOM,
+    BRANCH_PKT_ADDRESS,
+};
+
+struct BranchPacket
+{
+    BranchPacketType type;
+
+    // for ATOM packet (direct branch)
+    uint32_t en_bits;
+    size_t en_bits_len;
+
+    // for ADDRESS packet (indirect branch)
+    uint64_t target_address;
+};
+
+
+std::vector<BranchPacket> decodeTraceData(const std::vector<uint8_t>& trace_data);
 void printPacket(const Packet packet);
