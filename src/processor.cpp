@@ -18,7 +18,7 @@ struct BranchTrace {
     uint64_t target_address; // for Address Packet
 };
 
-std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle,
+std::vector<Trace> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle,
     const uint64_t lower_address_range, const uint64_t uppper_address_range);
 std::vector<BranchTrace> processTraceData(const std::vector<uint8_t>& trace_data);
 
@@ -117,7 +117,7 @@ int main(int argc, char const *argv[])
     disassembleInit(&handle);
 
     // Calculate edge coverage from trace data and binary data
-    const std::vector<Coverage> coverage = process(deformat_trace_data, memory_map, handle, lower_address_range, upper_address_range);
+    const std::vector<Trace> coverage = process(deformat_trace_data, memory_map, handle, lower_address_range, upper_address_range);
 
     // Create a bitmap from edge coverage for fuzzing and save the bitmap
     if (bitmap_mode) {
@@ -133,10 +133,10 @@ int main(int argc, char const *argv[])
             std::cout << " -> ";
             std::cout << std::hex << "0x" << coverage[i + 1].address << std::endl;
         } else {
-            std::cout << std::hex << "0x" << coverage[i].binary_offset << " [" << argv[4 + coverage[i].binary_file_index * 3] << "]";
+            std::cout << std::hex << "0x" << coverage[i].offset << " [" << argv[4 + coverage[i].index * 3] << "]";
             std::cout << " -> ";
-            std::cout << std::hex << "0x" << coverage[i + 1].binary_offset << " [" << argv[4 + coverage[i + 1].binary_file_index * 3] << "] ";
-            std::cout << std::hex << "bitmap key: 0x" << generateBitmapKey(coverage[i].binary_offset, coverage[i + 1].binary_offset, bitmap_size) << std::endl;
+            std::cout << std::hex << "0x" << coverage[i + 1].offset << " [" << argv[4 + coverage[i + 1].index * 3] << "] ";
+            std::cout << std::hex << "bitmap key: 0x" << generateBitmapKey(coverage[i].offset, coverage[i + 1].offset, bitmap_size) << std::endl;
         }
     }
 
@@ -144,7 +144,7 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
-std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle,
+std::vector<Trace> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle,
     const uint64_t lower_address_range, const uint64_t upper_address_range)
 {
     // Trace dataの中から、エッジカバレッジの復元に必要なパケットのみを取り出す。
@@ -154,34 +154,26 @@ std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std:
     // そうでないと、トレース開始アドレスがわからない。
     assert(bts.front().is_atom == false);
 
-    std::vector<Coverage> coverage;
+    std::vector<Trace> coverage;
 
     // The address where the trace was started
-    addr_t address = bts.front().target_address;
+    Trace trace = createTrace(memory_map, bts.front().target_address);
 
     for (size_t i = 1; i < bts.size(); i++) {
         if (bts[i].is_atom) { // Atom packet
 
-            const size_t index = getMemoryMapIndex(memory_map, address);
-            const uint64_t offset = address - memory_map[index].start_address;
-
-            // Save coverage information
-            if (lower_address_range <= address and address < upper_address_range) {
-                coverage.emplace_back(
-                    Coverage {
-                        address,
-                        offset,
-                        index,
-                    }
-                );
+            // Save trace information
+            if (lower_address_range <= trace.address and trace.address < upper_address_range) {
+                // printf("TRACE: %lx\n", trace.address);
+                coverage.emplace_back(trace);
             }
 
             // TODO: 同じaddressに対するこの処理は、キャッシュ化することができる。
             // これにより、高速化出来る
-            BranchInsn insn = getNextBranchInsn(handle, address, memory_map);
+            BranchInsn insn = getNextBranchInsn(handle, trace.address, memory_map);
 
             // Calculate the next address to save as edge coverage (address -> next_address)
-            addr_t next_address = 0;
+            Trace next_trace;
 
             // Indirect branch命令のとき、Atom packet(E)とAddress packetが生成される。
             // そのため、Atom packetを一つ消費した後に、Address packetを処理する。
@@ -193,17 +185,20 @@ std::vector<Coverage> process(const std::vector<uint8_t>& trace_data, const std:
                     std::exit(1);
                 }
                 assert(bts[i].is_atom == false);
-                next_address = bts[i].target_address;
+                next_trace = createTrace(memory_map, bts[i].target_address);
             } else {
                 if (bts[i].is_taken) { // taken
-                    next_address = insn.taken_address;
+                    next_trace.address = insn.taken_address;
+                    next_trace.offset  = insn.taken_offset;
                 } else { // not taken
-                    next_address = insn.not_taken_address;
+                    next_trace.address = insn.not_taken_address;
+                    next_trace.offset  = insn.not_taken_offset;
                 }
+                next_trace.index = insn.index;
             }
 
             // Update
-            address = next_address;
+            trace = next_trace;
         } else { // Address packet
             // Address packetは下記の3つの場合に生成される。
             //     1. トレース開始時に、トレース開始アドレスを示すために生成される。

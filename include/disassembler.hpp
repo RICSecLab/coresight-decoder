@@ -23,7 +23,7 @@ struct BranchInsn {
     addr_t not_taken_address;
     addr_t not_taken_offset;
 
-    size_t binary_file_index;
+    size_t index;
 };
 
 

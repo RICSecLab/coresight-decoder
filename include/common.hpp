@@ -10,10 +10,10 @@
 using addr_t = std::uint64_t;
 
 
-struct Coverage {
-    uint64_t address;
-    uint64_t binary_offset;
-    size_t binary_file_index;
+struct Trace {
+    addr_t address;
+    addr_t offset;
+    size_t index;
 };
 
 struct MemoryMap {
@@ -23,4 +23,5 @@ struct MemoryMap {
 };
 
 
+Trace createTrace(const std::vector<MemoryMap> &memory_map, const addr_t address);
 size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const uint64_t address);

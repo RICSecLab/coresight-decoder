@@ -11,7 +11,7 @@ uint64_t mixBits(const uint64_t value);
 // TODO: coverageデータにはELFファイルの上のオフセットが記録されており、
 // 複数のELFファイルがある場合、どのファイルのオフセットなのかを区別する必要があるが、
 // 現在はしていない。
-std::vector<uint8_t> createBitmap(const std::vector<Coverage> &coverage, size_t bitmap_size)
+std::vector<uint8_t> createBitmap(const std::vector<Trace> &coverage, size_t bitmap_size)
 {
     std::vector<std::uint8_t> bitmap(bitmap_size, 0);
 
@@ -19,8 +19,8 @@ std::vector<uint8_t> createBitmap(const std::vector<Coverage> &coverage, size_t 
     // それを用いて、bitmapのキーを計算する。
 
     for (size_t i = 0; i < coverage.size() - 1; ++i) {
-        const uint64_t from = coverage[i].binary_offset;
-        const uint64_t to   = coverage[i + 1].binary_offset;
+        const uint64_t from = coverage[i].offset;
+        const uint64_t to   = coverage[i + 1].offset;
 
         // bitmapのキーを計算し、対応する位置の値を増やす。
         const uint64_t key = generateBitmapKey(from, to, bitmap_size);

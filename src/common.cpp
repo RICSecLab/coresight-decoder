@@ -4,6 +4,17 @@
 #include "common.hpp"
 
 
+Trace createTrace(const std::vector<MemoryMap> &memory_map, const addr_t address)
+{
+    const size_t index = getMemoryMapIndex(memory_map, address);
+    const addr_t offset = address - memory_map[index].start_address;
+    return Trace {
+        address,
+        offset,
+        index
+    };
+}
+
 size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const addr_t address)
 {
     for (size_t i = 0; i < memory_map.size(); i++) {

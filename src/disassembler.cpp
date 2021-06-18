@@ -82,27 +82,27 @@ void disassembleDelete(csh* handle)
 // base_address以降のアドレスで、最も近い分岐命令を探す
 BranchInsn getNextBranchInsn(const csh &handle, const addr_t base_address, const std::vector<MemoryMap> &memory_map)
 {
-    const size_t binary_file_index = getMemoryMapIndex(memory_map, base_address);
-    const addr_t binary_file_start_address = memory_map[binary_file_index].start_address;
+    const size_t index = getMemoryMapIndex(memory_map, base_address);
+    const addr_t start_address = memory_map[index].start_address;
 
-    const addr_t base_address_offset = base_address - binary_file_start_address;
-    cs_insn *insn = disassembleNextBranchInsn(&handle, memory_map[binary_file_index].binary_data, base_address_offset);
+    const addr_t base_address_offset = base_address - start_address;
+    cs_insn *insn = disassembleNextBranchInsn(&handle, memory_map[index].binary_data, base_address_offset);
 
     const BranchType type = decodeInstOpecode(insn);
 
     const addr_t offset  = insn->address;
-    const addr_t address = binary_file_start_address + offset;
+    const addr_t address = start_address + offset;
 
     // 分岐命令のtaken時に、分岐先のアドレスを計算する
     const addr_t taken_offset  = (type == DIRECT_BRANCH) ? getAddressFromInsn(insn) :
                                  (type == ISB_BRANCH) ? insn->address + insn->size : 0;
-    const addr_t taken_address = binary_file_start_address + taken_offset;
+    const addr_t taken_address = start_address + taken_offset;
 
     // Conditonal branchのとき、分岐命令でnot takenがある。
     // それ以外の場合、分岐命令でnot takenの場合はない。
     const addr_t not_taken_offset  = (type == DIRECT_BRANCH) ? offset + insn->size : 0;
     // DEBUG("NOT TAKEN OFFSET: %lx %lx\n", offset, insn->size);
-    const addr_t not_taken_address = binary_file_start_address + not_taken_offset;
+    const addr_t not_taken_address = start_address + not_taken_offset;
 
     const BranchInsn branch_insn {
         type,
@@ -112,7 +112,7 @@ BranchInsn getNextBranchInsn(const csh &handle, const addr_t base_address, const
         taken_offset,
         not_taken_address,
         not_taken_offset,
-        binary_file_index,
+        index,
     };
 
     // release the cache memory when done
