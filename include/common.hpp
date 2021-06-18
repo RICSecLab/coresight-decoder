@@ -6,6 +6,7 @@
 # define DEBUG(fmt, ...)
 #endif
 
+#include <vector>
 
 using addr_t = std::uint64_t;
 
