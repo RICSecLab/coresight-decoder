@@ -10,10 +10,11 @@
 #include "utils.hpp"
 #include "common.hpp"
 #include "bitmap.hpp"
+#include "cache.hpp"
 
 
 std::vector<Trace> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle,
-    const uint64_t lower_address_range, const uint64_t uppper_address_range);
+    const uint64_t lower_address_range, const uint64_t uppper_address_range, const bool cache_mode);
 
 
 int main(int argc, char const *argv[])
@@ -84,6 +85,7 @@ int main(int argc, char const *argv[])
     bool bitmap_mode = false;
     uint64_t bitmap_size = BITMAP_SIZE;
     std::string bitmap_filename = BITMAP_FILENAME;
+    bool cache_mode = false;
     for (int i = binary_file_num * 3 + 4; i < argc; ++i) {
         uint64_t t1 = 0, t2 = 0;
         size_t size;
@@ -100,6 +102,8 @@ int main(int argc, char const *argv[])
             bitmap_size = size;
         } else if (sscanf(argv[i], "--bitmap-filename=%s", buf)) {
             bitmap_filename = std::string(buf);
+        } else if (strcmp(argv[i], "--cache-mode") == 0) {
+            cache_mode = true;
         } else {
             std::cerr << "Invalid option: " << argv[i] << std::endl;
             std::exit(1);
@@ -110,7 +114,7 @@ int main(int argc, char const *argv[])
     disassembleInit(&handle);
 
     // Calculate edge coverage from trace data and binary data
-    const std::vector<Trace> coverage = process(deformat_trace_data, memory_map, handle, lower_address_range, upper_address_range);
+    const std::vector<Trace> coverage = process(deformat_trace_data, memory_map, handle, lower_address_range, upper_address_range, cache_mode);
 
     // Create a bitmap from edge coverage for fuzzing and save the bitmap
     if (bitmap_mode) {
@@ -138,7 +142,7 @@ int main(int argc, char const *argv[])
 }
 
 std::vector<Trace> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle,
-    const uint64_t lower_address_range, const uint64_t upper_address_range)
+    const uint64_t lower_address_range, const uint64_t upper_address_range, const bool cache_mode)
 {
     // Trace dataの中から、エッジカバレッジの復元に必要なパケットのみを取り出す。
     std::vector<BranchPacket> branch_packets = decodeTraceData(trace_data);
@@ -152,6 +156,9 @@ std::vector<Trace> process(const std::vector<uint8_t>& trace_data, const std::ve
     // The address where the trace was started
     Trace trace = createTrace(memory_map, branch_packets.front().target_address);
 
+    // Create cache
+    Cache cache;
+
     for (size_t pkt_index = 1; pkt_index < branch_packets.size(); pkt_index++) {
 
         if (branch_packets[pkt_index].type == BRANCH_PKT_ATOM) { // Atom packet
@@ -164,9 +171,29 @@ std::vector<Trace> process(const std::vector<uint8_t>& trace_data, const std::ve
                     coverage.emplace_back(trace);
                 }
 
-                // TODO: 同じaddressに対するこの処理は、キャッシュ化することができる。
-                // これにより、高速化出来る
-                BranchInsn insn = getNextBranchInsn(handle, trace.address, memory_map);
+                BranchInsn insn; {
+                    if (cache_mode) {
+                        BranchInsnKey insn_key {
+                            trace.offset, trace.index
+                        };
+
+                        // Cacheにアクセスして、既にディスアセンブルした命令か調べる。
+                        // 同じバイナリファイル&オフセットに対するこの処理は、キャッシュ化することができる。
+                        // もし既にキャッシュに存在するなら、そのデータを使うことで高速化できる。
+                        if (isCachedBranchInsn(cache, insn_key)) {
+                            // 既にディスアセンブルした結果がキャッシュにあるため、そのデータを読み込む。
+                            insn = getBranchInsnCache(cache, insn_key);
+                        } else {
+                            // 命令列をディスアセンブルし、分岐命令を探す。
+                            insn = getNextBranchInsn(handle, trace.address, memory_map);
+                            // Cacheに分岐命令をディスアセンブルした結果を格納する。
+                            addBranchInsnCache(cache, insn_key, insn);
+                        }
+                    } else {
+                        // 命令列をディスアセンブルし、分岐命令を探す。
+                        insn = getNextBranchInsn(handle, trace.address, memory_map);
+                    }
+                }
 
                 // Calculate the next address to save as edge coverage (address -> next_address)
                 Trace next_trace;
