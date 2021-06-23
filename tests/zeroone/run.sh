@@ -15,6 +15,11 @@ run_tracer () {
     bit_seq="$1"
     trace_out_dir="$2"
     DIR=$trace_out_dir TRACEE=$TRACEE TRACEE_ARGS=$bit_seq make -C $PROC_TRACE_DIR trace
+
+    if [ $? -ne 0 ]; then
+        echo "Failed to run tracer"
+        exit 1
+    fi
 }
 
 run_decoder () {
@@ -32,6 +37,11 @@ run_decoder () {
                                                    --bitmap-size=0x1000 \
                                                    --bitmap-filename=$bitmap_file \
                                                    > $edge_coverage_file
+
+    if [ $? -ne 0 ]; then
+        echo "Failed to run decoder due to corrupted trace data or bugs in the decoder implementation."
+        exit 1
+    fi
 }
 
 
