@@ -17,7 +17,7 @@
 
 int write_bitmap(const char *trace_data_filename, const char trace_id,
     const int binary_file_num, struct bin_addr_range *binary_files,
-    void *bitmap_addr, const int bitmap_size)
+    void *bitmap_addr, const int bitmap_size, bool cache_mode)
 {
     checkCapstoneVersion();
 
@@ -53,7 +53,6 @@ int write_bitmap(const char *trace_data_filename, const char trace_id,
 
     uint64_t lower_address_range = 0x0;
     uint64_t upper_address_range = UINT64_MAX;
-    bool cache_mode = false;
 
     csh handle;
     disassembleInit(&handle);

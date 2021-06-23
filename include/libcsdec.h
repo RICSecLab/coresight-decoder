@@ -4,6 +4,7 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
 #include <limits.h>
 
 struct bin_addr_range {
@@ -14,7 +15,7 @@ struct bin_addr_range {
 
 int write_bitmap(const char *trace_data_filename, const char trace_id,
     const int binary_file_num, struct bin_addr_range *binary_files,
-    void *bitmap_addr, const int bitmap_size);
+    void *bitmap_addr, const int bitmap_size, bool cache_mode);
 
 #ifdef __cplusplus
 } // extern "C"
