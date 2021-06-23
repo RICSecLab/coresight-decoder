@@ -22,7 +22,7 @@ SRCS :=	$(SRC_DIR)/decoder.c \
 	$(SRC_DIR)/common.c \
 	$(SRC_DIR)/cache.c \
 	$(SRC_DIR)/process.c \
-	$(SRC_DIR)/cs-decoder.c \
+	$(SRC_DIR)/libcsdec.c \
 	$(SRC_DIR)/processor.c
 
 OBJS := $(SRCS:.c=.o)

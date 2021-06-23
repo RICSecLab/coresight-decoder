@@ -13,7 +13,7 @@
 #include "bitmap.hpp"
 #include "cache.hpp"
 
-#include "cs-decoder.h"
+#include "libcsdec.h"
 
 int write_bitmap(const char *trace_data_filename, const char trace_id,
     const int binary_file_num, struct bin_addr_range *binary_files,
