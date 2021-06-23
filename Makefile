@@ -9,8 +9,6 @@ LIBCAPSTONE := capstone
 
 CXX := g++
 CXXFLAGS := -std=c++14 -Wall
-# FIXME: Enabling UBSAN and GLIBCXX_DEBUG is not compatible with proc-trace
-# CXXFLAGS += -g -fsanitize=undefined -D_GLIBCXX_DEBUG
 CXXFLAGS += -I$(INC_DIR)
 CXXFLAGS += -l$(LIBCAPSTONE)
 
@@ -33,7 +31,9 @@ BRANCHES_TEST := tests/branches
 
 all: $(TARGET) $(LIBTARGET)
 
+# FIXME: Enabling UBSAN and GLIBCXX_DEBUG is not compatible with proc-trace
 debug: CXXFLAGS += -DDEBUG_BUILD
+debug: CXXFLAGS += -g -fsanitize=undefined -D_GLIBCXX_DEBUG
 debug: $(TARGET) $(LIBTARGET)
 
 $(TARGET): $(OBJS)
