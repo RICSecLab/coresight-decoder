@@ -7,15 +7,26 @@ extern "C" {
 #include <stdbool.h>
 #include <limits.h>
 
-struct bin_addr_range {
+typedef void* libcsdec_t;
+
+struct libcsdec_memory_map {
     unsigned long start;
     unsigned long end;
     char path[PATH_MAX];
-};  
+};
 
-int write_bitmap(const char *trace_data_filename, const char trace_id,
-    const int binary_file_num, struct bin_addr_range *binary_files,
-    void *bitmap_addr, const int bitmap_size, bool cache_mode);
+typedef enum libcsdec_result {
+    DECODE_SUCCESS,
+    DECODE_ERROR,
+} libcsdec_result_t;
+
+libcsdec_t libcsdec_init(
+    const int binary_file_num, const char *binary_file_path[],
+    const void *bitmap_addr, const int bitmap_size, const bool cache_mode);
+
+libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
+    const char *trace_data_filename, const char trace_id,
+    const int memory_map_num, const struct libcsdec_memory_map memory_map[]);
 
 #ifdef __cplusplus
 } // extern "C"
