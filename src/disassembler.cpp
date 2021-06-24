@@ -80,13 +80,15 @@ void disassembleDelete(csh* handle)
 }
 
 // base_address以降のアドレスで、最も近い分岐命令を探す
-BranchInsn getNextBranchInsn(const csh &handle, const addr_t base_address, const std::vector<MemoryMap> &memory_map)
+BranchInsn getNextBranchInsn(const ProcessParam &param, const csh &handle,
+    const addr_t base_address, const std::vector<MemoryMap> &memory_map)
 {
     const size_t index = getMemoryMapIndex(memory_map, base_address);
+    const std::string binary_data_filename = memory_map[index].binary_data_filename;
     const addr_t start_address = memory_map[index].start_address;
 
     const addr_t base_address_offset = base_address - start_address;
-    cs_insn *insn = disassembleNextBranchInsn(&handle, memory_map[index].binary_data, base_address_offset);
+    cs_insn *insn = disassembleNextBranchInsn(&handle, param.binary_files.at(binary_data_filename), base_address_offset);
 
     const BranchType type = decodeInstOpecode(insn);
 

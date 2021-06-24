@@ -11,8 +11,8 @@
 #include "common.hpp"
 #include "cache.hpp"
 
-std::vector<Trace> process(const std::vector<uint8_t>& trace_data, const std::vector<MemoryMap> &memory_map, const csh &handle,
-    const uint64_t lower_address_range, const uint64_t upper_address_range, const bool cache_mode)
+std::vector<Trace> process(const ProcessParam &param, const std::vector<uint8_t>& trace_data,
+    const std::vector<MemoryMap> &memory_map, const csh &handle)
 {
     // Trace dataの中から、エッジカバレッジの復元に必要なパケットのみを取り出す。
     std::vector<BranchPacket> branch_packets = decodeTraceData(trace_data);
@@ -37,12 +37,12 @@ std::vector<Trace> process(const std::vector<uint8_t>& trace_data, const std::ve
             const BranchPacket atom_packet = branch_packets[pkt_index];
             for (size_t i = 0; i < atom_packet.en_bits_len; ++i) {
                 // Save trace information
-                if (lower_address_range <= trace.address and trace.address < upper_address_range) {
+                if (getMemoryMapIndex(memory_map, trace.address) == trace.index) {
                     coverage.emplace_back(trace);
                 }
 
                 BranchInsn insn; {
-                    if (cache_mode) {
+                    if (param.cache_mode) {
                         BranchInsnKey insn_key {
                             trace.offset, trace.index
                         };
@@ -55,13 +55,13 @@ std::vector<Trace> process(const std::vector<uint8_t>& trace_data, const std::ve
                             insn = getBranchInsnCache(cache, insn_key);
                         } else {
                             // 命令列をディスアセンブルし、分岐命令を探す。
-                            insn = getNextBranchInsn(handle, trace.address, memory_map);
+                            insn = getNextBranchInsn(param, handle, trace.address, memory_map);
                             // Cacheに分岐命令をディスアセンブルした結果を格納する。
                             addBranchInsnCache(cache, insn_key, insn);
                         }
                     } else {
                         // 命令列をディスアセンブルし、分岐命令を探す。
-                        insn = getNextBranchInsn(handle, trace.address, memory_map);
+                        insn = getNextBranchInsn(param, handle, trace.address, memory_map);
                     }
                 }
 

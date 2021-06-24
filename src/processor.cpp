@@ -54,7 +54,7 @@ int main(int argc, char const *argv[])
     const std::vector<uint8_t> deformat_trace_data = deformatTraceData(trace_data, trace_id);
 
     // Read binary data and entry point
-    std::vector<MemoryMap> memory_map; {
+    std::vector<MemoryMap> memory_maps; std::unordered_map<std::string, std::vector<std::uint8_t>> binary_files; {
         for (int i = 0; i < binary_file_num; i++) {
             // Read binary data
             const std::string binary_data_filename = argv[4 + i * 3];
@@ -64,13 +64,15 @@ int main(int argc, char const *argv[])
             const std::uint64_t start_address = std::stol(argv[4 + i * 3 + 1], nullptr, 16);
             const std::uint64_t end_address   = std::stol(argv[4 + i * 3 + 2], nullptr, 16);
 
-            memory_map.emplace_back(
+            memory_maps.emplace_back(
                 MemoryMap {
-                    data,
+                    binary_data_filename,
                     start_address,
                     end_address,
                 }
             );
+
+            binary_files.insert(std::make_pair(binary_data_filename, data));
         }
     }
 
@@ -109,8 +111,15 @@ int main(int argc, char const *argv[])
     csh handle;
     disassembleInit(&handle);
 
+    ProcessParam param {
+        binary_files,
+        nullptr,
+        (int)bitmap_size,
+        cache_mode,
+    };
+
     // Calculate edge coverage from trace data and binary data
-    const std::vector<Trace> coverage = process(deformat_trace_data, memory_map, handle, lower_address_range, upper_address_range, cache_mode);
+    const std::vector<Trace> coverage = process(param, deformat_trace_data, memory_maps, handle);
 
     // Create a bitmap from edge coverage for fuzzing and save the bitmap
     if (bitmap_mode) {
