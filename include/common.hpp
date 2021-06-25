@@ -12,12 +12,6 @@
 using addr_t = std::uint64_t;
 
 
-struct Trace {
-    addr_t address;
-    addr_t offset;
-    size_t index;
-};
-
 struct MemoryMap {
     std::string binary_data_filename;
     addr_t start_address;
@@ -33,6 +27,14 @@ struct ProcessParam {
     const bool cache_mode;
 };
 
+struct Location {
+    addr_t offset;
+    std::size_t index;
 
-Trace createTrace(const std::vector<MemoryMap> &memory_map, const addr_t address);
+    Location() = default;
+    Location(const Location &location);
+    Location(const addr_t offset, const std::size_t index);
+    Location(const std::vector<MemoryMap> &memory_map, const addr_t address);
+};
+
 size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const uint64_t address);

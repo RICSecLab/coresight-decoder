@@ -4,15 +4,22 @@
 #include "common.hpp"
 
 
-Trace createTrace(const std::vector<MemoryMap> &memory_map, const addr_t address)
+Location::Location(const Location &location)
+    : offset(location.offset), index(location.index) {}
+
+Location::Location(const addr_t offset, const std::size_t index)
+{
+    this->offset = offset;
+    this->index = index;
+}
+
+Location::Location(const std::vector<MemoryMap> &memory_map, const addr_t address)
 {
     const size_t index = getMemoryMapIndex(memory_map, address);
     const addr_t offset = address - memory_map[index].start_address;
-    return Trace {
-        address,
-        offset,
-        index
-    };
+
+    this->offset = offset;
+    this->index = index;
 }
 
 size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const addr_t address)
