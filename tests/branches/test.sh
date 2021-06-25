@@ -32,7 +32,11 @@ assert() {
     output_file1=$target1$OUTPUT_FILE_SUFFIX
     output_file2=$target2$OUTPUT_FILE_SUFFIX
 
-    diff $output_file1 $output_file2
+    # Extract only the required edge coverage starting from 0x900-> 0x71c
+    diff \
+        <(grep 0x900 $output_file1 -A41 | grep 0x71c -A41) \
+        <(grep 0x900 $output_file2 -A41 | grep 0x71c -A41)
+
     result="$?"
     if [ $result -ne 0 ]; then
         echo "Found differences: $target1, $target2"
