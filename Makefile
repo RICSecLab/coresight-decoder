@@ -19,6 +19,7 @@ SRCS :=	$(SRC_DIR)/decoder.c \
 	$(SRC_DIR)/bitmap.c \
 	$(SRC_DIR)/common.c \
 	$(SRC_DIR)/cache.c \
+	$(SRC_DIR)/trace.c \
 	$(SRC_DIR)/process.c \
 	$(SRC_DIR)/libcsdec.c \
 	$(SRC_DIR)/processor.c
