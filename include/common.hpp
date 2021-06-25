@@ -7,6 +7,7 @@
 #endif
 
 #include <vector>
+#include <unordered_map>
 
 using addr_t = std::uint64_t;
 
@@ -18,9 +19,18 @@ struct Trace {
 };
 
 struct MemoryMap {
-    std::vector<uint8_t> binary_data;
-    uint64_t start_address;
-    uint64_t end_address;
+    std::string binary_data_filename;
+    addr_t start_address;
+    addr_t end_address;
+};
+
+struct ProcessParam {
+    const std::unordered_map<std::string, std::vector<std::uint8_t>> binary_files;
+
+    const void* bitmap_addr;
+    const int bitmap_size;
+
+    const bool cache_mode;
 };
 
 

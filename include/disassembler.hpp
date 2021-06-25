@@ -29,5 +29,6 @@ struct BranchInsn {
 
 void disassembleInit(csh* handle);
 void disassembleDelete(csh* handle);
-BranchInsn getNextBranchInsn(const csh &handle, const addr_t base_address, const std::vector<MemoryMap> &memory_map);
+BranchInsn getNextBranchInsn(const ProcessParam &param, const csh &handle,
+    const addr_t base_address, const std::vector<MemoryMap> &memory_map);
 void checkCapstoneVersion();
