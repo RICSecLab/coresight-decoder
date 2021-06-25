@@ -91,6 +91,13 @@ std::vector<BranchPacket> decodeTraceData(const std::vector<uint8_t>& trace_data
                 case ETM4_PKT_I_EXCEPT:
                     state = EXCEPTION_ADDR1;
                     break;
+                case ETM4_PKT_I_OVERFLOW:
+                    // An Overflow packet is output in the data trace stream whenever the data trace buffer
+                    // in the trace unit overflows. This means that part of the data trace stream might be lost,
+                    // and tracing is inactive until the overflow condition clears.
+                    std::cerr << "Found an overflow packet that indicates that a trace unit buffer overflow has occurred. ";
+                    std::cerr << "The trace data may be corrupted." << std::endl;
+                    std::exit(1);
                 default:
                     break;
             }
@@ -219,8 +226,31 @@ PacketType decodePacketHeader(const std::vector<uint8_t> &trace_data, const size
 
 Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
 {
-    // Header is correct, but packet size is incomplete.
     const size_t rest_data_size = trace_data.size() - offset;
+
+    // Header is correct, but packet size is incomplete.
+    if (rest_data_size < 2) {
+        return Packet{
+            PKT_INCOMPLETE,
+            rest_data_size,
+            0,
+            0,
+            0
+        };
+    }
+
+    // Overflow packet
+    if (trace_data[offset + 1] == 0x5) {
+        return Packet{
+            ETM4_PKT_I_OVERFLOW,
+            2,
+            0,
+            0,
+            0
+        };
+    }
+
+    // Header is correct, but packet size is incomplete.
     if (rest_data_size < 12) {
         return Packet{
             PKT_INCOMPLETE,

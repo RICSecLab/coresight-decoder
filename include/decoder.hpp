@@ -27,6 +27,7 @@ enum PacketType
 
     // Extension packets - follow 0x00 header
     ETM4_PKT_I_ASYNC,
+    ETM4_PKT_I_OVERFLOW,
 
     PKT_UNKNOWN,
     PKT_INCOMPLETE,
