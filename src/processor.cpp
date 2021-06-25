@@ -119,26 +119,43 @@ int main(int argc, char const *argv[])
     };
 
     // Calculate edge coverage from trace data and binary data
-    const std::vector<Trace> coverage = process(param, deformat_trace_data, memory_maps, handle);
+    const std::vector<Trace> traces = process(param, deformat_trace_data, memory_maps, handle);
 
     // Create a bitmap from edge coverage for fuzzing and save the bitmap
     if (bitmap_mode) {
-        const std::vector<uint8_t> bitmap = createBitmap(coverage, bitmap_size);
+        const std::vector<uint8_t> bitmap = createBitmap(traces, bitmap_size);
         writeBinaryFile(bitmap, bitmap_filename);
     }
 
     // Print edge coverage
-    DEBUG("Edge Coverage");
-    for (size_t i = 0; i < coverage.size() - 1; i++) {
-        if (raw_address_mode) {
-            std::cout << std::hex << "0x" << coverage[i].address;
+    for (const Trace &trace : traces) {
+        if (trace.type == TRACE_ATOM_TYPE) {
+            const AtomTrace atom_trace = trace.atom_trace;
+            for (size_t i = 0; i < atom_trace.locations.size() - 1; i++) {
+                const Location prev_location = atom_trace.locations[i];
+                const Location next_location = atom_trace.locations[i + 1];
+
+                const std::size_t key = atom_trace.bitmap_keys[i];
+
+                std::cout << std::hex << "0x" << prev_location.offset << " [" << argv[4 + prev_location.index * 3] << "]";
+                std::cout << " -> ";
+                std::cout << std::hex << "0x" << next_location.offset << " [" << argv[4 + next_location.index * 3] << "] ";
+                std::cout << std::hex << "bitmap key: 0x" << key << std::endl;
+            }
+        } else if (trace.type == TRACE_ADDRESS_TYPE) {
+            const AddressTrace address_trace = trace.address_trace;
+
+            const Location prev_location = address_trace.src_location;
+            const Location next_location = address_trace.dest_location;
+            const std::size_t key = address_trace.bitmap_key;
+
+            std::cout << std::hex << "0x" << prev_location.offset << " [" << argv[4 + prev_location.index * 3] << "]";
             std::cout << " -> ";
-            std::cout << std::hex << "0x" << coverage[i + 1].address << std::endl;
+            std::cout << std::hex << "0x" << next_location.offset << " [" << argv[4 + next_location.index * 3] << "] ";
+            std::cout << std::hex << "bitmap key: 0x" << key << std::endl;
         } else {
-            std::cout << std::hex << "0x" << coverage[i].offset << " [" << argv[4 + coverage[i].index * 3] << "]";
-            std::cout << " -> ";
-            std::cout << std::hex << "0x" << coverage[i + 1].offset << " [" << argv[4 + coverage[i + 1].index * 3] << "] ";
-            std::cout << std::hex << "bitmap key: 0x" << generateBitmapKey(coverage[i].offset, coverage[i + 1].offset, bitmap_size) << std::endl;
+            std::cerr << "Unknown trace type." << std::endl;
+            std::exit(1);
         }
     }
 

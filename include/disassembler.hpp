@@ -15,12 +15,9 @@ enum BranchType {
 struct BranchInsn {
     BranchType type;
 
-    addr_t address;
     addr_t offset;
 
-    addr_t taken_address;
     addr_t taken_offset;
-    addr_t not_taken_address;
     addr_t not_taken_offset;
 
     size_t index;
@@ -30,5 +27,5 @@ struct BranchInsn {
 void disassembleInit(csh* handle);
 void disassembleDelete(csh* handle);
 BranchInsn getNextBranchInsn(const ProcessParam &param, const csh &handle,
-    const addr_t base_address, const std::vector<MemoryMap> &memory_map);
+    const Location &location, const std::vector<MemoryMap> &memory_map);
 void checkCapstoneVersion();

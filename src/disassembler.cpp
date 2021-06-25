@@ -81,40 +81,30 @@ void disassembleDelete(csh* handle)
 
 // base_address以降のアドレスで、最も近い分岐命令を探す
 BranchInsn getNextBranchInsn(const ProcessParam &param, const csh &handle,
-    const addr_t base_address, const std::vector<MemoryMap> &memory_map)
+    const Location &location, const std::vector<MemoryMap> &memory_map)
 {
-    const size_t index = getMemoryMapIndex(memory_map, base_address);
-    const std::string binary_data_filename = memory_map[index].binary_data_filename;
-    const addr_t start_address = memory_map[index].start_address;
+    const std::string binary_data_filename = memory_map[location.index].binary_data_filename;
 
-    const addr_t base_address_offset = base_address - start_address;
-    cs_insn *insn = disassembleNextBranchInsn(&handle, param.binary_files.at(binary_data_filename), base_address_offset);
+    cs_insn *insn = disassembleNextBranchInsn(&handle, param.binary_files.at(binary_data_filename), location.offset);
 
     const BranchType type = decodeInstOpecode(insn);
 
     const addr_t offset  = insn->address;
-    const addr_t address = start_address + offset;
 
     // 分岐命令のtaken時に、分岐先のアドレスを計算する
     const addr_t taken_offset  = (type == DIRECT_BRANCH) ? getAddressFromInsn(insn) :
                                  (type == ISB_BRANCH) ? insn->address + insn->size : 0;
-    const addr_t taken_address = start_address + taken_offset;
 
     // Conditonal branchのとき、分岐命令でnot takenがある。
     // それ以外の場合、分岐命令でnot takenの場合はない。
     const addr_t not_taken_offset  = (type == DIRECT_BRANCH) ? offset + insn->size : 0;
-    // DEBUG("NOT TAKEN OFFSET: %lx %lx\n", offset, insn->size);
-    const addr_t not_taken_address = start_address + not_taken_offset;
 
     const BranchInsn branch_insn {
         type,
-        address,
         offset,
-        taken_address,
         taken_offset,
-        not_taken_address,
         not_taken_offset,
-        index,
+        location.index,
     };
 
     // release the cache memory when done
