@@ -121,8 +121,8 @@ std::vector<Trace> process(const ProcessParam &param, const std::vector<uint8_t>
                 }
             }
         } else {
-            std::cerr << "Unknown branch packet." << std::endl;
-            std::exit(1);
+            // Unknown branch packet.
+            __builtin_unreachable();
         }
     }
 

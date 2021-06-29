@@ -28,8 +28,7 @@ std::vector<uint8_t> createBitmap(const std::vector<Trace> &traces, size_t bitma
             // Indirect branchのbitmapをコピーする
             bitmap[trace.address_trace.bitmap_key]++;
         } else {
-            std::cerr << "Unknown trace type." << std::endl;
-            std::exit(1);
+            __builtin_unreachable();
         }
     }
     return bitmap;
