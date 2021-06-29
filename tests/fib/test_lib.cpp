@@ -2,8 +2,33 @@
 #include <cstdlib>
 #include <cassert>
 
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 #include "libcsdec.h"
 
+int load_bin(const char *path, void **buf, size_t *size) {
+    int fd = open(path, O_RDONLY);
+    if (fd < 0) {
+        return -1;
+    }
+
+    struct stat sb;
+    fstat(fd, &sb);
+
+    char *addr = (char *)mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    if (!addr) {
+        return -1;
+    }
+
+    *buf = (void *)addr;
+    *size = (size_t)sb.st_size;
+
+    return 0;
+}
 
 int check_bitmaps(unsigned char* global_bitmap, unsigned char* local_bitmap, int bitmap_size) {
 
@@ -50,7 +75,11 @@ int main(int argc, char const *argv[])
             {0xffff9d2fd000, 0xffff9d470000, "libc-2.31.so"}
         };
 
-        enum libcsdec_result result = libcsdec_write_bitmap(libcsdec, trace_data_filename, trace_id, memory_map_num, memory_map);
+        void *trace_data_addr = NULL;
+        size_t trace_data_size = 0;
+        load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
+
+        enum libcsdec_result result = libcsdec_write_bitmap(libcsdec, trace_data_addr, trace_data_size, trace_id, memory_map_num, memory_map);
         if (result == DECODE_ERROR) {
             printf("Decoder error occurred.\n");
             exit(1);
@@ -72,7 +101,11 @@ int main(int argc, char const *argv[])
             {0xffff83a07000, 0xffff83b7a000, "libc-2.31.so"}
         };
 
-        enum libcsdec_result result = libcsdec_write_bitmap(libcsdec, trace_data_filename, trace_id, memory_map_num, memory_map);
+        void *trace_data_addr = NULL;
+        size_t trace_data_size = 0;
+        load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
+
+        enum libcsdec_result result = libcsdec_write_bitmap(libcsdec, trace_data_addr, trace_data_size, trace_id, memory_map_num, memory_map);
         if (result == DECODE_ERROR) {
             printf("Decoder error occurred.\n");
             exit(1);
@@ -94,7 +127,11 @@ int main(int argc, char const *argv[])
             {0xffff92ead000, 0xffff93020000, "libc-2.31.so"}
         };
 
-        enum libcsdec_result result = libcsdec_write_bitmap(libcsdec, trace_data_filename, trace_id, memory_map_num, memory_map);
+        void *trace_data_addr = NULL;
+        size_t trace_data_size = 0;
+        load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
+
+        enum libcsdec_result result = libcsdec_write_bitmap(libcsdec, trace_data_addr, trace_data_size, trace_id, memory_map_num, memory_map);
         if (result == DECODE_ERROR) {
             printf("Decoder error occurred.\n");
             exit(1);
@@ -116,7 +153,11 @@ int main(int argc, char const *argv[])
             {0xffff80a8f000, 0xffff80c02000, "libc-2.31.so"}
         };
 
-        enum libcsdec_result result = libcsdec_write_bitmap(libcsdec, trace_data_filename, trace_id, memory_map_num, memory_map);
+        void *trace_data_addr = NULL;
+        size_t trace_data_size = 0;
+        load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
+
+        enum libcsdec_result result = libcsdec_write_bitmap(libcsdec, trace_data_addr, trace_data_size, trace_id, memory_map_num, memory_map);
         if (result == DECODE_ERROR) {
             printf("Decoder error occurred.\n");
             exit(1);

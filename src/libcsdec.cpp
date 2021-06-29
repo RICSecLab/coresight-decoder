@@ -47,8 +47,9 @@ libcsdec_t libcsdec_init(
 
 
 libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
-    const char *trace_data_filename, const char trace_id,
-    const int memory_map_num, const struct libcsdec_memory_map libcsdec_memory_map[])
+    const void *trace_data_addr, const size_t trace_data_size,
+    const char trace_id, const int memory_map_num,
+    const struct libcsdec_memory_map libcsdec_memory_map[])
 {
     if (memory_map_num <= 0) {
         std::cerr << "Specify 1 or more for the number of memory maps" << std::endl;
@@ -59,7 +60,7 @@ libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
     ProcessParam *param = (ProcessParam*)libcsdec;
 
     // Read trace data
-    const std::vector<uint8_t> trace_data = readBinaryFile(trace_data_filename);
+    const std::vector<uint8_t> trace_data((uint8_t *)trace_data_addr, ((uint8_t *)trace_data_addr + trace_data_size));
     const std::vector<uint8_t> deformat_trace_data = deformatTraceData(trace_data, trace_id);
 
     // Read binary data and entry point
