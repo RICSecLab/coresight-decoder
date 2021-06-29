@@ -93,6 +93,8 @@ libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
                 return LIBCSDEC_ERROR_OVERFLOW_PACKET;
             case PROCESS_ERROR_TRACE_DATA_INCOMPLETE:
                 return LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE;
+            default:
+                break;
         }
     }
 
