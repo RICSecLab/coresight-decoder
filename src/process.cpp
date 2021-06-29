@@ -32,7 +32,7 @@ AddressTrace processAddressPacket(const ProcessParam &param, ProcessState &state
     const std::vector<MemoryMap> &memory_map, const BranchPacket &address_packet);
 BranchInsn processNextBranchInsn(const ProcessParam &param, ProcessState &state, Cache &cache,
     const csh &handle, const std::vector<MemoryMap> &memory_map, const Location base_location);
-bool checkAddressRange(const ProcessParam &param, const Location &location);
+bool checkTraceRange(const ProcessParam &param, const std::vector<MemoryMap> &memory_map, const Location &location);
 
 
 ProcessResult process(const ProcessParam &param, const std::vector<uint8_t>& trace_data,
@@ -59,7 +59,7 @@ ProcessResult process(const ProcessParam &param, const std::vector<uint8_t>& tra
     assert(branch_packets.front().type == BRANCH_PKT_ADDRESS);
     const Location start_location = Location(memory_map, branch_packets.front().target_address);
 
-    ProcessState state{start_location, false, checkAddressRange(param, start_location) ? TRACE_ON : TRACE_OUT_OF_RANGE};
+    ProcessState state{start_location, false, checkTraceRange(param, memory_map, start_location) ? TRACE_ON : TRACE_OUT_OF_RANGE};
 
     std::vector<Trace> traces;
 
@@ -210,9 +210,9 @@ AddressTrace processAddressPacket(const ProcessParam &param, ProcessState &state
     state.prev_location = dest_location;
     state.has_pending_address_packet = false;
 
-    if (checkAddressRange(param, src_location) and checkAddressRange(param, dest_location)) {
+    if (checkTraceRange(param, memory_map, src_location) and checkTraceRange(param, memory_map, dest_location)) {
         state.trace_state = TRACE_ON;
-    } else if (checkAddressRange(param, dest_location)) {
+    } else if (checkTraceRange(param, memory_map, dest_location)) {
         state.trace_state = TRACE_RESTART;
     } else {
         state.trace_state = TRACE_OUT_OF_RANGE;
@@ -254,8 +254,8 @@ BranchInsn processNextBranchInsn(const ProcessParam &param, ProcessState &state,
     return insn;
 }
 
-bool checkAddressRange(const ProcessParam &param, const Location &location)
+bool checkTraceRange(const ProcessParam &param, const std::vector<MemoryMap> &memory_map, const Location &location)
 {
-    // TODO:
-    return true;
+    const std::string binary_data_filename = memory_map[location.index].binary_data_filename;
+    return param.binary_files.count(binary_data_filename) > 0;
 }
