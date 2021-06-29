@@ -47,3 +47,6 @@ struct Trace {
     Trace(const AtomTrace &trace);
     Trace(const AddressTrace &trace);
 };
+
+
+void printTraceLocations(const std::vector<Trace> &traces, const std::vector<MemoryMap> &memory_map);

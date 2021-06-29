@@ -131,37 +131,7 @@ int main(int argc, char const *argv[])
         writeBinaryFile(bitmap, bitmap_filename);
     }
 
-    // Print edge coverage
-    for (const Trace &trace : result.traces) {
-        if (trace.type == TRACE_ATOM_TYPE) {
-            const AtomTrace atom_trace = trace.atom_trace;
-            for (size_t i = 0; i < atom_trace.locations.size() - 1; i++) {
-                const Location prev_location = atom_trace.locations[i];
-                const Location next_location = atom_trace.locations[i + 1];
-
-                const std::size_t key = atom_trace.bitmap_keys[i];
-
-                std::cout << std::hex << "0x" << prev_location.offset << " [" << argv[4 + prev_location.index * 3] << "]";
-                std::cout << " -> ";
-                std::cout << std::hex << "0x" << next_location.offset << " [" << argv[4 + next_location.index * 3] << "] ";
-                std::cout << std::hex << "bitmap key: 0x" << key << std::endl;
-            }
-        } else if (trace.type == TRACE_ADDRESS_TYPE) {
-            const AddressTrace address_trace = trace.address_trace;
-
-            const Location prev_location = address_trace.src_location;
-            const Location next_location = address_trace.dest_location;
-            const std::size_t key = address_trace.bitmap_key;
-
-            std::cout << std::hex << "0x" << prev_location.offset << " [" << argv[4 + prev_location.index * 3] << "]";
-            std::cout << " -> ";
-            std::cout << std::hex << "0x" << next_location.offset << " [" << argv[4 + next_location.index * 3] << "] ";
-            std::cout << std::hex << "bitmap key: 0x" << key << std::endl;
-        } else {
-            std::cerr << "Unknown trace type." << std::endl;
-            std::exit(1);
-        }
-    }
+    printTraceLocations(result.traces, memory_maps);
 
     disassembleDelete(&handle);
     return 0;

@@ -1,3 +1,6 @@
+#include <iostream>
+#include <cassert>
+
 #include "trace.hpp"
 #include "bitmap.hpp"
 
@@ -46,3 +49,36 @@ Trace::Trace(const AtomTrace &trace)
 
 Trace::Trace(const AddressTrace &trace)
     : type(TRACE_ADDRESS_TYPE), atom_trace(AtomTrace()), address_trace(trace) {}
+
+
+void printTraceLocations(const std::vector<Trace> &traces, const std::vector<MemoryMap> &memory_map)
+{
+    // Print edge coverage
+    for (const Trace &trace : traces) {
+        if (trace.type == TRACE_ATOM_TYPE) {
+            const AtomTrace atom_trace = trace.atom_trace;
+
+            for (size_t i = 0; i < atom_trace.locations.size() - 1; i++) {
+                const Location prev_location = atom_trace.locations[i];
+                const Location next_location = atom_trace.locations[i + 1];
+
+                std::cout << std::hex << "0x" << prev_location.offset << " [" << memory_map[prev_location.index].binary_data_filename << "]";
+                std::cout << " -> ";
+                std::cout << std::hex << "0x" << next_location.offset << " [" << memory_map[next_location.index].binary_data_filename << "]";
+                std::cout << std::endl;
+            }
+        } else if (trace.type == TRACE_ADDRESS_TYPE) {
+            const AddressTrace address_trace = trace.address_trace;
+
+            const Location prev_location = address_trace.src_location;
+            const Location next_location = address_trace.dest_location;
+
+            std::cout << std::hex << "0x" << prev_location.offset << " [" << memory_map[prev_location.index].binary_data_filename << "]";
+            std::cout << " -> ";
+            std::cout << std::hex << "0x" << next_location.offset << " [" << memory_map[next_location.index].binary_data_filename << "]";
+            std::cout << std::endl;
+        } else {
+            __builtin_unreachable();
+        }
+    }
+}
