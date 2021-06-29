@@ -76,10 +76,9 @@ std::vector<Trace> process(const ProcessParam &param, const std::vector<uint8_t>
             }
 
             // Atomパケットの処理時に、未処理のIndirect Branchがある。
-            if (state.has_pending_address_packet) {
-                std::cerr << "No address packet." << std::endl;
-                std::exit(1);
-            }
+            // 本来であれば、Atomパケットではなく、Addressパケットがあるはずである。
+            // このエラーが発生するとき、おそらくこのプログラム自体にバグがある。
+            assert(state.has_pending_address_packet == false);
 
             // Cacheにアクセスして、既に同じトレースデータと開始アドレスから、
             // エッジカバレッジを復元したことがあるか調べる。
