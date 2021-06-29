@@ -53,7 +53,7 @@ libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
 {
     if (memory_map_num <= 0) {
         std::cerr << "Specify 1 or more for the number of memory maps" << std::endl;
-        return DECODE_ERROR;
+        return LIBCSDEC_ERROR;
     }
 
     // Cast
@@ -85,13 +85,22 @@ libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
     disassembleInit(&handle);
 
     // Calculate edge coverage from trace data and binary data
-    const std::vector<Trace> coverage = process(*param, deformat_trace_data, memory_map, handle);
+    const ProcessResult result = process(*param, deformat_trace_data, memory_map, handle);
+
+    if (result.type != PROCESS_SUCCESS) {
+        switch (result.type) {
+            case PROCESS_ERROR_OVERFLOW_PACKET:
+                return LIBCSDEC_ERROR_OVERFLOW_PACKET;
+            case PROCESS_ERROR_TRACE_DATA_INCOMPLETE:
+                return LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE;
+        }
+    }
 
     // Create a bitmap from edge coverage for fuzzing and save the bitmap
-    const std::vector<uint8_t> bitmap = createBitmap(coverage, param->bitmap_size);
+    const std::vector<uint8_t> bitmap = createBitmap(result.traces, param->bitmap_size);
     std::copy(bitmap.begin(), bitmap.end(), (uint8_t *)param->bitmap_addr);
 
     disassembleDelete(&handle);
 
-    return DECODE_SUCCESS;
+    return LIBCEDEC_SUCCESS;
 }

@@ -119,16 +119,20 @@ int main(int argc, char const *argv[])
     };
 
     // Calculate edge coverage from trace data and binary data
-    const std::vector<Trace> traces = process(param, deformat_trace_data, memory_maps, handle);
+    const ProcessResult result = process(param, deformat_trace_data, memory_maps, handle);
+    if (result.type != PROCESS_SUCCESS) {
+        std::cerr << "" << std::endl;
+        std::exit(1);
+    }
 
     // Create a bitmap from edge coverage for fuzzing and save the bitmap
     if (bitmap_mode) {
-        const std::vector<uint8_t> bitmap = createBitmap(traces, bitmap_size);
+        const std::vector<uint8_t> bitmap = createBitmap(result.traces, bitmap_size);
         writeBinaryFile(bitmap, bitmap_filename);
     }
 
     // Print edge coverage
-    for (const Trace &trace : traces) {
+    for (const Trace &trace : result.traces) {
         if (trace.type == TRACE_ATOM_TYPE) {
             const AtomTrace atom_trace = trace.atom_trace;
             for (size_t i = 0; i < atom_trace.locations.size() - 1; i++) {

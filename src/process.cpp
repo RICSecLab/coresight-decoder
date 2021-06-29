@@ -35,7 +35,7 @@ BranchInsn processNextBranchInsn(const ProcessParam &param, ProcessState &state,
 bool checkAddressRange(const ProcessParam &param, const Location &location);
 
 
-std::vector<Trace> process(const ProcessParam &param, const std::vector<uint8_t>& trace_data,
+ProcessResult process(const ProcessParam &param, const std::vector<uint8_t>& trace_data,
     const std::vector<MemoryMap> &memory_map, const csh &handle)
 {
     // Trace dataの中から、エッジカバレッジの復元に必要なパケットのみを取り出す。
@@ -139,11 +139,17 @@ std::vector<Trace> process(const ProcessParam &param, const std::vector<uint8_t>
     }
 
     if (state.has_pending_address_packet) {
-        std::cerr << "This trace data is incomplete. There is no Address packet following Atom packet." << std::endl;
-        std::exit(1);
+        // This trace data is incomplete. There is no Address packet following Atom packet.
+        return ProcessResult {
+            std::vector<Trace> (),
+            PROCESS_ERROR_TRACE_DATA_INCOMPLETE
+        };
     }
 
-    return traces;
+    return ProcessResult {
+        traces,
+        PROCESS_SUCCESS
+    };
 }
 
 AtomTrace processAtomPacket(const ProcessParam &param, ProcessState &state, Cache &cache,

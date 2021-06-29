@@ -80,8 +80,8 @@ int main(int argc, char const *argv[])
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
         enum libcsdec_result result = libcsdec_write_bitmap(libcsdec, trace_data_addr, trace_data_size, trace_id, memory_map_num, memory_map);
-        if (result == DECODE_ERROR) {
-            printf("Decoder error occurred.\n");
+        if (result != LIBCEDEC_SUCCESS) {
+            printf("Decoder error occurred.");
             exit(1);
         }
 
@@ -106,7 +106,7 @@ int main(int argc, char const *argv[])
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
         enum libcsdec_result result = libcsdec_write_bitmap(libcsdec, trace_data_addr, trace_data_size, trace_id, memory_map_num, memory_map);
-        if (result == DECODE_ERROR) {
+        if (result != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -132,7 +132,7 @@ int main(int argc, char const *argv[])
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
         enum libcsdec_result result = libcsdec_write_bitmap(libcsdec, trace_data_addr, trace_data_size, trace_id, memory_map_num, memory_map);
-        if (result == DECODE_ERROR) {
+        if (result != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -158,7 +158,7 @@ int main(int argc, char const *argv[])
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
         enum libcsdec_result result = libcsdec_write_bitmap(libcsdec, trace_data_addr, trace_data_size, trace_id, memory_map_num, memory_map);
-        if (result == DECODE_ERROR) {
+        if (result != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
