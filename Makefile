@@ -8,7 +8,7 @@ INC_DIR := include
 LIBCAPSTONE := capstone
 
 CXX := g++
-CXXFLAGS := -std=c++14 -Wall
+CXXFLAGS := -std=c++17 -Wall
 CXXFLAGS += -I$(INC_DIR)
 CXXFLAGS += -l$(LIBCAPSTONE)
 

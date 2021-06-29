@@ -39,7 +39,20 @@ std::vector<Trace> process(const ProcessParam &param, const std::vector<uint8_t>
     const std::vector<MemoryMap> &memory_map, const csh &handle)
 {
     // Trace dataの中から、エッジカバレッジの復元に必要なパケットのみを取り出す。
-    std::vector<BranchPacket> branch_packets = decodeTraceData(trace_data);
+    std::vector<BranchPacket> branch_packets; {
+        std::optional<std::vector<BranchPacket>> optional_branch_packets = decodeTraceData(trace_data);
+
+        // An error occurred during the trace data decoding process
+        // Currently, the decoder only fails if it finds an overflow packet.
+        if (not optional_branch_packets.has_value()) {
+            return ProcessResult {
+                std::vector<Trace>(),
+                PROCESS_ERROR_OVERFLOW_PACKET
+            };
+        }
+
+        branch_packets = optional_branch_packets.value();
+    }
 
     // btsの先頭データは必ずAddress packetである。
     // そうでないと、トレース開始アドレスがわからない。

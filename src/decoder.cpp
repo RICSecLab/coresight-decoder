@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <cassert>
+#include <optional>
 
 #include "decoder.hpp"
 #include "utils.hpp"
@@ -35,7 +36,7 @@ Packet decodeAtomF6Packet(const std::vector<uint8_t> &trace_data, const size_t o
 //
 // TODO: 現在、Exceptionによって発生するAddress packetは取り出さず、
 // deterministicなエッジカバレッジになるようにしてある。
-std::vector<BranchPacket> decodeTraceData(const std::vector<uint8_t>& trace_data)
+std::optional<std::vector<BranchPacket>> decodeTraceData(const std::vector<uint8_t>& trace_data)
 {
     enum State {
         IDLE,
@@ -97,7 +98,7 @@ std::vector<BranchPacket> decodeTraceData(const std::vector<uint8_t>& trace_data
                     // and tracing is inactive until the overflow condition clears.
                     std::cerr << "Found an overflow packet that indicates that a trace unit buffer overflow has occurred. ";
                     std::cerr << "The trace data may be corrupted." << std::endl;
-                    std::exit(1);
+                    return std::nullopt;
                 default:
                     break;
             }
