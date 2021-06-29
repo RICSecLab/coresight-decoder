@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cassert>
+#include <cstring>
 
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -45,12 +46,11 @@ int check_bitmaps(unsigned char* global_bitmap, unsigned char* local_bitmap, int
 
 int main(int argc, char const *argv[])
 {
-    const int binary_file_num = 3;
+    const int binary_file_num = 1;
     const char* binary_file_path[] = {
         "fib",
-        "ld-2.31.so",
-        "libc-2.31.so"
     };
+
     const int bitmap_size = 0x1000;
     void* local_bitmap  = malloc(bitmap_size);
     const bool cache_mode = false;
@@ -63,6 +63,7 @@ int main(int argc, char const *argv[])
 
 
     void* global_bitmap = malloc(bitmap_size);
+    memset(global_bitmap, 0, bitmap_size);
 
     // trace1
     {

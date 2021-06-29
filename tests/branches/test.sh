@@ -13,20 +13,33 @@ OUTPUT_BITMAP_FILE_SUFFIX="_bitmap.out"
 run () {
     target="$1" # Trace data for calculating edge coverage
     output_file=$target$OUTPUT_FILE_SUFFIX
-    lower_address="$2"
-    upper_address="$3"
     bitmap_file=$target$OUTPUT_BITMAP_FILE_SUFFIX
 
-    $PROGRAM $(cat $target/decoderargs.txt) --address-range=$lower_address,$upper_address \
-                                            --bitmap-mode \
+    $PROGRAM $(cat $target/decoderargs.txt) --bitmap-mode \
                                             --bitmap-size=0x1000 \
                                             --bitmap-filename=$bitmap_file \
+                                            --trace-binary-filename=branches \
+                                            > $output_file
+}
+
+
+# Calculate edge coverage and output to a file
+run_cache_mode () {
+    target="$1" # Trace data for calculating edge coverage
+    output_file=$target$OUTPUT_FILE_SUFFIX
+    bitmap_file=$target$OUTPUT_BITMAP_FILE_SUFFIX
+
+    $PROGRAM $(cat $target/decoderargs.txt) --bitmap-mode \
+                                            --bitmap-size=0x1000 \
+                                            --bitmap-filename=$bitmap_file \
+                                            --trace-binary-filename=branches \
+                                            --cache-mode \
                                             > $output_file
 }
 
 
 # Compare edge coverage for two trace data
-assert() {
+assert_edge_coverage() {
     target1="$1"
     target2="$2"
     output_file1=$target1$OUTPUT_FILE_SUFFIX
@@ -62,28 +75,42 @@ assert_bitmap() {
 }
 
 
+assert() {
+    # Compare with expected edge coverage
+    assert_edge_coverage trace1 expected
+    assert_edge_coverage trace2 expected
+    assert_edge_coverage trace3 expected
+    assert_edge_coverage trace4 expected
+
+    # Compare each bitmap
+    assert_bitmap trace1 trace2
+    assert_bitmap trace1 trace3
+    assert_bitmap trace1 trace4
+    assert_bitmap trace2 trace3
+    assert_bitmap trace2 trace4
+    assert_bitmap trace3 trace4
+}
+
+
 # Calculate edge coverage for all trace data
-run trace1 0xaaaaceaa071c 0xaaaaceaa0940
-run trace2 0xaaaae560071c 0xaaaae5600940
-run trace3 0xaaaae28e071c 0xaaaae28e0940
-run trace4 0xaaaabeaf071c 0xaaaabeaf0940
+run trace1
+run trace2
+run trace3
+run trace4
 
-
-# Compare with expected edge coverage
-assert trace1 expected
-assert trace2 expected
-assert trace3 expected
-assert trace4 expected
-
-
-# Compare each bitmap
-assert_bitmap trace1 trace2
-assert_bitmap trace1 trace3
-assert_bitmap trace1 trace4
-assert_bitmap trace2 trace3
-assert_bitmap trace2 trace4
-assert_bitmap trace3 trace4
-
+assert
 
 # Passed all test cases
 echo "PASSED branches test"
+
+
+# Calculate edge coverage for all trace data
+run_cache_mode trace1
+run_cache_mode trace2
+run_cache_mode trace3
+run_cache_mode trace4
+
+assert
+
+# Passed all test cases
+echo "PASSED branches test with cache mode"
