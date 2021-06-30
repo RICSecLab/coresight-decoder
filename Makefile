@@ -12,24 +12,25 @@ CXXFLAGS := -std=c++17 -Wall
 CXXFLAGS += -I$(INC_DIR)
 CXXFLAGS += -l$(LIBCAPSTONE)
 
-SRCS :=	$(SRC_DIR)/decoder.c \
-	$(SRC_DIR)/deformatter.c \
-	$(SRC_DIR)/disassembler.c \
-	$(SRC_DIR)/utils.c \
-	$(SRC_DIR)/bitmap.c \
-	$(SRC_DIR)/common.c \
-	$(SRC_DIR)/cache.c \
-	$(SRC_DIR)/trace.c \
-	$(SRC_DIR)/process.c \
-	$(SRC_DIR)/libcsdec.c \
-	$(SRC_DIR)/processor.c
+SRCS := $(SRC_DIR)/decoder.cpp \
+	$(SRC_DIR)/deformatter.cpp \
+	$(SRC_DIR)/disassembler.cpp \
+	$(SRC_DIR)/utils.cpp \
+	$(SRC_DIR)/bitmap.cpp \
+	$(SRC_DIR)/common.cpp \
+	$(SRC_DIR)/cache.cpp \
+	$(SRC_DIR)/trace.cpp \
+	$(SRC_DIR)/process.cpp \
+	$(SRC_DIR)/libcsdec.cpp \
+	$(SRC_DIR)/processor.cpp
 
-OBJS := $(SRCS:.c=.o)
+OBJS := $(SRCS:.cpp=.o)
 
 FIB_TEST := tests/fib
 BRANCHES_TEST := tests/branches
 
 
+all: CXXFLAGS += -O3
 all: $(TARGET) $(LIBTARGET)
 
 # FIXME: Enabling UBSAN and GLIBCXX_DEBUG is not compatible with proc-trace
