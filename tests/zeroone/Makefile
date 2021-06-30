@@ -6,25 +6,24 @@ CXX := g++
 CXXFLAGS := -std=c++14 -Wall -g -fsanitize=undefined -D_GLIBCXX_DEBUG
 CXXFLAGS += -l$(LIBBOOST)
 
-SRCS :=	test.cpp
-OBJS := $(SRCS:.c=.o)
+SRCS := test.cpp
 
 PROC_TRACE_DIR?=
 
 
-all: run test
+all: run-tracer run-test
 
-run:
+run-tracer:
 	rm -rf trace && mkdir trace
 	./run.sh $(realpath $(PROC_TRACE_DIR))
 
-build: $(OBJS)
+$(TARGET): $(SRCS)
 	$(CXX) -o $@ $^ $(CXXFLAGS)
 
-test: build
+run-test: $(TARGET)
 	./test
 
 clean:
-	rm -rf $(OBJS) $(TARGET) trace
+	rm -rf $(TARGET) trace
 
-.PHONY: all build run test clean
+.PHONY: all run-tracer run-test clean
