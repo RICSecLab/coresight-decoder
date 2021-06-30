@@ -14,8 +14,8 @@ BITMAP_FILENAME="bitmap.out"
 run_tracer () {
     bit_seq="$1"
     trace_out_dir="$2"
-    DIR=$trace_out_dir TRACEE=$TRACEE TRACEE_ARGS=$bit_seq make -C $PROC_TRACE_DIR trace
 
+    DIR=$trace_out_dir TRACEE=$TRACEE TRACEE_ARGS=$bit_seq make -C $PROC_TRACE_DIR trace > /dev/null
     if [ $? -ne 0 ]; then
         echo "Failed to run tracer"
         exit 1
@@ -32,16 +32,36 @@ run_decoder () {
     lower_address=${decoder_args[4]}
     upper_address=${decoder_args[5]}
 
-    $DECODER $(cat $trace_out_dir/decoderargs.txt) --address-range=$lower_address,$upper_address \
-                                                   --bitmap-mode \
-                                                   --bitmap-size=0x1000 \
+    $DECODER $(cat $trace_out_dir/decoderargs.txt) --bitmap-mode \
+                                                   --bitmap-size=0x10000 \
                                                    --bitmap-filename=$bitmap_file \
+                                                   --trace-binary-filename=$TRACEE \
                                                    > $edge_coverage_file
 
-    if [ $? -ne 0 ]; then
+    err=$?
+    if [ $err -ne 0 ]; then
         echo "Failed to run decoder due to corrupted trace data or bugs in the decoder implementation."
-        exit 1
     fi
+    return $err
+}
+
+run() {
+    bit_seq="$1"
+    trace_out_dir="$2"
+
+    while :
+    do
+        run_tracer $bit_seq $trace_out_dir
+        run_decoder $trace_out_dir
+
+        if [ $? -ne 0 ]; then
+            echo "Maybe the tracer didn't work properly. So try again."
+            rm -rf $trace_out_dir
+        else
+            echo "Successfully run tracer and decoder."
+            break
+        fi
+    done
 }
 
 
@@ -54,6 +74,5 @@ do
 
     trace_out_dir=$TRACE_OUT_ROOT_DIR"/bit_seq_"$bit_seq
 
-    run_tracer $bit_seq $trace_out_dir
-    run_decoder $trace_out_dir
+    run $bit_seq $trace_out_dir
 done
