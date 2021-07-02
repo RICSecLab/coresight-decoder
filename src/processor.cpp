@@ -111,11 +111,14 @@ int main(int argc, char const *argv[])
     csh handle;
     disassembleInit(&handle);
 
+    Cache cache;
+
     ProcessParam param {
         binary_files,
         nullptr,
         (int)bitmap_size,
         cache_mode,
+        cache
     };
 
     // Calculate edge coverage from trace data and binary data

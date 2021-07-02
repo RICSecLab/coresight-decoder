@@ -26,16 +26,16 @@ struct ProcessState {
 };
 
 
-AtomTrace processAtomPacket(const ProcessParam &param, ProcessState &state, Cache &cache,
+AtomTrace processAtomPacket(ProcessParam &param, ProcessState &state,
     const csh &handle, const std::vector<MemoryMap> &memory_map, const BranchPacket &atom_packet);
-AddressTrace processAddressPacket(const ProcessParam &param, ProcessState &state,
+AddressTrace processAddressPacket(ProcessParam &param, ProcessState &state,
     const std::vector<MemoryMap> &memory_map, const BranchPacket &address_packet);
-BranchInsn processNextBranchInsn(const ProcessParam &param, ProcessState &state, Cache &cache,
+BranchInsn processNextBranchInsn(ProcessParam &param, ProcessState &state,
     const csh &handle, const std::vector<MemoryMap> &memory_map, const Location base_location);
-bool checkTraceRange(const ProcessParam &param, const std::vector<MemoryMap> &memory_map, const Location &location);
+bool checkTraceRange(ProcessParam &param, const std::vector<MemoryMap> &memory_map, const Location &location);
 
 
-ProcessResult process(const ProcessParam &param, const std::vector<uint8_t>& trace_data,
+ProcessResult process(ProcessParam &param, const std::vector<uint8_t>& trace_data,
     const std::vector<MemoryMap> &memory_map, const csh &handle)
 {
     // Trace dataの中から、エッジカバレッジの復元に必要なパケットのみを取り出す。
@@ -63,9 +63,6 @@ ProcessResult process(const ProcessParam &param, const std::vector<uint8_t>& tra
 
     std::vector<Trace> traces;
 
-    // Create cache
-    Cache cache;
-
     for (size_t pkt_index = 1; pkt_index < branch_packets.size(); pkt_index++) {
 
         const BranchPacket branch_packet = branch_packets[pkt_index];
@@ -90,8 +87,8 @@ ProcessResult process(const ProcessParam &param, const std::vector<uint8_t>& tra
                     branch_packet.en_bits,
                     branch_packet.en_bits_len,
                 };
-                if (isCachedTrace(cache, trace_key)) {
-                    AtomTrace trace = getTraceCache(cache, trace_key);
+                if (isCachedTrace(param.cache, trace_key)) {
+                    AtomTrace trace = getTraceCache(param.cache, trace_key);
                     // Update state
                     state.prev_location = trace.locations.back();
                     state.has_pending_address_packet = trace.has_pending_address_packet;
@@ -99,16 +96,17 @@ ProcessResult process(const ProcessParam &param, const std::vector<uint8_t>& tra
                     // Save trace
                     traces.emplace_back(Trace(trace));
                 } else {
-                    AtomTrace trace = processAtomPacket(param, state, cache, handle, memory_map, branch_packet);
+                    AtomTrace trace = processAtomPacket(param, state, handle, memory_map, branch_packet);
 
                     // Save trace
                     traces.emplace_back(Trace(trace));
                     // Add trace to cache
-                    addTraceCache(cache, trace_key, trace);
+                    addTraceCache(param.cache, trace_key, trace);
                 }
             } else {
-                AtomTrace trace = processAtomPacket(param, state, cache, handle, memory_map, branch_packet);
+                AtomTrace trace = processAtomPacket(param, state, handle, memory_map, branch_packet);
                 traces.emplace_back(Trace(trace));
+                // cnt3++;
             }
         } else if (branch_packet.type == BRANCH_PKT_ADDRESS) { // Address packet
             // Address packetは下記の3つの場合に生成される。
@@ -152,7 +150,7 @@ ProcessResult process(const ProcessParam &param, const std::vector<uint8_t>& tra
     };
 }
 
-AtomTrace processAtomPacket(const ProcessParam &param, ProcessState &state, Cache &cache,
+AtomTrace processAtomPacket(ProcessParam &param, ProcessState &state,
     const csh &handle, const std::vector<MemoryMap> &memory_map, const BranchPacket &atom_packet)
 {
     AtomTrace trace = AtomTrace(state.prev_location);
@@ -160,7 +158,7 @@ AtomTrace processAtomPacket(const ProcessParam &param, ProcessState &state, Cach
     for (std::size_t i = 0; i < atom_packet.en_bits_len; ++i) {
         const Location base_location = state.prev_location;
 
-        const BranchInsn insn = processNextBranchInsn(param, state, cache, handle, memory_map, base_location);
+        const BranchInsn insn = processNextBranchInsn(param, state, handle, memory_map, base_location);
 
         bool is_taken = atom_packet.en_bits & (1 << i);
 
@@ -194,7 +192,7 @@ AtomTrace processAtomPacket(const ProcessParam &param, ProcessState &state, Cach
     return trace;
 }
 
-AddressTrace processAddressPacket(const ProcessParam &param, ProcessState &state,
+AddressTrace processAddressPacket(ProcessParam &param, ProcessState &state,
     const std::vector<MemoryMap> &memory_map, const BranchPacket &address_packet)
 {
     const Location src_location  = state.prev_location;
@@ -221,7 +219,7 @@ AddressTrace processAddressPacket(const ProcessParam &param, ProcessState &state
     return trace;
 }
 
-BranchInsn processNextBranchInsn(const ProcessParam &param, ProcessState &state, Cache &cache,
+BranchInsn processNextBranchInsn(ProcessParam &param, ProcessState &state,
     const csh &handle, const std::vector<MemoryMap> &memory_map, const Location base_location)
 {
     // 次の分岐命令を計算する。
@@ -237,24 +235,24 @@ BranchInsn processNextBranchInsn(const ProcessParam &param, ProcessState &state,
             // Cacheにアクセスして、既にディスアセンブルした命令か調べる。
             // 同じバイナリファイル&オフセットに対するこの処理は、キャッシュ化することができる。
             // もし既にキャッシュに存在するなら、そのデータを使うことで高速化できる。
-            if (isCachedBranchInsn(cache, insn_key)) {
+            if (isCachedBranchInsn(param.cache, insn_key)) {
                 // 既にディスアセンブルした結果がキャッシュにあるため、そのデータを読み込む。
-                insn = getBranchInsnCache(cache, insn_key);
+                insn = getBranchInsnCache(param.cache, insn_key);
             } else {
                 // 命令列をディスアセンブルし、分岐命令を探す。
-                insn = getNextBranchInsn(param, handle, base_location, memory_map);
+                insn = getNextBranchInsn(param.binary_files, handle, base_location, memory_map);
                 // Cacheに分岐命令をディスアセンブルした結果を格納する。
-                addBranchInsnCache(cache, insn_key, insn);
+                addBranchInsnCache(param.cache, insn_key, insn);
             }
         } else {
             // 命令列をディスアセンブルし、分岐命令を探す。
-            insn = getNextBranchInsn(param, handle, base_location, memory_map);
+            insn = getNextBranchInsn(param.binary_files, handle, base_location, memory_map);
         }
     }
     return insn;
 }
 
-bool checkTraceRange(const ProcessParam &param, const std::vector<MemoryMap> &memory_map, const Location &location)
+bool checkTraceRange(ProcessParam &param, const std::vector<MemoryMap> &memory_map, const Location &location)
 {
     const std::string binary_data_filename = memory_map[location.index].binary_data_filename;
     return param.binary_files.count(binary_data_filename) > 0;

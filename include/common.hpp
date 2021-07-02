@@ -18,15 +18,6 @@ struct MemoryMap {
     addr_t end_address;
 };
 
-struct ProcessParam {
-    const std::unordered_map<std::string, std::vector<std::uint8_t>> binary_files;
-
-    const void* bitmap_addr;
-    const int bitmap_size;
-
-    const bool cache_mode;
-};
-
 struct Location {
     addr_t offset;
     std::size_t index;
