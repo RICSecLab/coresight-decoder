@@ -20,6 +20,10 @@ run () {
                                             --bitmap-filename=$bitmap_file \
                                             --trace-binary-filename=branches \
                                             > $output_file
+    if [ $? -ne 0 ]; then
+        echo "Failed to run decoder."
+        exit 1
+    fi
 }
 
 
@@ -35,6 +39,10 @@ run_cache_mode () {
                                             --trace-binary-filename=branches \
                                             --cache-mode \
                                             > $output_file
+    if [ $? -ne 0 ]; then
+        echo "Failed to run decoder."
+        exit 1
+    fi
 }
 
 
