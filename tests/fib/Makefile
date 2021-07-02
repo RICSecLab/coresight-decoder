@@ -32,7 +32,7 @@ test: $(PROGRAM)
 	./test.sh
 	./test_lib
 
-$(PROGRAM): $(OBJS)
+$(PROGRAM): $(OBJS) $(LIBCSDEC)
 	$(CXX) -o $@ $^ $(LIBCSDEC) $(CXXFLAGS)
 
 test-performance-cache-mode:
