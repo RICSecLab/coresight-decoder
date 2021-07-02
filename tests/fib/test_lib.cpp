@@ -82,7 +82,7 @@ int main(int argc, char const *argv[])
 
         enum libcsdec_result result = libcsdec_write_bitmap(libcsdec, trace_data_addr, trace_data_size, trace_id, memory_map_num, memory_map);
         if (result != LIBCEDEC_SUCCESS) {
-            printf("Decoder error occurred.");
+            printf("Decoder error occurred.\n");
             exit(1);
         }
 
