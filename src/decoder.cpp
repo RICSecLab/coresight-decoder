@@ -36,7 +36,8 @@ Packet decodeAtomF6Packet(const std::vector<uint8_t> &trace_data, const size_t o
 //
 // TODO: 現在、Exceptionによって発生するAddress packetは取り出さず、
 // deterministicなエッジカバレッジになるようにしてある。
-std::optional<std::vector<BranchPacket>> decodeTraceData(const std::vector<uint8_t>& trace_data)
+std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& trace_data,
+    std::size_t &trace_data_offset)
 {
     enum State {
         IDLE,
@@ -45,13 +46,18 @@ std::optional<std::vector<BranchPacket>> decodeTraceData(const std::vector<uint8
         EXCEPTION_ADDR2,
     };
 
-    size_t offset = 0;
-    State state = IDLE;
+    // Load
+    size_t offset = trace_data_offset;
 
-    std::vector<BranchPacket> branch_packets;
+    State state = (offset == 0 ? IDLE : TRACE);
+
+    BranchPacket branch_packet = {
+        BRANCH_PKT_END, 0, 0, 0
+    };
 
     while (offset < trace_data.size()) {
         Packet packet = decodePacket(trace_data, offset);
+        offset += packet.size;
 
         if (state == IDLE) {
             if (packet.type == ETM4_PKT_I_ASYNC) {
@@ -64,26 +70,24 @@ std::optional<std::vector<BranchPacket>> decodeTraceData(const std::vector<uint8
                 case ETM4_PKT_I_ATOM_F3:
                 case ETM4_PKT_I_ATOM_F4:
                 case ETM4_PKT_I_ATOM_F5:
-                case ETM4_PKT_I_ATOM_F6: {
-                    const BranchPacket bp {
+                case ETM4_PKT_I_ATOM_F6:
+                    branch_packet = BranchPacket {
                         BRANCH_PKT_ATOM,
                         packet.en_bits,
                         packet.en_bits_len,
                         0
                     };
-                    branch_packets.emplace_back(bp);
-                    break;
-                }
-                case ETM4_PKT_I_ADDR_L_64IS0: {
-                    const BranchPacket bp {
+                    goto end;
+
+                case ETM4_PKT_I_ADDR_L_64IS0:
+                    branch_packet = BranchPacket {
                         BRANCH_PKT_ADDRESS,
                         0,
                         0,
                         packet.addr
                     };
-                    branch_packets.emplace_back(bp);
-                    break;
-                }
+                    goto end;
+
                 // Exception Packetは例外が発生したときに、生成される。
                 // Exceptionパケットに続き、2つのAddress Packetが生成される。
                 // 1つ目はException後に戻るアドレスを示し、
@@ -111,11 +115,12 @@ std::optional<std::vector<BranchPacket>> decodeTraceData(const std::vector<uint8
                 state = TRACE;
             }
          }
-
-        offset += packet.size;
     }
 
-    return branch_packets;
+end:
+    // Save
+    trace_data_offset = offset;
+    return branch_packet;
 }
 
 

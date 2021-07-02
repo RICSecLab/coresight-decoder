@@ -53,6 +53,7 @@ enum BranchPacketType
 {
     BRANCH_PKT_ATOM,
     BRANCH_PKT_ADDRESS,
+    BRANCH_PKT_END
 };
 
 struct BranchPacket
@@ -68,5 +69,6 @@ struct BranchPacket
 };
 
 
-std::optional<std::vector<BranchPacket>> decodeTraceData(const std::vector<uint8_t>& trace_data);
+std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& trace_data,
+    std::size_t &trace_data_offset);
 void printPacket(const Packet packet);

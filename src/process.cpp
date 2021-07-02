@@ -23,6 +23,8 @@ struct ProcessState {
     Location prev_location;
     bool has_pending_address_packet;
     TraceState trace_state;
+    std::size_t trace_data_offset;
+    bool is_first_branch_packet;
 };
 
 
@@ -38,34 +40,41 @@ bool checkTraceRange(ProcessParam &param, const std::vector<MemoryMap> &memory_m
 ProcessResult process(ProcessParam &param, const std::vector<uint8_t>& trace_data,
     const std::vector<MemoryMap> &memory_map, const csh &handle)
 {
-    // Trace dataの中から、エッジカバレッジの復元に必要なパケットのみを取り出す。
-    std::vector<BranchPacket> branch_packets; {
-        std::optional<std::vector<BranchPacket>> optional_branch_packets = decodeTraceData(trace_data);
+    std::vector<Trace> traces;
+
+    ProcessState state {
+        .prev_location = Location(),
+        .has_pending_address_packet = false,
+        .trace_state = TRACE_ON,
+        .trace_data_offset = 0,
+        .is_first_branch_packet = true
+    };
+
+    while (state.trace_data_offset < trace_data.size()) {
+        const std::optional<BranchPacket> optional_branch_packet =
+            decodeNextBranchPacket(trace_data, state.trace_data_offset);
 
         // An error occurred during the trace data decoding process
         // Currently, the decoder only fails if it finds an overflow packet.
-        if (not optional_branch_packets.has_value()) {
+        if (not optional_branch_packet.has_value()) {
             return ProcessResult {
                 std::vector<Trace>(),
                 PROCESS_ERROR_OVERFLOW_PACKET
             };
         }
+        const BranchPacket branch_packet = optional_branch_packet.value();
 
-        branch_packets = optional_branch_packets.value();
-    }
+        if (state.is_first_branch_packet) {
+            // The first branch packet is always an address pocket.
+            // Otherwise, the trace start address is not known.
+            assert(branch_packet.type == BRANCH_PKT_ADDRESS);
 
-    // btsの先頭データは必ずAddress packetである。
-    // そうでないと、トレース開始アドレスがわからない。
-    assert(branch_packets.front().type == BRANCH_PKT_ADDRESS);
-    const Location start_location = Location(memory_map, branch_packets.front().target_address);
+            const Location start_location = Location(memory_map, branch_packet.target_address);
+            state.prev_location = start_location,
+            state.trace_state = checkTraceRange(param, memory_map, start_location) ? TRACE_ON : TRACE_OUT_OF_RANGE,
 
-    ProcessState state{start_location, false, checkTraceRange(param, memory_map, start_location) ? TRACE_ON : TRACE_OUT_OF_RANGE};
-
-    std::vector<Trace> traces;
-
-    for (size_t pkt_index = 1; pkt_index < branch_packets.size(); pkt_index++) {
-
-        const BranchPacket branch_packet = branch_packets[pkt_index];
+            state.is_first_branch_packet = false;
+        }
 
         if (branch_packet.type == BRANCH_PKT_ATOM) { // Atom packet
             if (state.trace_state == TRACE_OUT_OF_RANGE) {
@@ -130,6 +139,8 @@ ProcessResult process(ProcessParam &param, const std::vector<uint8_t>& trace_dat
                     state.trace_state = TRACE_ON;
                 }
             }
+        } else if (branch_packet.type == BRANCH_PKT_END) {
+            break;
         } else {
             // Unknown branch packet.
             __builtin_unreachable();
