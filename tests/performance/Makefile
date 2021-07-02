@@ -6,7 +6,7 @@ LIBCSDEC := ../../libcsdec.a
 LIBCAPSTONE := capstone
 
 CXX := g++
-CXXFLAGS := -Wall -O3 -std=c++17
+CXXFLAGS := -Wall -O3 -std=c++17 -g
 CXXFLAGS += -I$(INC_DIR)
 CXXFLAGS += -l$(LIBCAPSTONE)
 
@@ -14,7 +14,7 @@ OBJS := test.o
 PROGRAM := test
 
 
-$(PROGRAM): $(OBJS)
+$(PROGRAM): $(OBJS) $(LIBCSDEC)
 	$(CXX) -o $@ $^ $(LIBCSDEC) $(CXXFLAGS)
 
 clean:

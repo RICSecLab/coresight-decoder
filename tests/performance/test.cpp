@@ -8,6 +8,8 @@
 #include <fstream>
 #include <optional>
 #include <vector>
+#include <algorithm>
+#include <numeric>
 
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -16,8 +18,6 @@
 #include <unistd.h>
 
 #include "libcsdec.h"
-
-#define NUM_TIME 0x10
 
 
 int load_bin(const char *path, void **buf, size_t *size) {
@@ -37,6 +37,7 @@ int load_bin(const char *path, void **buf, size_t *size) {
     *buf = (void *)addr;
     *size = (size_t)sb.st_size;
 
+    close(fd);
     return 0;
 }
 
@@ -57,6 +58,7 @@ libcsdec_memory_map* read_memory_map(const std::string &decoder_args_path, char 
     std::ifstream fin(decoder_args_path);
     if (!fin) {
         std::cerr << "Failed to read decoderargs.txt" << std::endl;
+        std::cerr << "Error code: " << strerror(errno); // Get some info as to why
         std::exit(EXIT_FAILURE);
     }
 
@@ -90,6 +92,10 @@ std::optional<double> run_decoder(libcsdec_t &libcsdec, const std::string &decod
 
     enum libcsdec_result result = libcsdec_write_bitmap(libcsdec, trace_data_addr, trace_data_size,
         trace_id, memory_map_num, memory_map);
+    if (result != LIBCEDEC_SUCCESS) {
+        std::cerr << "Failed to run decoder." << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
 
     std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
     double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
@@ -111,23 +117,34 @@ std::optional<double> run_decoder(libcsdec_t &libcsdec, const std::string &decod
     return elapsed;
 }
 
-void save_exeuction_times(std::vector<std::pair<int, double>> &execution_times) {
-    const std::string filename = "execution_times.dat";
+void save_exeuction_times(std::vector<double> &execution_times, std::string filename) {
     std::ofstream ofs(filename);
     if (!ofs) {
         std::cerr << "Failed to open " << filename << std::endl;
         std::exit(EXIT_FAILURE);
     }
 
-    for (const auto &e : execution_times) {
-        ofs << e.first << " " << e.second << std::endl;
+    int idx = 0;
+    for (const double time : execution_times) {
+        ofs << idx << " " << time << std::endl;
+        idx++;
     }
+}
+
+void print_results(const std::vector<double> &data) {
+    const double ans_min = *std::min_element(data.begin(), data.end());
+    const double ans_max = *std::max_element(data.begin(), data.end());
+    const double ans_avg = std::accumulate(begin(data), end(data), 0.0) / data.size();
+    const double ans_med = (data.size() % 2 == 0
+        ? static_cast<double>(data[data.size() / 2] + data[data.size() / 2 - 1]) / 2
+        : data[data.size() / 2]);
+    printf("MIN: %f[us], MAX: %f[us], AVG: %f[us], MED: %f[us]\n", ans_min, ans_max, ans_avg, ans_med);
 }
 
 int main(int argc, char const *argv[])
 {
-    if (argc < 4) {
-        std::cerr << "Usage: " << argv[0] << "[tracee_path] [cahce mode (0/1)] "
+    if (argc < 6) {
+        std::cerr << "Usage: " << argv[0] << "[tracee_path] [cahce mode (0/1)] [output filename] [LOOP CNT]"
                   << "[trace out dir1] [trace out dir2] .. " << std::endl;
         std::exit(EXIT_FAILURE);
     }
@@ -149,14 +166,13 @@ int main(int argc, char const *argv[])
     memset(global_bitmap, 0, bitmap_size);
 
     std::vector<std::string> trace_out_dirs;
-    for (int i = 3; i < argc; i++) {
+    for (int i = 5; i < argc; i++) {
         trace_out_dirs.emplace_back(argv[i]);
     }
 
-    int idx = 0;
-    std::vector<std::pair<int, double>> execution_times;
-    for (std::size_t i = 0; i < trace_out_dirs.size(); i++) {
-        for (int time = 0; time < NUM_TIME; ++time) {
+    std::vector<double> execution_times;
+    for (int time = 0; time < atoi(argv[4]); ++time) {
+        for (std::size_t i = 0; i < trace_out_dirs.size(); i++) {
             // Here, it dependes on the PUT.
             const std::string trace_out_dir = argv[1];
             const std::string decoder_args_path = trace_out_dirs[i] + "/decoderargs.txt";
@@ -164,12 +180,12 @@ int main(int argc, char const *argv[])
             std::optional<double> execution_time = run_decoder(libcsdec, decoder_args_path,
                 global_bitmap, local_bitmap, bitmap_size, (i == 0 and time == 0));
             if (execution_time.has_value()) {
-                execution_times.emplace_back(std::make_pair(idx, execution_time.value()));
+                execution_times.emplace_back(execution_time.value());
             }
-            idx++;
         }
     }
 
-    save_exeuction_times(execution_times);
+    save_exeuction_times(execution_times, argv[3]);
+    print_results(execution_times);
     return 0;
 }
