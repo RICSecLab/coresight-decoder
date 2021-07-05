@@ -64,20 +64,12 @@ libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
         deformatTraceData((uint8_t*)trace_data_addr, trace_data_size, trace_id);
 
     // Read binary data and entry point
-    std::vector<MemoryMap> memory_map; {
+    std::vector<MemoryMap> memory_maps; {
         for (int i = 0; i < memory_map_num; i++) {
-            // Read binary data
-            const std::string binary_data_filename = libcsdec_memory_map[i].path;
-            const addr_t start_address = libcsdec_memory_map[i].start;
-            const addr_t end_address = libcsdec_memory_map[i].end;
-
-            memory_map.emplace_back(
-                MemoryMap {
-                    binary_data_filename,
-                    start_address,
-                    end_address,
-                }
-            );
+            memory_maps.emplace_back(MemoryMap(
+                libcsdec_memory_map[i].path, param->binary_files,
+                libcsdec_memory_map[i].start, libcsdec_memory_map[i].end
+            ));
         }
     }
 
@@ -85,7 +77,7 @@ libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
     disassembleInit(&handle);
 
     // Calculate edge coverage from trace data and binary data
-    const ProcessResult result = process(*param, deformat_trace_data, memory_map, handle);
+    const ProcessResult result = process(*param, deformat_trace_data, memory_maps, handle);
 
     if (result.type != PROCESS_SUCCESS) {
         switch (result.type) {

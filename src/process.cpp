@@ -34,7 +34,7 @@ AddressTrace processAddressPacket(ProcessParam &param, ProcessState &state,
     const std::vector<MemoryMap> &memory_map, const BranchPacket &address_packet);
 BranchInsn processNextBranchInsn(ProcessParam &param, ProcessState &state,
     const csh &handle, const std::vector<MemoryMap> &memory_map, const Location base_location);
-bool checkTraceRange(ProcessParam &param, const std::vector<MemoryMap> &memory_map, const Location &location);
+bool checkTraceRange(const std::vector<MemoryMap> &memory_map, const Location &location);
 
 
 ProcessResult process(ProcessParam &param, const std::vector<uint8_t>& trace_data,
@@ -71,7 +71,7 @@ ProcessResult process(ProcessParam &param, const std::vector<uint8_t>& trace_dat
 
             const Location start_location = Location(memory_map, branch_packet.target_address);
             state.prev_location = start_location,
-            state.trace_state = checkTraceRange(param, memory_map, start_location) ? TRACE_ON : TRACE_OUT_OF_RANGE,
+            state.trace_state = checkTraceRange(memory_map, start_location) ? TRACE_ON : TRACE_OUT_OF_RANGE,
 
             state.is_first_branch_packet = false;
         }
@@ -219,9 +219,9 @@ AddressTrace processAddressPacket(ProcessParam &param, ProcessState &state,
     state.prev_location = dest_location;
     state.has_pending_address_packet = false;
 
-    if (checkTraceRange(param, memory_map, src_location) and checkTraceRange(param, memory_map, dest_location)) {
+    if (checkTraceRange(memory_map, src_location) and checkTraceRange(memory_map, dest_location)) {
         state.trace_state = TRACE_ON;
-    } else if (checkTraceRange(param, memory_map, dest_location)) {
+    } else if (checkTraceRange(memory_map, dest_location)) {
         state.trace_state = TRACE_RESTART;
     } else {
         state.trace_state = TRACE_OUT_OF_RANGE;
@@ -251,20 +251,19 @@ BranchInsn processNextBranchInsn(ProcessParam &param, ProcessState &state,
                 insn = getBranchInsnCache(param.cache, insn_key);
             } else {
                 // 命令列をディスアセンブルし、分岐命令を探す。
-                insn = getNextBranchInsn(param.binary_files, handle, base_location, memory_map);
+                insn = getNextBranchInsn(handle, base_location, memory_map);
                 // Cacheに分岐命令をディスアセンブルした結果を格納する。
                 addBranchInsnCache(param.cache, insn_key, insn);
             }
         } else {
             // 命令列をディスアセンブルし、分岐命令を探す。
-            insn = getNextBranchInsn(param.binary_files, handle, base_location, memory_map);
+            insn = getNextBranchInsn(handle, base_location, memory_map);
         }
     }
     return insn;
 }
 
-bool checkTraceRange(ProcessParam &param, const std::vector<MemoryMap> &memory_map, const Location &location)
+bool checkTraceRange(const std::vector<MemoryMap> &memory_map, const Location &location)
 {
-    const std::string binary_data_filename = memory_map[location.index].binary_data_filename;
-    return param.binary_files.count(binary_data_filename) > 0;
+    return memory_map[location.index].binary_data != nullptr;
 }

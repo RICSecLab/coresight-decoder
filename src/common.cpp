@@ -1,7 +1,17 @@
-#include <vector>
 #include <iostream>
 
 #include "common.hpp"
+
+const binary_data_t* getBinaryFileData(const std::string &binary_data_filename,
+    const std::unordered_map<std::string, std::vector<std::uint8_t>> &binary_files);
+
+
+MemoryMap::MemoryMap(const std::string &binary_data_filename,
+    const std::unordered_map<std::string, std::vector<std::uint8_t>> &binary_files,
+    const addr_t start_address, const addr_t end_address)
+    : binary_data_filename(binary_data_filename),
+      binary_data(getBinaryFileData(binary_data_filename, binary_files)),
+      start_address(start_address), end_address(end_address) {}
 
 
 Location::Location(const Location &location)
@@ -31,4 +41,11 @@ size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const addr_t 
     }
     std::cerr << "Failed to find any binary data that matched the address: " << std::hex << address << std::endl;
     std::exit(1);
+}
+
+const binary_data_t* getBinaryFileData(const std::string &binary_data_filename,
+    const std::unordered_map<std::string, std::vector<std::uint8_t>> &binary_files)
+{
+    return binary_files.count(binary_data_filename) > 0 ? &binary_files.at(binary_data_filename)
+                                                        : nullptr;
 }

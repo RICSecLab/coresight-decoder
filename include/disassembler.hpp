@@ -26,6 +26,5 @@ struct BranchInsn {
 
 void disassembleInit(csh* handle);
 void disassembleDelete(csh* handle);
-BranchInsn getNextBranchInsn(const std::unordered_map<std::string, std::vector<std::uint8_t>> &binary_files,
-    const csh &handle, const Location &location, const std::vector<MemoryMap> &memory_map);
+BranchInsn getNextBranchInsn(const csh &handle, const Location &location, const std::vector<MemoryMap> &memory_map);
 void checkCapstoneVersion();

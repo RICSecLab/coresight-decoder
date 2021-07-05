@@ -10,12 +10,17 @@
 #include <unordered_map>
 
 using addr_t = std::uint64_t;
-
+using binary_data_t = std::vector<uint8_t>;
 
 struct MemoryMap {
-    std::string binary_data_filename;
-    addr_t start_address;
-    addr_t end_address;
+    const std::string binary_data_filename;
+    const binary_data_t *binary_data;
+    const addr_t start_address;
+    const addr_t end_address;
+
+    MemoryMap(const std::string &binary_data_filename,
+        const std::unordered_map<std::string, std::vector<std::uint8_t>> &binary_files,
+        const addr_t start_address, const addr_t end_address);
 };
 
 struct Location {
