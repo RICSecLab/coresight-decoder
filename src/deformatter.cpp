@@ -11,10 +11,13 @@
 // 参考: ARM CoreSight Architecture Specification v3.0 - Chapter D4 Trace Formatter
 // https://developer.arm.com/documentation/ihi0029/e
 
-std::vector<uint8_t> deformatTraceData(const std::vector<uint8_t>& data, const uint8_t target_trace_id) {
+std::vector<uint8_t> deformatTraceData(const std::uint8_t *data, const std::size_t data_size,
+    const uint8_t target_trace_id) {
     std::vector<uint8_t> deformat_data;
+    deformat_data.reserve(data_size);
+
     uint8_t trace_id = 0;
-    for (size_t data_idx = 0; data_idx < data.size(); data_idx += 16) {
+    for (size_t data_idx = 0; data_idx < data_size; data_idx += 16) {
         for (int frame_byte = 0; frame_byte <= 14; ++frame_byte) {
             uint8_t new_trace_id = trace_id;
 

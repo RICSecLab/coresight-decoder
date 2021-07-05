@@ -60,8 +60,8 @@ libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
     ProcessParam *param = (ProcessParam*)libcsdec;
 
     // Read trace data
-    const std::vector<uint8_t> trace_data((uint8_t *)trace_data_addr, ((uint8_t *)trace_data_addr + trace_data_size));
-    const std::vector<uint8_t> deformat_trace_data = deformatTraceData(trace_data, trace_id);
+    const std::vector<uint8_t> deformat_trace_data =
+        deformatTraceData((uint8_t*)trace_data_addr, trace_data_size, trace_id);
 
     // Read binary data and entry point
     std::vector<MemoryMap> memory_map; {

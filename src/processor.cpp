@@ -54,7 +54,7 @@ int main(int argc, char const *argv[])
 
     // Read trace data
     const std::vector<uint8_t> trace_data = readBinaryFile(trace_data_filename);
-    const std::vector<uint8_t> deformat_trace_data = deformatTraceData(trace_data, trace_id);
+    const std::vector<uint8_t> deformat_trace_data = deformatTraceData((std::uint8_t*)trace_data.data(), trace_data.size(), trace_id);
 
     // Read options
     bool bitmap_mode = false;
