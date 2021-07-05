@@ -130,7 +130,9 @@ int main(int argc, char const *argv[])
 
     // Create a bitmap from edge coverage for fuzzing and save the bitmap
     if (bitmap_mode) {
-        const std::vector<uint8_t> bitmap = createBitmap(result.traces, bitmap_size);
+        std::vector<uint8_t> bitmap(bitmap_size);
+        std::uint8_t *bitmap_address = bitmap.data();
+        writeBitmap(result.traces, bitmap_address, bitmap_size);
         writeBinaryFile(bitmap, bitmap_filename);
     }
 

@@ -99,8 +99,7 @@ libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
     }
 
     // Create a bitmap from edge coverage for fuzzing and save the bitmap
-    const std::vector<uint8_t> bitmap = createBitmap(result.traces, param->bitmap_size);
-    std::copy(bitmap.begin(), bitmap.end(), (uint8_t *)param->bitmap_addr);
+    writeBitmap(result.traces, (uint8_t *)param->bitmap_addr, param->bitmap_size);
 
     disassembleDelete(&handle);
 

@@ -1,6 +1,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <algorithm>
 
 #include "bitmap.hpp"
 #include "trace.hpp"
@@ -13,10 +14,13 @@ uint64_t mixBits(const uint64_t value);
 // TODO: coverageデータにはELFファイルの上のオフセットが記録されており、
 // 複数のELFファイルがある場合、どのファイルのオフセットなのかを区別する必要があるが、
 // 現在はしていない。
-std::vector<uint8_t> createBitmap(const std::vector<Trace> &traces, size_t bitmap_size)
+void writeBitmap(const std::vector<Trace> &traces,
+    std::uint8_t* const bitmap, const size_t bitmap_size)
 {
-    std::vector<std::uint8_t> bitmap(bitmap_size, 0);
+    // Reset bitmap
+    std::fill(bitmap, bitmap + bitmap_size, 0);
 
+    // Write bitmap
     for (const Trace &trace: traces) {
         if (trace.type == TRACE_ATOM_TYPE) {
             // Direct branchのbitmapをコピーする
@@ -31,7 +35,6 @@ std::vector<uint8_t> createBitmap(const std::vector<Trace> &traces, size_t bitma
             __builtin_unreachable();
         }
     }
-    return bitmap;
 }
 
 uint64_t generateBitmapKey(const addr_t from_offset, const size_t from_index, const addr_t to_offset, const size_t to_index, const size_t bitmap_size)
