@@ -48,5 +48,9 @@ std::vector<uint8_t> deformatTraceData(const std::uint8_t *data, const std::size
             trace_id = new_trace_id;
         }
     }
-    return deformat_data;
+
+    // 単に "return deformat_data" をするだけで、
+    // 戻り値の最適化により、コピー省略されるはずである。
+    // しかし、コピーが省略されていないようなので、明示的にmoveしている。
+    return std::move(deformat_data);
 }
