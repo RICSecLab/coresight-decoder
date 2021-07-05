@@ -8,7 +8,6 @@
 #include "deformatter.hpp"
 
 Packet decodePacket(const std::vector<uint8_t> &trace_data, const size_t offset);
-PacketType decodePacketHeader(const std::vector<uint8_t> &trace_data, const size_t offset);
 
 Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_t offset);
 
@@ -59,62 +58,77 @@ std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& t
         Packet packet = decodePacket(trace_data, offset);
         offset += packet.size;
 
-        if (state == IDLE) {
-            if (packet.type == ETM4_PKT_I_ASYNC) {
-                state = TRACE;
+        switch (state) {
+            case IDLE: {
+                if (packet.type == ETM4_PKT_I_ASYNC) {
+                    state = TRACE;
+                }
+                break;
             }
-        } else if (state == TRACE) {
-            switch (packet.type) {
-                case ETM4_PKT_I_ATOM_F1:
-                case ETM4_PKT_I_ATOM_F2:
-                case ETM4_PKT_I_ATOM_F3:
-                case ETM4_PKT_I_ATOM_F4:
-                case ETM4_PKT_I_ATOM_F5:
-                case ETM4_PKT_I_ATOM_F6:
-                    branch_packet = BranchPacket {
-                        BRANCH_PKT_ATOM,
-                        packet.en_bits,
-                        packet.en_bits_len,
-                        0
-                    };
-                    goto end;
 
-                case ETM4_PKT_I_ADDR_L_64IS0:
-                    branch_packet = BranchPacket {
-                        BRANCH_PKT_ADDRESS,
-                        0,
-                        0,
-                        packet.addr
-                    };
-                    goto end;
+            case TRACE: {
+                switch (packet.type) {
+                    case ETM4_PKT_I_ATOM_F1:
+                    case ETM4_PKT_I_ATOM_F2:
+                    case ETM4_PKT_I_ATOM_F3:
+                    case ETM4_PKT_I_ATOM_F4:
+                    case ETM4_PKT_I_ATOM_F5:
+                    case ETM4_PKT_I_ATOM_F6:
+                        branch_packet = BranchPacket {
+                            BRANCH_PKT_ATOM,
+                            packet.en_bits,
+                            packet.en_bits_len,
+                            0
+                        };
+                        goto end;
 
-                // Exception Packetは例外が発生したときに、生成される。
-                // Exceptionパケットに続き、2つのAddress Packetが生成される。
-                // 1つ目はException後に戻るアドレスを示し、
-                // 2つ目は実際にException後に実行が開始されたアドレスを示している。
-                // そのため、ユーザ空間のトレースではこの2つのAddress Packetを無視する。
-                case ETM4_PKT_I_EXCEPT:
-                    state = EXCEPTION_ADDR1;
-                    break;
-                case ETM4_PKT_I_OVERFLOW:
-                    // An Overflow packet is output in the data trace stream whenever the data trace buffer
-                    // in the trace unit overflows. This means that part of the data trace stream might be lost,
-                    // and tracing is inactive until the overflow condition clears.
-                    std::cerr << "Found an overflow packet that indicates that a trace unit buffer overflow has occurred. ";
-                    std::cerr << "The trace data may be corrupted." << std::endl;
-                    return std::nullopt;
-                default:
-                    break;
+                    case ETM4_PKT_I_ADDR_L_64IS0:
+                        branch_packet = BranchPacket {
+                            BRANCH_PKT_ADDRESS,
+                            0,
+                            0,
+                            packet.addr
+                        };
+                        goto end;
+
+                    // Exception Packetは例外が発生したときに、生成される。
+                    // Exceptionパケットに続き、2つのAddress Packetが生成される。
+                    // 1つ目はException後に戻るアドレスを示し、
+                    // 2つ目は実際にException後に実行が開始されたアドレスを示している。
+                    // そのため、ユーザ空間のトレースではこの2つのAddress Packetを無視する。
+                    case ETM4_PKT_I_EXCEPT:
+                        state = EXCEPTION_ADDR1;
+                        break;
+                    case ETM4_PKT_I_OVERFLOW:
+                        // An Overflow packet is output in the data trace stream whenever the data trace buffer
+                        // in the trace unit overflows. This means that part of the data trace stream might be lost,
+                        // and tracing is inactive until the overflow condition clears.
+                        std::cerr << "Found an overflow packet that indicates that a trace unit buffer overflow has occurred. ";
+                        std::cerr << "The trace data may be corrupted." << std::endl;
+                        return std::nullopt;
+                    default:
+                        break;
+                }
+                break;
             }
-        } else if (state == EXCEPTION_ADDR1) {
-            if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
-                state = EXCEPTION_ADDR2;
+
+            case EXCEPTION_ADDR1: {
+                if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
+                    state = EXCEPTION_ADDR2;
+                }
+                break;
             }
-        } else if (state == EXCEPTION_ADDR2) {
-            if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
-                state = TRACE;
+
+            case EXCEPTION_ADDR2: {
+                if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
+                    state = TRACE;
+                }
+                break;
             }
-         }
+
+            default:
+                __builtin_unreachable();
+        }
     }
 
 end:
@@ -126,108 +140,94 @@ end:
 
 Packet decodePacket(const std::vector<uint8_t> &trace_data, const size_t offset)
 {
-    PacketType type = decodePacketHeader(trace_data, offset);
+    const uint8_t header = trace_data[offset];
     Packet result;
 
-    switch (type) {
-        case ETM4_PKT_I_EXTENSION:
+    switch (header) {
+        // Extension packet header: 0b00000000
+        case 0b00000000:
             result = decodeExtensionPacket(trace_data, offset);
             break;
 
-        case ETM4_PKT_I_TRACE_INFO:
+        // Trace Info packet header: 0b00000001
+        case 0b00000001:
             result = decodeTraceInfoPacket(trace_data, offset);
             break;
 
-        case ETM4_PKT_I_TIMESTAMP:
+        // Timestamp packet header: 0b0000001x
+        case 0b00000010 ... 0b00000011:
             result = decodeTimestampPacket(trace_data, offset);
             break;
 
-        case ETM4_PKT_I_TRACE_ON:
+        // Trace On packet header: 0b00000100
+        case 0b00000100:
             result = decodeTraceOnPacket(trace_data, offset);
             break;
 
-        case ETM4_PKT_I_CTXT:
-            result = decodeContextPacket(trace_data, offset);
-            break;
-
-        case ETM4_PKT_I_EXCEPT:
+        // Exception packet header: 0b00000110
+        case 0b00000110:
             result = decodeExceptionPacket(trace_data, offset);
             break;
 
-        case ETM4_PKT_I_ADDR_L_64IS0:
+        // Context packet header: 0b1000000x
+        case 0b10000000 ... 0b10000001:
+            result = decodeContextPacket(trace_data, offset);
+            break;
+
+        // 64-bit IS0 long Address packet header: 0b10011101
+        case 0b10011101:
             result = decodeAddressLong64ISOPacket(trace_data, offset);
             break;
 
-        case ETM4_PKT_I_ATOM_F1:
-            result = decodeAtomF1Packet(trace_data, offset);
+        // Atom 6 packet header:  0b11000000 - 0b11010100
+        case 0b11000000 ... 0b11010100:
+            result = decodeAtomF6Packet(trace_data, offset);
             break;
 
-        case ETM4_PKT_I_ATOM_F2:
-            result = decodeAtomF2Packet(trace_data, offset);
-            break;
-
-        case ETM4_PKT_I_ATOM_F3:
-            result = decodeAtomF3Packet(trace_data, offset);
-            break;
-
-        case ETM4_PKT_I_ATOM_F4:
-            result = decodeAtomF4Packet(trace_data, offset);
-            break;
-
-        case ETM4_PKT_I_ATOM_F5:
+        // Atom 5 packet header: 0b11010101 - 0b11010111
+        case 0b11010101 ... 0b11010111:
             result = decodeAtomF5Packet(trace_data, offset);
             break;
 
-        case ETM4_PKT_I_ATOM_F6:
+        // Atom 2 packet header: 0b110110xx
+        case 0b11011000 ... 0b11011011:
+            result = decodeAtomF2Packet(trace_data, offset);
+            break;
+
+        // Atom 4 packet header: 0b110111xx
+        case 0b11011100 ... 0b11011111:
+            result = decodeAtomF4Packet(trace_data, offset);
+            break;
+
+        // Atom 6 packet header: 0b11100000 - 0b11110100
+        case 0b11100000 ... 0b11110100:
             result = decodeAtomF6Packet(trace_data, offset);
+            break;
+
+        // Atom 5 packet header: 0b11110101
+        case 0b11110101:
+            result = decodeAtomF5Packet(trace_data, offset);
+            break;
+
+        // Atom 1 packet header: 0b1111011x
+        case 0b11110110 ... 0b11110111:
+            result = decodeAtomF1Packet(trace_data, offset);
+            break;
+
+        // Atom 3 packet header: 0b11111xxx
+        case 0b11111000 ... 0b11111111:
+            result = decodeAtomF3Packet(trace_data, offset);
             break;
 
         default:
             result = {
                 PKT_UNKNOWN,
-                1,
-                0,
-                0,
-                0
+                1, 0, 0, 0
             };
             break;
     }
 
     return result;
-}
-
-PacketType decodePacketHeader(const std::vector<uint8_t> &trace_data, const size_t offset)
-{
-    const uint8_t header = trace_data[offset];
-    if (header == 0x0) {
-        return ETM4_PKT_I_EXTENSION;
-    } else if (header == 0b00000001) {
-        return ETM4_PKT_I_TRACE_INFO;
-    } else if (header == 0b00000100) {
-        return ETM4_PKT_I_TRACE_ON;
-    } else if (header == 0b00000010 or header == 0b00000011) { // 0b0000001x
-        return ETM4_PKT_I_TIMESTAMP;
-    } else if (header == 0x80 or header == 0x81) { // 0b1000000x
-        return ETM4_PKT_I_CTXT;
-    } else if (header == 0b00000110) {
-        return ETM4_PKT_I_EXCEPT;
-    } else if (header == 0b11110110 or header == 0b11110111) { // 0b1111011x
-        return ETM4_PKT_I_ATOM_F1;
-    } else if (0b11011000 <= header and header <= 0b11011011) { // 0b110110xx
-        return ETM4_PKT_I_ATOM_F2;
-    } else if (0b11111000 <= header and header <= 0b11111111) { // 0b11111xxx
-        return ETM4_PKT_I_ATOM_F3;
-    } else if (0b11011100 <= header and header <= 0b11011111) { // 0b110111xx
-        return ETM4_PKT_I_ATOM_F4;
-    } else if ((0b11010101 <= header and header <= 0b11010111) or (header == 0b11110101)){ //  0b11010101 - 0b11010111 and 0b11110101
-        return ETM4_PKT_I_ATOM_F5;
-    } else if ((0b11000000 <= header and header <= 0b11010100) or (0b11100000 <= header and header <= 0b11110100)) { // 0b11000000 - 0b11010100 and 0b11100000 - 0b11110100
-        return ETM4_PKT_I_ATOM_F6;
-    } else if (header == 0b10011101) {
-        return ETM4_PKT_I_ADDR_L_64IS0;
-    } else {
-        return PKT_UNKNOWN;
-    }
 }
 
 Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
