@@ -31,6 +31,7 @@ BRANCHES_TEST := tests/branches
 
 
 all: CXXFLAGS += -O3
+all: CXXFLAGS += -DNDEBUG # Disable calls to assert()
 all: $(TARGET) $(LIBTARGET)
 
 # FIXME: Enabling UBSAN and GLIBCXX_DEBUG is not compatible with proc-trace
