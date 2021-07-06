@@ -49,8 +49,7 @@ std::vector<uint8_t> deformatTraceData(const std::uint8_t *data, const std::size
         }
     }
 
-    // 単に "return deformat_data" をするだけで、
-    // 戻り値の最適化により、コピー省略されるはずである。
-    // しかし、コピーが省略されていないようなので、明示的にmoveしている。
+    // NRVO（Named Return Value Optimization）が有効にならず、
+    // コピーコンストラクタが呼ばれているため、明示的にmoveをしている。
     return std::move(deformat_data);
 }
