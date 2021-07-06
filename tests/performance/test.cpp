@@ -92,16 +92,12 @@ std::optional<double> run_decoder(libcsdec_t &libcsdec, const std::string &decod
 
     enum libcsdec_result result = libcsdec_write_bitmap(libcsdec, trace_data_addr, trace_data_size,
         trace_id, memory_map_num, memory_map);
-    if (result != LIBCEDEC_SUCCESS) {
-        std::cerr << "Failed to run decoder." << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
 
     std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
     double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 
     if (result != LIBCEDEC_SUCCESS) {
-        std::cerr << "Decoder error occurred." << std::endl;
+        std::cerr << "Failed to run decoder." << std::endl;
         return std::nullopt;
     }
 
