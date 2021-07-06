@@ -33,4 +33,16 @@ struct Location {
     Location(const std::vector<MemoryMap> &memory_map, const addr_t address);
 };
 
+namespace std {
+template <>
+struct hash<Location> {
+    size_t operator()(const Location &key) const {
+        std::size_t h1 = std::hash<addr_t>()(key.offset);
+        std::size_t h2 = std::hash<std::size_t>()(key.index);
+
+        return h1 ^ h2;
+    }
+};
+}
+
 size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const uint64_t address);
