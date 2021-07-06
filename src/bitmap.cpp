@@ -37,21 +37,6 @@ void writeBitmap(const std::vector<Trace> &traces,
     }
 }
 
-uint64_t generateBitmapKey(const addr_t from_offset, const size_t from_index, const addr_t to_offset, const size_t to_index, const size_t bitmap_size)
-{
-    //ELF上のオフセットの値をハッシュ関数を通して、ランダムな値に変換し、
-    // それを用いて、bitmapのキーを計算する。
-    //
-    // aflのtechnical_details.txtに書いてある通り、AFLのカバレッジの計算は以下のようである。
-    //     cur_location = <COMPILE_TIME_RANDOM>;
-    //     shared_mem[cur_location ^ prev_location]++;
-    //     prev_location = cur_location >> 1;
-    //
-    uint64_t to_h = mixBits(to_offset) ^ mixBits(to_index);
-    uint64_t from_h = mixBits(from_offset) ^ mixBits(from_index);
-    return (mixBits(to_h) ^ (mixBits(from_h) >> 1)) & (bitmap_size - 1);
-}
-
 uint64_t generateBitmapKey(const Location& from_location, const Location& to_location, const size_t bitmap_size)
 {
     //ELF上のオフセットの値をハッシュ関数を通して、ランダムな値に変換し、
