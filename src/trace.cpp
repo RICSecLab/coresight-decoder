@@ -18,7 +18,7 @@ void AtomTrace::addLocation(const Location &location)
 void AtomTrace::calculateBitmapKeys(const std::size_t bitmap_size)
 {
     // Direct Branchのトレースから、bitmapキーを作成する
-    for (std::size_t i = 0; i < this->locations.size() - 1; ++i) {
+    for (std::size_t i = 0, len = this->locations.size() - 1; i < len; ++i) {
         const Location from_location = this->locations[i];
         const Location to_location   = this->locations[i + 1];
         const std::size_t key = generateBitmapKey(from_location, to_location, bitmap_size);
@@ -58,7 +58,7 @@ void printTraceLocations(const std::vector<Trace> &traces, const std::vector<Mem
         if (trace.type == TRACE_ATOM_TYPE) {
             const AtomTrace atom_trace = trace.atom_trace;
 
-            for (size_t i = 0; i < atom_trace.locations.size() - 1; i++) {
+            for (std::size_t i = 0, len = atom_trace.locations.size() - 1; i < len; i++) {
                 const Location prev_location = atom_trace.locations[i];
                 const Location next_location = atom_trace.locations[i + 1];
 
