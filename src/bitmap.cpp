@@ -6,21 +6,15 @@
 #include "bitmap.hpp"
 #include "trace.hpp"
 
-Bitmap::Bitmap(const uint8_t* data, std::size_t size)
+Bitmap::Bitmap(uint8_t* data, std::size_t size)
     : data(data), size(size) {}
 
 void Bitmap::resetBitmap() const
 {
     // Fill the bitmap with zeros.
-    std::uint8_t *data = const_cast<std::uint8_t*>(this->data);
-    std::fill(data, data + this->size, 0);
+    std::fill(this->data, this->data + this->size, 0);
 }
 
-void Bitmap::incrementBitmap(const std::size_t key) const
-{
-    std::uint8_t *data = const_cast<std::uint8_t*>(this->data);
-    data[key]++;
-}
 
 std::uint64_t generateBitmapKey(const Location& from_location, const Location& to_location,
     const std::size_t bitmap_size)

@@ -32,7 +32,7 @@ void AtomTrace::writeBitmapKeys(const Bitmap &bitmap) const
     // Direct branchのbitmapをコピーする
     for (const std::uint64_t key : this->bitmap_keys) {
         // bitmapのキーの値から、対応する位置の値を増やす。
-        bitmap.incrementBitmap(key);
+        bitmap.data[key]++;
     }
 }
 
@@ -72,7 +72,7 @@ void AddressTrace::calculateBitmapKey(const std::size_t bitmap_size)
 void AddressTrace::writeBitmapKey(const Bitmap &bitmap) const
 {
     // Indirect branchのbitmapをコピーする
-    bitmap.incrementBitmap(this->bitmap_key);
+    bitmap.data[this->bitmap_key]++;
 }
 
 void AddressTrace::printTraceLocation(const std::vector<MemoryMap> &memory_map) const
