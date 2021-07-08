@@ -28,12 +28,11 @@ struct ProcessState {
 };
 
 
-ProcessParam::ProcessParam(BinaryFiles &&binary_files,
-    const void* bitmap_addr, const int bitmap_size,
-    const bool cache_mode, Cache cache)
-    : binary_files(std::move(binary_files)),
-      bitmap_addr(bitmap_addr), bitmap_size(bitmap_size),
-      cache_mode(cache_mode), cache(cache) {};
+ProcessParam::ProcessParam(BinaryFiles &&binary_files, const Bitmap &bitmap,
+    const bool cache_mode, Cache &&cache, bool print_edge_cov_mode)
+    : binary_files(std::move(binary_files)), bitmap(bitmap),
+      cache_mode(cache_mode), cache(std::move(cache)),
+      print_edge_cov_mode(print_edge_cov_mode) {};
 
 
 AtomTrace processAtomPacket(ProcessParam &param, ProcessState &state,
@@ -45,11 +44,9 @@ BranchInsn processNextBranchInsn(ProcessParam &param, ProcessState &state,
 bool checkTraceRange(const std::vector<MemoryMap> &memory_map, const Location &location);
 
 
-ProcessResult process(ProcessParam &param, const std::vector<uint8_t>& trace_data,
+ProcessResultType process(ProcessParam &param, const std::vector<uint8_t>& trace_data,
     const std::vector<MemoryMap> &memory_map, const csh &handle)
 {
-    std::vector<Trace> traces;
-
     ProcessState state {
         .prev_location = Location(),
         .has_pending_address_packet = false,
@@ -65,11 +62,9 @@ ProcessResult process(ProcessParam &param, const std::vector<uint8_t>& trace_dat
         // An error occurred during the trace data decoding process
         // Currently, the decoder only fails if it finds an overflow packet.
         if (not optional_branch_packet.has_value()) {
-            return ProcessResult {
-                std::vector<Trace>(),
-                PROCESS_ERROR_OVERFLOW_PACKET
-            };
+            return PROCESS_ERROR_OVERFLOW_PACKET;
         }
+
         const BranchPacket branch_packet = optional_branch_packet.value();
 
         if (state.is_first_branch_packet) {
@@ -98,32 +93,43 @@ ProcessResult process(ProcessParam &param, const std::vector<uint8_t>& trace_dat
             // エッジカバレッジを復元したことがあるか調べる。
             // もし既にキャッシュに存在するなら、そのデータを使うことで高速化できる。
             if (param.cache_mode) {
-                const TraceKey trace_key {
-                    state.prev_location.offset,
-                    state.prev_location.index,
+                // Create a key for cache.
+                const TraceKey trace_key (
+                    state.prev_location,
                     branch_packet.en_bits,
-                    branch_packet.en_bits_len,
-                };
-                if (isCachedTrace(param.cache, trace_key)) {
-                    AtomTrace trace = getTraceCache(param.cache, trace_key);
+                    branch_packet.en_bits_len
+                );
+
+                if (param.cache.isCachedTrace(trace_key)) {
+                    AtomTrace trace = param.cache.getTraceCache(trace_key);
                     // Update state
                     state.prev_location = trace.locations.back();
                     state.has_pending_address_packet = trace.has_pending_address_packet;
 
-                    // Save trace
-                    traces.emplace_back(Trace(trace));
+                    // Write bitmap
+                    trace.writeBitmapKeys(param.bitmap);
+                    if (param.print_edge_cov_mode) {
+                        trace.printTraceLocations(memory_map);
+                    }
                 } else {
                     AtomTrace trace = processAtomPacket(param, state, handle, memory_map, branch_packet);
 
-                    // Save trace
-                    traces.emplace_back(Trace(trace));
+                    // Write bitmap
+                    trace.writeBitmapKeys(param.bitmap);
+                    if (param.print_edge_cov_mode) {
+                        trace.printTraceLocations(memory_map);
+                    }
+
                     // Add trace to cache
-                    addTraceCache(param.cache, trace_key, trace);
+                    param.cache.addTraceCache(trace_key, trace);
                 }
             } else {
                 AtomTrace trace = processAtomPacket(param, state, handle, memory_map, branch_packet);
-                traces.emplace_back(Trace(trace));
-                // cnt3++;
+                // Write bitmap
+                trace.writeBitmapKeys(param.bitmap);
+                if (param.print_edge_cov_mode) {
+                    trace.printTraceLocations(memory_map);
+                }
             }
         } else if (branch_packet.type == BRANCH_PKT_ADDRESS) { // Address packet
             // Address packetは下記の3つの場合に生成される。
@@ -138,10 +144,14 @@ ProcessResult process(ProcessParam &param, const std::vector<uint8_t>& trace_dat
             // 3.1の場合 has_pending_address_packet == false
 
             if (state.has_pending_address_packet or state.trace_state == TRACE_OUT_OF_RANGE) {
-                const AddressTrace trace = processAddressPacket(param,state, memory_map, branch_packet);
+                const AddressTrace &&trace = processAddressPacket(param,state, memory_map, branch_packet);
                 // Save trace
                 if (state.trace_state == TRACE_ON) {
-                    traces.emplace_back(trace);
+                    // Write bitmap
+                    trace.writeBitmapKey(param.bitmap);
+                    if (param.print_edge_cov_mode) {
+                        trace.printTraceLocation(memory_map);
+                    }
                 }
                 if (state.trace_state == TRACE_RESTART) {
                     state.trace_state = TRACE_ON;
@@ -157,16 +167,10 @@ ProcessResult process(ProcessParam &param, const std::vector<uint8_t>& trace_dat
 
     if (state.has_pending_address_packet) {
         // This trace data is incomplete. There is no Address packet following Atom packet.
-        return ProcessResult {
-            std::vector<Trace> (),
-            PROCESS_ERROR_TRACE_DATA_INCOMPLETE
-        };
+        return PROCESS_ERROR_TRACE_DATA_INCOMPLETE;
     }
 
-    return ProcessResult {
-        traces,
-        PROCESS_SUCCESS
-    };
+    return PROCESS_SUCCESS;
 }
 
 AtomTrace processAtomPacket(ProcessParam &param, ProcessState &state,
@@ -206,7 +210,7 @@ AtomTrace processAtomPacket(ProcessParam &param, ProcessState &state,
     }
 
     // Create bitmap keys from the trace generated by the Direct Branch
-    trace.calculateBitmapKeys(param.bitmap_size);
+    trace.calculateBitmapKeys(param.bitmap.size);
 
     return trace;
 }
@@ -221,7 +225,7 @@ AddressTrace processAddressPacket(ProcessParam &param, ProcessState &state,
     AddressTrace trace(src_location, dest_location);
 
     // Create bitmap keys from the trace generated by the Indirect Branch
-    trace.calculateBitmapKey(param.bitmap_size);
+    trace.calculateBitmapKey(param.bitmap.size);
 
     // Update state
     state.prev_location = dest_location;
@@ -246,7 +250,7 @@ BranchInsn processNextBranchInsn(ProcessParam &param, ProcessState &state,
         if (param.cache_mode) {
 
             // BranchInsnのキャッシュにアクセスするためのキーを作成する。
-            Location insn_key(
+            const Location insn_key (
                 base_location.offset,
                 base_location.index
             );
@@ -254,14 +258,14 @@ BranchInsn processNextBranchInsn(ProcessParam &param, ProcessState &state,
             // Cacheにアクセスして、既にディスアセンブルした命令か調べる。
             // 同じバイナリファイル&オフセットに対するこの処理は、キャッシュ化することができる。
             // もし既にキャッシュに存在するなら、そのデータを使うことで高速化できる。
-            if (isCachedBranchInsn(param.cache, insn_key)) {
+            if (param.cache.isCachedBranchInsn(insn_key)) {
                 // 既にディスアセンブルした結果がキャッシュにあるため、そのデータを読み込む。
-                insn = getBranchInsnCache(param.cache, insn_key);
+                insn = param.cache.getBranchInsnCache(insn_key);
             } else {
                 // 命令列をディスアセンブルし、分岐命令を探す。
                 insn = getNextBranchInsn(handle, base_location, memory_map);
                 // Cacheに分岐命令をディスアセンブルした結果を格納する。
-                addBranchInsnCache(param.cache, insn_key, insn);
+                param.cache.addBranchInsnCache(std::move(insn_key), insn);
             }
         } else {
             // 命令列をディスアセンブルし、分岐命令を探す。

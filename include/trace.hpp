@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.hpp"
+#include "bitmap.hpp"
 
 
 // locations: loc_1, loc_2, ... , loc_n-1, loc_n
@@ -16,8 +17,10 @@ struct AtomTrace {
     AtomTrace(const Location &location);
 
     void addLocation(const Location &location);
-    void calculateBitmapKeys(const std::size_t bitmap_size);
+    void calculateBitmapKeys(std::size_t bitmap_size);
+    void writeBitmapKeys(const Bitmap &bitmap) const;
     void setPendingAddressPacket();
+    void printTraceLocations(const std::vector<MemoryMap> &memory_map) const;
 };
 
 
@@ -30,23 +33,8 @@ struct AddressTrace {
 
     AddressTrace() = default;
     AddressTrace(const Location &src_location, const Location &dest_location);
-    void calculateBitmapKey(const std::size_t bitmap_size);
+
+    void calculateBitmapKey(std::size_t bitmap_size);
+    void writeBitmapKey(const Bitmap &bitmap) const;
+    void printTraceLocation(const std::vector<MemoryMap> &memory_map) const;
 };
-
-
-enum TraceType {
-    TRACE_ATOM_TYPE,
-    TRACE_ADDRESS_TYPE
-};
-
-struct Trace {
-    const TraceType type;
-    const AtomTrace atom_trace;
-    const AddressTrace address_trace;
-
-    Trace(const AtomTrace &trace);
-    Trace(const AddressTrace &trace);
-};
-
-
-void printTraceLocations(const std::vector<Trace> &traces, const std::vector<MemoryMap> &memory_map);

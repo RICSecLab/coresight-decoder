@@ -15,6 +15,7 @@ void AtomTrace::addLocation(const Location &location)
     this->locations.emplace_back(location);
 }
 
+// ELFファイル上のオフセットとして記録してあるエッジカバレッジから、bitmapを計算する。
 void AtomTrace::calculateBitmapKeys(const std::size_t bitmap_size)
 {
     // Direct Branchのトレースから、bitmapキーを作成する
@@ -26,15 +27,40 @@ void AtomTrace::calculateBitmapKeys(const std::size_t bitmap_size)
     }
 }
 
+void AtomTrace::writeBitmapKeys(const Bitmap &bitmap) const
+{
+    // Direct branchのbitmapをコピーする
+    for (const std::uint64_t key : this->bitmap_keys) {
+        // bitmapのキーの値から、対応する位置の値を増やす。
+        bitmap.incrementBitmap(key);
+    }
+}
+
 void AtomTrace::setPendingAddressPacket()
 {
     this->has_pending_address_packet = true;
+}
+
+void AtomTrace::printTraceLocations(const std::vector<MemoryMap> &memory_map) const
+{
+    for (std::size_t i = 0, len = this->locations.size() - 1; i < len; i++) {
+        const Location prev_location = this->locations[i];
+        const Location next_location = this->locations[i + 1];
+
+        std::cout << std::hex << "0x" << prev_location.offset << " ["
+                  << memory_map[prev_location.index].getBinaryPath() << "]";
+        std::cout << " -> ";
+        std::cout << std::hex << "0x" << next_location.offset << " ["
+                  << memory_map[next_location.index].getBinaryPath() << "]";
+        std::cout << std::endl;
+    }
 }
 
 
 AddressTrace::AddressTrace(const Location &src_location, const Location &dest_location)
     : src_location(src_location), dest_location(dest_location), bitmap_key(0) {}
 
+// ELFファイル上のオフセットとして記録してあるエッジカバレッジから、bitmapを計算する。
 void AddressTrace::calculateBitmapKey(const std::size_t bitmap_size)
 {
     const Location from_location = this->src_location;
@@ -43,46 +69,21 @@ void AddressTrace::calculateBitmapKey(const std::size_t bitmap_size)
     this->bitmap_key = key;
 }
 
-
-Trace::Trace(const AtomTrace &trace)
-    : type(TRACE_ATOM_TYPE), atom_trace(trace), address_trace(AddressTrace()) {}
-
-Trace::Trace(const AddressTrace &trace)
-    : type(TRACE_ADDRESS_TYPE), atom_trace(AtomTrace()), address_trace(trace) {}
-
-
-void printTraceLocations(const std::vector<Trace> &traces, const std::vector<MemoryMap> &memory_map)
+void AddressTrace::writeBitmapKey(const Bitmap &bitmap) const
 {
-    // Print edge coverage
-    for (const Trace &trace : traces) {
-        if (trace.type == TRACE_ATOM_TYPE) {
-            const AtomTrace atom_trace = trace.atom_trace;
+    // Indirect branchのbitmapをコピーする
+    bitmap.incrementBitmap(this->bitmap_key);
+}
 
-            for (std::size_t i = 0, len = atom_trace.locations.size() - 1; i < len; i++) {
-                const Location prev_location = atom_trace.locations[i];
-                const Location next_location = atom_trace.locations[i + 1];
+void AddressTrace::printTraceLocation(const std::vector<MemoryMap> &memory_map) const
+{
+    const Location prev_location = this->src_location;
+    const Location next_location = this->dest_location;
 
-                std::cout << std::hex << "0x" << prev_location.offset << " ["
-                          << memory_map[prev_location.index].getBinaryPath() << "]";
-                std::cout << " -> ";
-                std::cout << std::hex << "0x" << next_location.offset << " ["
-                          << memory_map[next_location.index].getBinaryPath() << "]";
-                std::cout << std::endl;
-            }
-        } else if (trace.type == TRACE_ADDRESS_TYPE) {
-            const AddressTrace address_trace = trace.address_trace;
-
-            const Location prev_location = address_trace.src_location;
-            const Location next_location = address_trace.dest_location;
-
-            std::cout << std::hex << "0x" << prev_location.offset << " ["
-                      << memory_map[prev_location.index].getBinaryPath() << "]";
-            std::cout << " -> ";
-            std::cout << std::hex << "0x" << next_location.offset << " ["
-                      << memory_map[next_location.index].getBinaryPath() << "]";
-            std::cout << std::endl;
-        } else {
-            __builtin_unreachable();
-        }
-    }
+    std::cout << std::hex << "0x" << prev_location.offset << " ["
+              << memory_map[prev_location.index].getBinaryPath() << "]";
+    std::cout << " -> ";
+    std::cout << std::hex << "0x" << next_location.offset << " ["
+              << memory_map[next_location.index].getBinaryPath() << "]";
+    std::cout << std::endl;
 }

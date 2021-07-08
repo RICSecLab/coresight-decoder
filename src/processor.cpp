@@ -26,7 +26,6 @@ int main(int argc, char const *argv[])
                   << "OPTIONS:" << std::endl
                   << "\t--trace-binary-filename=name : Specifies the name of the binary file to trace." << std::endl
                   << "\t                               This option may be used multiple times to specify multiple binary files." << std::endl
-                  << "\t--bitmap-mode                : Enable bitmap calculation." << std::endl
                   << "\t--bitmap-size=size           : Specify the bitmap size in hexadecimal. The default size is 0x10000." << std::endl
                   << "\t--bitmap-filename=name       : Specify the file name to save the bitmap. The default name is edge_coverage_bitmap.out" << std::endl
                   << "\t--cache-mode                 : Enable cache mode. This mode speeds up the decoding process by saving the disassemble" << std::endl
@@ -57,7 +56,6 @@ int main(int argc, char const *argv[])
     const std::vector<uint8_t> deformat_trace_data = deformatTraceData((std::uint8_t*)trace_data.data(), trace_data.size(), trace_id);
 
     // Read options
-    bool bitmap_mode = false;
     uint64_t bitmap_size = BITMAP_SIZE;
     std::string bitmap_filename = BITMAP_FILENAME;
     std::vector<std::string> trace_binary_filenames;
@@ -67,8 +65,6 @@ int main(int argc, char const *argv[])
         char buf[PATH_MAX];
         if (sscanf(argv[i], "--trace-binary-filename=%s", buf)) {
             trace_binary_filenames.emplace_back(std::string(buf));
-        } else if (strcmp(argv[i], "--bitmap-mode") == 0) {
-            bitmap_mode = true;
         } else if (sscanf(argv[i], "--bitmap-size=%lx", &size) == 1) {
             // TODO: Check if it is an invalid size
             bitmap_size = size;
@@ -107,32 +103,23 @@ int main(int argc, char const *argv[])
     csh handle;
     disassembleInit(&handle);
 
-    Cache cache;
+    // Create bitmap area
+    std::vector<uint8_t> bitmap(bitmap_size);
 
     ProcessParam param {
         std::move(binary_files),
-        nullptr,
-        (int)bitmap_size,
+        Bitmap(bitmap.data(), bitmap_size),
         cache_mode,
-        cache
+        Cache(),
+        true
     };
 
     // Calculate edge coverage from trace data and binary data
-    const ProcessResult result = process(param, deformat_trace_data, memory_maps, handle);
-    if (result.type != PROCESS_SUCCESS) {
+    const ProcessResultType result = process(param, deformat_trace_data, memory_maps, handle);
+    if (result != PROCESS_SUCCESS) {
         std::cerr << "Failed to run process()." << std::endl;
         std::exit(1);
     }
-
-    // Create a bitmap from edge coverage for fuzzing and save the bitmap
-    if (bitmap_mode) {
-        std::vector<uint8_t> bitmap(bitmap_size);
-        std::uint8_t *bitmap_address = bitmap.data();
-        writeBitmap(result.traces, bitmap_address, bitmap_size);
-        writeBinaryFile(bitmap, bitmap_filename);
-    }
-
-    printTraceLocations(result.traces, memory_maps);
 
     disassembleDelete(&handle);
     return 0;

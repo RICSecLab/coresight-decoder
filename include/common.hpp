@@ -45,7 +45,7 @@ struct MemoryMap {
     const addr_t end_address;
 
     MemoryMap(const BinaryFiles &binary_files, const std::string &path,
-        const addr_t start_address, const addr_t end_address);
+        addr_t start_address, addr_t end_address);
 
     const std::string getBinaryPath() const;
     const binary_data_t& getBinaryData() const;
@@ -53,7 +53,7 @@ struct MemoryMap {
 
 using MemoryMaps = std::vector<MemoryMap>;
 
-std::size_t getMemoryMapIndex(const MemoryMaps &memory_maps, const uint64_t address);
+std::size_t getMemoryMapIndex(const MemoryMaps &memory_maps, uint64_t address);
 
 
 struct Location {
@@ -61,8 +61,8 @@ struct Location {
     file_index_t index;
 
     Location() = default;
-    Location(const addr_t offset, const file_index_t index);
-    Location(const std::vector<MemoryMap> &memory_map, const addr_t address);
+    Location(addr_t offset, file_index_t index);
+    Location(const std::vector<MemoryMap> &memory_map, addr_t address);
 
     bool operator==(const Location &right) const;
 };

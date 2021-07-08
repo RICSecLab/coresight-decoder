@@ -38,10 +38,13 @@ libcsdec_t libcsdec_init(
     // Create an object that holds the parameters determined before execution.
     std::unique_ptr<ProcessParam> param = std::make_unique<ProcessParam>(
         std::move(binary_files),
-        bitmap_addr,
-        bitmap_size,
+        Bitmap(
+            reinterpret_cast<const std::uint8_t*>(bitmap_addr),
+            static_cast<std::size_t>(bitmap_size)
+        ),
         cache_mode,
-        Cache()
+        Cache(),
+        false
     );
 
     // Release ownership and pass it to the C API side.
@@ -81,24 +84,24 @@ libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
     csh handle;
     disassembleInit(&handle);
 
+    // Reset bitmap
+    param->bitmap.resetBitmap();
+
     // Calculate edge coverage from trace data and binary data
-    const ProcessResult result = process(*param, deformat_trace_data, memory_maps, handle);
-
-    if (result.type != PROCESS_SUCCESS) {
-        switch (result.type) {
-            case PROCESS_ERROR_OVERFLOW_PACKET:
-                return LIBCSDEC_ERROR_OVERFLOW_PACKET;
-            case PROCESS_ERROR_TRACE_DATA_INCOMPLETE:
-                return LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE;
-            default:
-                break;
-        }
-    }
-
-    // Create a bitmap from edge coverage for fuzzing and save the bitmap
-    writeBitmap(result.traces, (uint8_t *)param->bitmap_addr, param->bitmap_size);
+    const ProcessResultType result = process(*param, deformat_trace_data, memory_maps, handle);
 
     disassembleDelete(&handle);
 
-    return LIBCEDEC_SUCCESS;
+    switch (result) {
+        case PROCESS_SUCCESS:
+            return LIBCEDEC_SUCCESS;
+        case PROCESS_ERROR_OVERFLOW_PACKET:
+            return LIBCSDEC_ERROR_OVERFLOW_PACKET;
+        case PROCESS_ERROR_TRACE_DATA_INCOMPLETE:
+            return LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE;
+        default:
+            __builtin_unreachable();
+    }
+
+    return LIBCSDEC_ERROR;
 }

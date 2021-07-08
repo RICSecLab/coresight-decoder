@@ -15,8 +15,7 @@ run () {
     output_file=$target$OUTPUT_FILE_SUFFIX
     bitmap_file=$target$OUTPUT_BITMAP_FILE_SUFFIX
 
-    $PROGRAM $(cat $target/decoderargs.txt) --bitmap-mode \
-                                            --bitmap-size=0x1000 \
+    $PROGRAM $(cat $target/decoderargs.txt) --bitmap-size=0x1000 \
                                             --bitmap-filename=$bitmap_file \
                                             --trace-binary-filename=branches \
                                             > $output_file
@@ -33,8 +32,7 @@ run_cache_mode () {
     output_file=$target$OUTPUT_FILE_SUFFIX
     bitmap_file=$target$OUTPUT_BITMAP_FILE_SUFFIX
 
-    $PROGRAM $(cat $target/decoderargs.txt) --bitmap-mode \
-                                            --bitmap-size=0x1000 \
+    $PROGRAM $(cat $target/decoderargs.txt) --bitmap-size=0x1000 \
                                             --bitmap-filename=$bitmap_file \
                                             --trace-binary-filename=branches \
                                             --cache-mode \

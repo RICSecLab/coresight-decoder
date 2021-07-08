@@ -10,17 +10,17 @@ struct ProcessParam {
 
     // エッジカバレッジの計算結果を書き出すための
     // bitmapのアドレスとサイズ
-    const void* bitmap_addr;
-    const int bitmap_size;
+    const Bitmap bitmap;
 
     // ディスアセンブル結果とトレースデータのデコード結果をキャッシュし、
     // 将来のデコード時に使えるようにすることで、実行速度を高速化している。
     const bool cache_mode;
     Cache cache;
 
-    ProcessParam(BinaryFiles &&binary_files,
-        const void* bitmap_addr, const int bitmap_size,
-        const bool cache_mode, Cache cache);
+    const bool print_edge_cov_mode;
+
+    ProcessParam(BinaryFiles &&binary_files, const Bitmap &bitmap,
+        const bool cache_mode, Cache &&cache, bool print_edge_cov_mode);
 };
 
 enum ProcessResultType {
@@ -29,11 +29,5 @@ enum ProcessResultType {
     PROCESS_ERROR_TRACE_DATA_INCOMPLETE,
 };
 
-struct ProcessResult {
-    std::vector<Trace> traces;
-    ProcessResultType type;
-};
-
-
-ProcessResult process(ProcessParam &param, const std::vector<uint8_t>& trace_data,
+ProcessResultType process(ProcessParam &param, const std::vector<uint8_t>& trace_data,
     const std::vector<MemoryMap> &memory_map, const csh &handle);

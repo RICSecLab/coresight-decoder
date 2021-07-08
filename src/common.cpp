@@ -35,7 +35,7 @@ const BinaryFile* getBinaryFilePtr(const BinaryFiles &binary_files, const std::s
 
 
 MemoryMap::MemoryMap(const BinaryFiles &binary_files, const std::string &path,
-    const addr_t start_address, const addr_t end_address)
+    addr_t start_address, addr_t end_address)
     : binary_file(getBinaryFilePtr(binary_files, path)),
       start_address(start_address), end_address(end_address) {}
 
@@ -64,7 +64,7 @@ std::size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const ad
 }
 
 
-Location::Location(const addr_t offset, const std::size_t index)
+Location::Location(addr_t offset, file_index_t index)
     : offset(offset), index(index) {}
 
 Location::Location(const std::vector<MemoryMap> &memory_map, const addr_t address)

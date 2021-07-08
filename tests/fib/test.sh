@@ -15,8 +15,7 @@ run () {
     output_file=$target$OUTPUT_FILE_SUFFIX
     bitmap_file=$target$OUTPUT_BITMAP_FILE_SUFFIX
 
-    $PROGRAM $(cat $target/decoderargs.txt) --bitmap-mode \
-                                            --bitmap-size=0x1000 \
+    $PROGRAM $(cat $target/decoderargs.txt) --bitmap-size=0x1000 \
                                             --bitmap-filename=$bitmap_file \
                                             --trace-binary-filename=fib \
                                             > $output_file
@@ -28,8 +27,7 @@ run_full () {
     output_file=$target$OUTPUT_FILE_SUFFIX
     bitmap_file=$target$OUTPUT_BITMAP_FILE_SUFFIX
 
-    $PROGRAM $(cat $target/decoderargs.txt) --bitmap-mode \
-                                            --bitmap-size=0x1000 \
+    $PROGRAM $(cat $target/decoderargs.txt) --bitmap-size=0x1000 \
                                             --bitmap-filename=$bitmap_file \
                                             --trace-binary-filename=fib \
                                             --trace-binary-filename=ld-2.31.so \
