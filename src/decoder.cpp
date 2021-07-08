@@ -54,7 +54,8 @@ std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& t
         BRANCH_PKT_END, 0, 0, 0
     };
 
-    while (offset < trace_data.size()) {
+    const std::size_t size = trace_data.size();
+    while (offset < size) {
         Packet packet = decodePacket(trace_data, offset);
         offset += packet.size;
 

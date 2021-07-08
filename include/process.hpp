@@ -51,11 +51,7 @@ struct Process {
 
     // ディスアセンブル結果とトレースデータのデコード結果をキャッシュし、
     // 将来のデコード時に使えるようにすることで、実行速度を高速化している。
-    const bool cache_mode;
     Cache cache;
-
-    // エッジカバレッジを標準出力に出力するかどうかを示すフラグ
-    const bool print_edge_cov_mode;
 
     // Capstoneにアクセスするためのハンドラ
     csh handle;
@@ -65,10 +61,9 @@ struct Process {
     Process& operator=(const Process&) = delete;
 
     Process(BinaryFiles &&binary_files, const Bitmap &bitmap,
-        const bool cache_mode, Cache &&cache, bool print_edge_cov_mode)
+        const bool cache_mode, Cache &&cache)
         : binary_files(std::move(binary_files)), bitmap(bitmap),
-          cache_mode(cache_mode), cache(std::move(cache)),
-          print_edge_cov_mode(print_edge_cov_mode)
+        cache(std::move(cache))
     {
         csh handle;
         disassembleInit(&handle);

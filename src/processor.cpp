@@ -103,8 +103,7 @@ int main(int argc, char const *argv[])
         std::move(binary_files),
         Bitmap(bitmap.data(), bitmap_size),
         cache_mode,
-        Cache(),
-        true
+        Cache()
     };
 
     // Read trace data

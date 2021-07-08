@@ -62,7 +62,7 @@ ProcessResultType Process::run(ProcessState state,
             // Cacheにアクセスして、既に同じトレースデータと開始アドレスから、
             // エッジカバレッジを復元したことがあるか調べる。
             // もし既にキャッシュに存在するなら、そのデータを使うことで高速化できる。
-            if (this->cache_mode) {
+            #if defined(CACHE_MODE)
                 // Create a key for cache.
                 const TraceKey trace_key (
                     state.prev_location,
@@ -70,37 +70,37 @@ ProcessResultType Process::run(ProcessState state,
                     branch_packet.en_bits_len
                 );
 
-                if (this->cache.isCachedTrace(trace_key)) {
-                    AtomTrace trace = this->cache.getTraceCache(trace_key);
+                if (cache.isCachedTrace(trace_key)) {
+                    AtomTrace trace = cache.getTraceCache(trace_key);
                     // Update state
                     state.prev_location = trace.locations.back();
                     state.has_pending_address_packet = trace.has_pending_address_packet;
 
                     // Write bitmap
                     trace.writeBitmapKeys(this->bitmap);
-                    if (this->print_edge_cov_mode) {
+                    #if defined(PRINT_EDGE_COV)
                         trace.printTraceLocations(state.memory_maps);
-                    }
+                    #endif
                 } else {
                     AtomTrace trace = processAtomPacket(state, branch_packet);
 
                     // Write bitmap
                     trace.writeBitmapKeys(this->bitmap);
-                    if (this->print_edge_cov_mode) {
+                    #if defined(PRINT_EDGE_COV)
                         trace.printTraceLocations(state.memory_maps);
-                    }
+                    #endif
 
                     // Add trace to cache
-                    this->cache.addTraceCache(trace_key, trace);
+                    cache.addTraceCache(trace_key, trace);
                 }
-            } else {
+            #else
                 AtomTrace trace = processAtomPacket(state, branch_packet);
                 // Write bitmap
                 trace.writeBitmapKeys(this->bitmap);
-                if (this->print_edge_cov_mode) {
+                #if defined(PRINT_EDGE_COV)
                     trace.printTraceLocations(state.memory_maps);
-                }
-            }
+                #endif
+            #endif
         } else if (branch_packet.type == BRANCH_PKT_ADDRESS) { // Address packet
             // Address packetは下記の3つの場合に生成される。
             //     1. トレース開始時に、トレース開始アドレスを示すために生成される。
@@ -120,9 +120,9 @@ ProcessResultType Process::run(ProcessState state,
                 if (state.trace_state == TraceStateType::TRACE_ON) {
                     // Write bitmap
                     trace.writeBitmapKey(this->bitmap);
-                    if (this->print_edge_cov_mode) {
+                    #if defined(PRINT_EDGE_COV)
                         trace.printTraceLocation(state.memory_maps);
-                    }
+                    #endif
                 }
                 if (state.trace_state == TraceStateType::TRACE_RESTART) {
                     state.trace_state = TraceStateType::TRACE_ON;
@@ -216,8 +216,7 @@ BranchInsn Process::processNextBranchInsn(const ProcessState &state, const Locat
 {
     // 次の分岐命令を計算する。
     BranchInsn insn; {
-        if (this->cache_mode) {
-
+        #if defined(CACHE_MODE)
             // BranchInsnのキャッシュにアクセスするためのキーを作成する。
             const Location insn_key(base_location.offset, base_location.index);
 
@@ -233,10 +232,10 @@ BranchInsn Process::processNextBranchInsn(const ProcessState &state, const Locat
                 // Cacheに分岐命令をディスアセンブルした結果を格納する。
                 this->cache.addBranchInsnCache(std::move(insn_key), insn);
             }
-        } else {
+        #else
             // 命令列をディスアセンブルし、分岐命令を探す。
             insn = getNextBranchInsn(this->handle, base_location, state.memory_maps);
-        }
+        #endif
     }
     return insn;
 }

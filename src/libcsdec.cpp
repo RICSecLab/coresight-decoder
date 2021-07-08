@@ -42,8 +42,7 @@ libcsdec_t libcsdec_init(
             static_cast<std::size_t>(bitmap_size)
         ),
         cache_mode,
-        Cache(),
-        false
+        Cache()
     );
 
     // Release ownership and pass it to the C API side.
