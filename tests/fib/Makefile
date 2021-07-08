@@ -28,7 +28,7 @@ EXECUTION_TIMES_DATA_NON_CACHE_MODE := execution_times_non_cache_mode.dat
 EXECUTION_TIMES_DATA_CACHE_MODE := execution_times_cache_mode.dat
 
 
-test: $(PROGRAM)
+test: $(PROGRAM) clean-test-output-files
 	./test.sh
 	./test_lib 1> /dev/null
 
@@ -60,11 +60,12 @@ run-perf:
 		$(PERFORMANCE_TEST_DIR)/test $(TRACEE) $(CACHE_MODE) $(EXECUTION_TIMES_DATA_CACHE_MODE) \
 		$(LOOP_CNT) $(TRACE_DATA_DIR1)
 
-clean:
-	rm -f trace*_edge_coverage.out trace*_bitmap.out
+clean: clean-test-output-files
 	rm -f test_lib.o test_lib
 	rm -f execution_times_cache_mode.dat execution_times_non_cache_mode.dat
 
+clean-test-output-files:
+	rm -f trace*_edge_coverage.out trace*_bitmap.out
 
 .PHONY: test test-performance-cache-mode run-decoder-with-non-cache-mode run-decoder-with-cache-mode \
-		build-performance-test run-perf clean
+		build-performance-test run-perf clean clean-test-output-files
