@@ -23,15 +23,17 @@
 int load_bin(const char *path, void **buf, size_t *size) {
     int fd = open(path, O_RDONLY);
     if (fd < 0) {
-        return -1;
+        perror("open");
+        std::exit(1);
     }
 
     struct stat sb;
     fstat(fd, &sb);
 
     char *addr = (char *)mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
-    if (!addr) {
-        return -1;
+    if (addr == MAP_FAILED) {
+        perror("mmap");
+        std::exit(EXIT_FAILURE);
     }
 
     *buf = (void *)addr;
