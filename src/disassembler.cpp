@@ -82,10 +82,8 @@ void disassembleDelete(csh* handle)
 // base_address以降のアドレスで、最も近い分岐命令を探す
 BranchInsn getNextBranchInsn(const csh &handle, const Location &location, const std::vector<MemoryMap> &memory_map)
 {
-    const std::string binary_data_filename = memory_map[location.index].binary_data_filename;
-
-    cs_insn *insn = disassembleNextBranchInsn(&handle, *memory_map[location.index].binary_data,
-        location.offset);
+    cs_insn *insn = disassembleNextBranchInsn(&handle,
+        memory_map[location.index].getBinaryData(), location.offset);
 
     const BranchType type = decodeInstOpecode(insn);
 

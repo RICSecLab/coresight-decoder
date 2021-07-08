@@ -62,9 +62,11 @@ void printTraceLocations(const std::vector<Trace> &traces, const std::vector<Mem
                 const Location prev_location = atom_trace.locations[i];
                 const Location next_location = atom_trace.locations[i + 1];
 
-                std::cout << std::hex << "0x" << prev_location.offset << " [" << memory_map[prev_location.index].binary_data_filename << "]";
+                std::cout << std::hex << "0x" << prev_location.offset << " ["
+                          << memory_map[prev_location.index].getBinaryPath() << "]";
                 std::cout << " -> ";
-                std::cout << std::hex << "0x" << next_location.offset << " [" << memory_map[next_location.index].binary_data_filename << "]";
+                std::cout << std::hex << "0x" << next_location.offset << " ["
+                          << memory_map[next_location.index].getBinaryPath() << "]";
                 std::cout << std::endl;
             }
         } else if (trace.type == TRACE_ADDRESS_TYPE) {
@@ -73,9 +75,11 @@ void printTraceLocations(const std::vector<Trace> &traces, const std::vector<Mem
             const Location prev_location = address_trace.src_location;
             const Location next_location = address_trace.dest_location;
 
-            std::cout << std::hex << "0x" << prev_location.offset << " [" << memory_map[prev_location.index].binary_data_filename << "]";
+            std::cout << std::hex << "0x" << prev_location.offset << " ["
+                      << memory_map[prev_location.index].getBinaryPath() << "]";
             std::cout << " -> ";
-            std::cout << std::hex << "0x" << next_location.offset << " [" << memory_map[next_location.index].binary_data_filename << "]";
+            std::cout << std::hex << "0x" << next_location.offset << " ["
+                      << memory_map[next_location.index].getBinaryPath() << "]";
             std::cout << std::endl;
         } else {
             __builtin_unreachable();

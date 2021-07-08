@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 
 #include "process.hpp"
 #include "decoder.hpp"
@@ -28,21 +29,24 @@ libcsdec_t libcsdec_init(
 
     checkCapstoneVersion();
 
-    std::unordered_map<std::string, std::vector<std::uint8_t>> binary_files; {
+    BinaryFiles binary_files; {
         for (int i = 0; i < binary_file_num; i++) {
-            const std::vector<uint8_t> binary_data = readBinaryFile(binary_file_path[i]);
-            binary_files.insert(std::make_pair(binary_file_path[i], binary_data));
+            binary_files.emplace(binary_file_path[i]);
         }
     }
 
     // Create an object that holds the parameters determined before execution.
-    ProcessParam *param = new ProcessParam {
-        binary_files,
+    std::unique_ptr<ProcessParam> param = std::make_unique<ProcessParam>(
+        std::move(binary_files),
         bitmap_addr,
         bitmap_size,
-        cache_mode
-    };
-    return (libcsdec_t)param;
+        cache_mode,
+        Cache()
+    );
+
+    // Release ownership and pass it to the C API side.
+    // Therefore, do not free param here.
+    return reinterpret_cast<ProcessParam*>(param.release());
 }
 
 
@@ -57,17 +61,18 @@ libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
     }
 
     // Cast
-    ProcessParam *param = (ProcessParam*)libcsdec;
+    ProcessParam *param = reinterpret_cast<ProcessParam*>(libcsdec);
 
     // Read trace data
     const std::vector<uint8_t> deformat_trace_data =
         deformatTraceData((uint8_t*)trace_data_addr, trace_data_size, trace_id);
 
     // Read binary data and entry point
-    std::vector<MemoryMap> memory_maps; {
+    MemoryMaps memory_maps; {
         for (int i = 0; i < memory_map_num; i++) {
+            const std::string path = std::string(libcsdec_memory_map[i].path);
             memory_maps.emplace_back(MemoryMap(
-                libcsdec_memory_map[i].path, param->binary_files,
+                param->binary_files, path,
                 libcsdec_memory_map[i].start, libcsdec_memory_map[i].end
             ));
         }

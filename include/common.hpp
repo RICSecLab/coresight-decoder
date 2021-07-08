@@ -7,42 +7,69 @@
 #endif
 
 #include <vector>
-#include <unordered_map>
+#include <string>
+#include <set>
 
 using addr_t = std::uint64_t;
+using file_index_t = std::size_t;
 using binary_data_t = std::vector<uint8_t>;
 
+
+struct BinaryFile {
+    const std::string path;
+    const binary_data_t data;
+
+    // Disable copy constructor.
+    BinaryFile(const BinaryFile&) = delete;
+    BinaryFile& operator=(const BinaryFile&) = delete;
+
+    BinaryFile(const std::string &path);
+};
+
+// Transparent comparison for BinaryFile.
+bool operator<(const BinaryFile& lhs, const std::string& rhs);
+bool operator<(const std::string& lhs, const BinaryFile& rhs);
+bool operator<(const BinaryFile& lhs, const BinaryFile& rhs);
+
+// Cache for binary files in the area to be traced.
+using BinaryFiles = std::set<BinaryFile, std::less<>>;
+
+// Find a BinaryFile with a matching file path in BinaryFiles.
+// If not found, return nullptr.
+const BinaryFile* getBinaryFilePtr(const BinaryFiles &binary_files, const std::string &path);
+
+
 struct MemoryMap {
-    const std::string binary_data_filename;
-    const binary_data_t *binary_data;
+    const BinaryFile *binary_file;
     const addr_t start_address;
     const addr_t end_address;
 
-    MemoryMap(const std::string &binary_data_filename,
-        const std::unordered_map<std::string, std::vector<std::uint8_t>> &binary_files,
+    MemoryMap(const BinaryFiles &binary_files, const std::string &path,
         const addr_t start_address, const addr_t end_address);
+
+    const std::string getBinaryPath() const;
+    const binary_data_t& getBinaryData() const;
 };
+
+using MemoryMaps = std::vector<MemoryMap>;
+
+std::size_t getMemoryMapIndex(const MemoryMaps &memory_maps, const uint64_t address);
+
 
 struct Location {
     addr_t offset;
-    std::size_t index;
+    file_index_t index;
 
     Location() = default;
-    Location(const Location &location);
-    Location(const addr_t offset, const std::size_t index);
+    Location(const addr_t offset, const file_index_t index);
     Location(const std::vector<MemoryMap> &memory_map, const addr_t address);
+
+    bool operator==(const Location &right) const;
 };
 
 namespace std {
-template <>
-struct hash<Location> {
-    size_t operator()(const Location &key) const {
-        std::size_t h1 = std::hash<addr_t>()(key.offset);
-        std::size_t h2 = std::hash<std::size_t>()(key.index);
-
-        return h1 ^ h2;
-    }
-};
+    template <>
+    struct hash<Location> {
+        std::size_t operator()(const Location &key) const;
+    };
 }
-
-size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const uint64_t address);

@@ -8,17 +8,17 @@
 //     - バイナリファイルのインデックス
 // value:
 //     - BranchInsn
-BranchInsn getBranchInsnCache(const Cache &cache, const BranchInsnKey &key)
+BranchInsn getBranchInsnCache(const Cache &cache, const Location &key)
 {
     return cache.branch_insn_cache.at(key);
 }
 
-void addBranchInsnCache(Cache &cache, const BranchInsnKey &key, const BranchInsn &branch_insn)
+void addBranchInsnCache(Cache &cache, const Location &key, const BranchInsn &branch_insn)
 {
     cache.branch_insn_cache.insert(std::make_pair(key, branch_insn));
 }
 
-bool isCachedBranchInsn(const Cache &cache, const BranchInsnKey &key)
+bool isCachedBranchInsn(const Cache &cache, const Location &key)
 {
     return cache.branch_insn_cache.count(key) > 0;
 }

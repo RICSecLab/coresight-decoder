@@ -5,13 +5,22 @@
 #include "cache.hpp"
 
 struct ProcessParam {
-    const std::unordered_map<std::string, std::vector<std::uint8_t>> binary_files;
+    // トレースする領域のバイナリファイルを保存
+    const BinaryFiles binary_files;
 
+    // エッジカバレッジの計算結果を書き出すための
+    // bitmapのアドレスとサイズ
     const void* bitmap_addr;
     const int bitmap_size;
 
+    // ディスアセンブル結果とトレースデータのデコード結果をキャッシュし、
+    // 将来のデコード時に使えるようにすることで、実行速度を高速化している。
     const bool cache_mode;
     Cache cache;
+
+    ProcessParam(BinaryFiles &&binary_files,
+        const void* bitmap_addr, const int bitmap_size,
+        const bool cache_mode, Cache cache);
 };
 
 enum ProcessResultType {

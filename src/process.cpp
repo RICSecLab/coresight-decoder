@@ -28,6 +28,14 @@ struct ProcessState {
 };
 
 
+ProcessParam::ProcessParam(BinaryFiles &&binary_files,
+    const void* bitmap_addr, const int bitmap_size,
+    const bool cache_mode, Cache cache)
+    : binary_files(std::move(binary_files)),
+      bitmap_addr(bitmap_addr), bitmap_size(bitmap_size),
+      cache_mode(cache_mode), cache(cache) {};
+
+
 AtomTrace processAtomPacket(ProcessParam &param, ProcessState &state,
     const csh &handle, const std::vector<MemoryMap> &memory_map, const BranchPacket &atom_packet);
 AddressTrace processAddressPacket(ProcessParam &param, ProcessState &state,
@@ -238,10 +246,10 @@ BranchInsn processNextBranchInsn(ProcessParam &param, ProcessState &state,
         if (param.cache_mode) {
 
             // BranchInsnのキャッシュにアクセスするためのキーを作成する。
-            BranchInsnKey insn_key {
+            Location insn_key(
                 base_location.offset,
                 base_location.index
-            };
+            );
 
             // Cacheにアクセスして、既にディスアセンブルした命令か調べる。
             // 同じバイナリファイル&オフセットに対するこの処理は、キャッシュ化することができる。
@@ -265,5 +273,5 @@ BranchInsn processNextBranchInsn(ProcessParam &param, ProcessState &state,
 
 bool checkTraceRange(const std::vector<MemoryMap> &memory_map, const Location &location)
 {
-    return memory_map[location.index].binary_data != nullptr;
+    return memory_map[location.index].binary_file != nullptr;
 }

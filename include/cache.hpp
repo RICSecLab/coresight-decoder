@@ -8,26 +8,6 @@
 #include "disassembler.hpp"
 #include "trace.hpp"
 
-struct BranchInsnKey {
-    addr_t offset;
-    std::size_t index;
-
-    bool operator==(const BranchInsnKey &key) const {
-        return offset == key.offset and index == key.index;
-    }
-};
-
-namespace std {
-template <>
-struct hash<BranchInsnKey> {
-    size_t operator()(const BranchInsnKey &key) const {
-        std::size_t h1 = std::hash<addr_t>()(key.offset);
-        std::size_t h2 = std::hash<std::size_t>()(key.index);
-
-        return h1 ^ h2;
-    }
-};
-}
 
 struct TraceKey {
     addr_t offset;
@@ -37,7 +17,8 @@ struct TraceKey {
     std::size_t en_bits_len;
 
     bool operator==(const TraceKey &key) const {
-        return offset == key.offset and index == key.index and en_bits == key.en_bits and en_bits_len == key.en_bits_len;
+        return offset == key.offset and index == key.index and
+               en_bits == key.en_bits and en_bits_len == key.en_bits_len;
     }
 };
 
@@ -56,14 +37,14 @@ struct hash<TraceKey> {
 }
 
 struct Cache {
-    std::unordered_map<BranchInsnKey, BranchInsn> branch_insn_cache;
+    std::unordered_map<Location, BranchInsn> branch_insn_cache;
     std::unordered_map<TraceKey, AtomTrace> trace_cache;
 };
 
 
-BranchInsn getBranchInsnCache(const Cache &cache, const BranchInsnKey &key);
-void addBranchInsnCache(Cache &cache, const BranchInsnKey &key, const BranchInsn &branch_insn);
-bool isCachedBranchInsn(const Cache &cache, const BranchInsnKey &key);
+BranchInsn getBranchInsnCache(const Cache &cache, const Location &key);
+void addBranchInsnCache(Cache &cache, const Location &key, const BranchInsn &branch_insn);
+bool isCachedBranchInsn(const Cache &cache, const Location &key);
 
 AtomTrace getTraceCache(const Cache &cache, const TraceKey &key);
 void addTraceCache(Cache &cache, const TraceKey &key, const AtomTrace &trace);

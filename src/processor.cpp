@@ -82,27 +82,23 @@ int main(int argc, char const *argv[])
         }
     }
 
-    std::unordered_map<std::string, std::vector<std::uint8_t>> binary_files; {
+    BinaryFiles binary_files; {
         for (const std::string &filename : trace_binary_filenames) {
-            const std::vector<uint8_t> data = readBinaryFile(filename);
-            binary_files.insert(std::make_pair(filename, data));
+            binary_files.emplace(filename);
         }
     }
 
-    std::vector<MemoryMap> memory_maps; {
+    MemoryMaps memory_maps; {
         for (int i = 0; i < binary_file_num; i++) {
             // Read binary data
-            const std::string binary_data_filename = argv[4 + i * 3];
+            const std::string path = argv[4 + i * 3];
 
             // Read start/end address
             const std::uint64_t start_address = std::stol(argv[4 + i * 3 + 1], nullptr, 16);
             const std::uint64_t end_address   = std::stol(argv[4 + i * 3 + 2], nullptr, 16);
 
-            const MemoryMap memory_map(binary_data_filename, binary_files,
-                start_address, end_address);
-
             memory_maps.emplace_back(MemoryMap(
-                binary_data_filename, binary_files,
+                binary_files, path,
                 start_address, end_address
             ));
         }
@@ -114,7 +110,7 @@ int main(int argc, char const *argv[])
     Cache cache;
 
     ProcessParam param {
-        binary_files,
+        std::move(binary_files),
         nullptr,
         (int)bitmap_size,
         cache_mode,
