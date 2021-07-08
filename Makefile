@@ -12,6 +12,17 @@ CXXFLAGS := -std=c++17 -Wall
 CXXFLAGS += -I$(INC_DIR)
 CXXFLAGS += -l$(LIBCAPSTONE)
 
+CACHE_MODE := 1
+PRINT_EDGE_COV := 0
+
+ifeq ($(CACHE_MODE), 1)
+	CXXFLAGS += -DCACHE_MODE
+endif
+
+ifeq ($(PRINT_EDGE_COV), 1)
+	CXXFLAGS += -DPRINT_EDGE_COV
+endif
+
 SRCS := $(SRC_DIR)/decoder.cpp \
 	$(SRC_DIR)/deformatter.cpp \
 	$(SRC_DIR)/disassembler.cpp \
