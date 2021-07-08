@@ -35,8 +35,7 @@ libcsdec_t libcsdec_init(
         }
     }
 
-    // Create an object that holds the parameters determined before execution.
-    std::unique_ptr<ProcessParam> param = std::make_unique<ProcessParam>(
+    std::unique_ptr<Process> param = std::make_unique<Process>(
         std::move(binary_files),
         Bitmap(
             reinterpret_cast<const std::uint8_t*>(bitmap_addr),
@@ -49,7 +48,7 @@ libcsdec_t libcsdec_init(
 
     // Release ownership and pass it to the C API side.
     // Therefore, do not free param here.
-    return reinterpret_cast<ProcessParam*>(param.release());
+    return reinterpret_cast<Process*>(param.release());
 }
 
 
@@ -64,40 +63,32 @@ libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
     }
 
     // Cast
-    ProcessParam *param = reinterpret_cast<ProcessParam*>(libcsdec);
-
-    // Read trace data
-    const std::vector<uint8_t> deformat_trace_data =
-        deformatTraceData((uint8_t*)trace_data_addr, trace_data_size, trace_id);
+    Process *process = reinterpret_cast<Process*>(libcsdec);
 
     // Read binary data and entry point
     MemoryMaps memory_maps; {
         for (int i = 0; i < memory_map_num; i++) {
             const std::string path = std::string(libcsdec_memory_map[i].path);
             memory_maps.emplace_back(MemoryMap(
-                param->binary_files, path,
+                process->binary_files, path,
                 libcsdec_memory_map[i].start, libcsdec_memory_map[i].end
             ));
         }
     }
 
-    csh handle;
-    disassembleInit(&handle);
-
-    // Reset bitmap
-    param->bitmap.resetBitmap();
-
     // Calculate edge coverage from trace data and binary data
-    const ProcessResultType result = process(*param, deformat_trace_data, memory_maps, handle);
-
-    disassembleDelete(&handle);
+    const ProcessResultType result = process->run(
+        ProcessState(std::move(memory_maps)),
+        reinterpret_cast<const std::uint8_t*>(trace_data_addr),
+        trace_data_size, trace_id
+    );
 
     switch (result) {
-        case PROCESS_SUCCESS:
+        case ProcessResultType::PROCESS_SUCCESS:
             return LIBCEDEC_SUCCESS;
-        case PROCESS_ERROR_OVERFLOW_PACKET:
+        case ProcessResultType::PROCESS_ERROR_OVERFLOW_PACKET:
             return LIBCSDEC_ERROR_OVERFLOW_PACKET;
-        case PROCESS_ERROR_TRACE_DATA_INCOMPLETE:
+        case ProcessResultType::PROCESS_ERROR_TRACE_DATA_INCOMPLETE:
             return LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE;
         default:
             __builtin_unreachable();

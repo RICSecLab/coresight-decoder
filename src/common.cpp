@@ -63,6 +63,11 @@ std::size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const ad
     std::exit(1);
 }
 
+bool checkTraceRange(const MemoryMaps &memory_map, const Location &location)
+{
+    return memory_map[location.index].binary_file != nullptr;
+}
+
 
 Location::Location(addr_t offset, file_index_t index)
     : offset(offset), index(index) {}

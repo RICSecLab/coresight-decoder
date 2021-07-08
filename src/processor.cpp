@@ -51,10 +51,6 @@ int main(int argc, char const *argv[])
         std::exit(1);
     }
 
-    // Read trace data
-    const std::vector<uint8_t> trace_data = readBinaryFile(trace_data_filename);
-    const std::vector<uint8_t> deformat_trace_data = deformatTraceData((std::uint8_t*)trace_data.data(), trace_data.size(), trace_id);
-
     // Read options
     uint64_t bitmap_size = BITMAP_SIZE;
     std::string bitmap_filename = BITMAP_FILENAME;
@@ -100,13 +96,10 @@ int main(int argc, char const *argv[])
         }
     }
 
-    csh handle;
-    disassembleInit(&handle);
-
     // Create bitmap area
     std::vector<uint8_t> bitmap(bitmap_size);
 
-    ProcessParam param {
+    Process process {
         std::move(binary_files),
         Bitmap(bitmap.data(), bitmap_size),
         cache_mode,
@@ -114,13 +107,22 @@ int main(int argc, char const *argv[])
         true
     };
 
+    // Read trace data
+    const std::vector<uint8_t> trace_data = readBinaryFile(trace_data_filename);
+
     // Calculate edge coverage from trace data and binary data
-    const ProcessResultType result = process(param, deformat_trace_data, memory_maps, handle);
-    if (result != PROCESS_SUCCESS) {
+    const ProcessResultType result = process.run(
+        ProcessState(std::move(memory_maps)),
+        trace_data.data(), trace_data.size(), trace_id
+    );
+
+    if (result != ProcessResultType::PROCESS_SUCCESS) {
         std::cerr << "Failed to run process()." << std::endl;
         std::exit(1);
     }
 
-    disassembleDelete(&handle);
+    // Write bitmap to the file
+    writeBinaryFile(bitmap, bitmap_filename);
+
     return 0;
 }

@@ -12,7 +12,9 @@
 
 using addr_t = std::uint64_t;
 using file_index_t = std::size_t;
-using binary_data_t = std::vector<uint8_t>;
+using binary_data_t = std::vector<std::uint8_t>;
+
+struct Location;
 
 
 struct BinaryFile {
@@ -54,6 +56,7 @@ struct MemoryMap {
 using MemoryMaps = std::vector<MemoryMap>;
 
 std::size_t getMemoryMapIndex(const MemoryMaps &memory_maps, uint64_t address);
+bool checkTraceRange(const MemoryMaps &memory_map, const Location &location);
 
 
 struct Location {
