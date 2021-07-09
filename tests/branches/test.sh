@@ -25,25 +25,6 @@ run () {
     fi
 }
 
-
-# Calculate edge coverage and output to a file
-run_cache_mode () {
-    target="$1" # Trace data for calculating edge coverage
-    output_file=$target$OUTPUT_FILE_SUFFIX
-    bitmap_file=$target$OUTPUT_BITMAP_FILE_SUFFIX
-
-    $PROGRAM $(cat $target/decoderargs.txt) --bitmap-size=0x1000 \
-                                            --bitmap-filename=$bitmap_file \
-                                            --trace-binary-filename=branches \
-                                            --cache-mode \
-                                            > $output_file
-    if [ $? -ne 0 ]; then
-        echo "Failed to run decoder."
-        exit 1
-    fi
-}
-
-
 # Compare edge coverage for two trace data
 assert_edge_coverage() {
     target1="$1"
@@ -98,6 +79,8 @@ assert() {
 }
 
 
+mode="$1"
+
 # Calculate edge coverage for all trace data
 run trace1
 run trace2
@@ -107,16 +90,4 @@ run trace4
 assert
 
 # Passed all test cases
-echo "PASSED branches test"
-
-
-# Calculate edge coverage for all trace data
-run_cache_mode trace1
-run_cache_mode trace2
-run_cache_mode trace3
-run_cache_mode trace4
-
-assert
-
-# Passed all test cases
-echo "PASSED branches test with cache mode"
+echo "PASSED branches test with "$mode

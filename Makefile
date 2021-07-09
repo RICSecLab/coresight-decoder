@@ -12,7 +12,11 @@ CXXFLAGS := -std=c++17 -Wall
 CXXFLAGS += -I$(INC_DIR)
 CXXFLAGS += -l$(LIBCAPSTONE)
 
+# When the value is 1, cache mode is enabled.
+# This mode speeds up the decoding process by saving the disassemble
+# and trace results in the software cache."
 CACHE_MODE := 1
+
 PRINT_EDGE_COV := 0
 
 ifeq ($(CACHE_MODE), 1)

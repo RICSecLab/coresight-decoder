@@ -56,9 +56,8 @@ int main(int argc, char const *argv[])
 
     const int bitmap_size = 0x1000;
     void* local_bitmap  = malloc(bitmap_size);
-    const bool cache_mode = false;
 
-    libcsdec_t libcsdec = libcsdec_init(binary_file_num, binary_file_path, local_bitmap, bitmap_size, cache_mode);
+    libcsdec_t libcsdec = libcsdec_init(binary_file_num, binary_file_path, local_bitmap, bitmap_size);
     if (libcsdec == NULL) {
         printf("Failed to initialize libcsdec\n");
         exit(1);
