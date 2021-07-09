@@ -35,6 +35,7 @@ Packet decodeAtomF6Packet(const std::vector<uint8_t> &trace_data, const size_t o
 //
 // TODO: 現在、Exceptionによって発生するAddress packetは取り出さず、
 // deterministicなエッジカバレッジになるようにしてある。
+__attribute__((hot))
 std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& trace_data,
     std::size_t &trace_data_offset)
 {

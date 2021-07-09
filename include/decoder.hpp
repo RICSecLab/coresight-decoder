@@ -69,6 +69,7 @@ struct BranchPacket
 };
 
 
+__attribute__((hot))
 std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& trace_data,
     std::size_t &trace_data_offset);
 void printPacket(const Packet packet);
