@@ -60,10 +60,8 @@ struct Process {
     Process(const Process&) = delete;
     Process& operator=(const Process&) = delete;
 
-    Process(BinaryFiles &&binary_files, const Bitmap &bitmap,
-        const bool cache_mode, Cache &&cache)
-        : binary_files(std::move(binary_files)), bitmap(bitmap),
-        cache(std::move(cache))
+    Process(BinaryFiles &&binary_files, const Bitmap &bitmap, Cache &&cache)
+        : binary_files(std::move(binary_files)), bitmap(bitmap), cache(std::move(cache))
     {
         csh handle;
         disassembleInit(&handle);

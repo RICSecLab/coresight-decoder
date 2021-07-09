@@ -28,8 +28,6 @@ int main(int argc, char const *argv[])
                   << "\t                               This option may be used multiple times to specify multiple binary files." << std::endl
                   << "\t--bitmap-size=size           : Specify the bitmap size in hexadecimal. The default size is 0x10000." << std::endl
                   << "\t--bitmap-filename=name       : Specify the file name to save the bitmap. The default name is edge_coverage_bitmap.out" << std::endl
-                  << "\t--cache-mode                 : Enable cache mode. This mode speeds up the decoding process by saving the disassemble" << std::endl
-                  << "\t                               and trace results in the software cache."
                   << std::endl;
         std::exit(1);
     }
@@ -55,7 +53,6 @@ int main(int argc, char const *argv[])
     uint64_t bitmap_size = BITMAP_SIZE;
     std::string bitmap_filename = BITMAP_FILENAME;
     std::vector<std::string> trace_binary_filenames;
-    bool cache_mode = false;
     for (int i = binary_file_num * 3 + 4; i < argc; ++i) {
         size_t size;
         char buf[PATH_MAX];
@@ -66,8 +63,6 @@ int main(int argc, char const *argv[])
             bitmap_size = size;
         } else if (sscanf(argv[i], "--bitmap-filename=%s", buf) == 1) {
             bitmap_filename = std::string(buf);
-        } else if (strcmp(argv[i], "--cache-mode") == 0) {
-            cache_mode = true;
         } else {
             std::cerr << "Invalid option: " << argv[i] << std::endl;
             std::exit(1);
@@ -102,7 +97,6 @@ int main(int argc, char const *argv[])
     Process process {
         std::move(binary_files),
         Bitmap(bitmap.data(), bitmap_size),
-        cache_mode,
         Cache()
     };
 

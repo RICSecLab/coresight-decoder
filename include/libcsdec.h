@@ -24,7 +24,7 @@ typedef enum libcsdec_result {
 
 libcsdec_t libcsdec_init(
     int binary_file_num, const char *binary_file_path[],
-    void *bitmap_addr, int bitmap_size, bool cache_mode);
+    void *bitmap_addr, int bitmap_size);
 
 libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
     const void *trace_data_addr, const size_t trace_data_size,

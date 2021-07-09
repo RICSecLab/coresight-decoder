@@ -20,7 +20,7 @@
 
 libcsdec_t libcsdec_init(
     const int binary_file_num, const char *binary_file_path[],
-    void *bitmap_addr, const int bitmap_size, const bool cache_mode)
+    void *bitmap_addr, const int bitmap_size)
 {
     if (binary_file_num <= 0) {
         std::cerr << "Specify 1 or more for the number of binary files" << std::endl;
@@ -41,7 +41,6 @@ libcsdec_t libcsdec_init(
             reinterpret_cast<std::uint8_t*>(bitmap_addr),
             static_cast<std::size_t>(bitmap_size)
         ),
-        cache_mode,
         Cache()
     );
 
