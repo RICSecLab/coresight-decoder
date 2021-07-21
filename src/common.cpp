@@ -51,7 +51,8 @@ const binary_data_t& MemoryMap::getBinaryData() const
     return this->binary_file->data;
 }
 
-std::size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const addr_t address)
+std::optional<file_index_t> getMemoryMapIndex(
+    const std::vector<MemoryMap> &memory_map, const addr_t address)
 {
     for (size_t i = 0; i < memory_map.size(); i++) {
         if (memory_map[i].start_address <= address and address < memory_map[i].end_address) {
@@ -60,7 +61,7 @@ std::size_t getMemoryMapIndex(const std::vector<MemoryMap> &memory_map, const ad
     }
     std::cerr << "Failed to find any binary data that matched the address: "
               << std::hex << address << std::endl;
-    std::exit(1);
+    return std::nullopt;
 }
 
 bool checkTraceRange(const MemoryMaps &memory_map, const Location &location)
@@ -72,18 +73,24 @@ bool checkTraceRange(const MemoryMaps &memory_map, const Location &location)
 Location::Location(addr_t offset, file_index_t index)
     : offset(offset), index(index) {}
 
-Location::Location(const std::vector<MemoryMap> &memory_map, const addr_t address)
-{
-    const size_t index = getMemoryMapIndex(memory_map, address);
-    const addr_t offset = address - memory_map[index].start_address;
-
-    this->offset = offset;
-    this->index = index;
-}
-
 bool Location::operator==(const Location &right) const {
     return offset == right.offset and index == right.index;
 }
+
+std::optional<Location> getLocation(const std::vector<MemoryMap> &memory_map, const addr_t address)
+{
+    // 指定されたアドレスがメモリマップ上に存在するから調べる。
+    std::optional<file_index_t> optional = getMemoryMapIndex(memory_map, address);
+    if (not optional.has_value()) {
+        return std::nullopt;
+    }
+
+    const file_index_t index = optional.value();
+    const addr_t offset = address - memory_map[index].start_address;
+
+    return Location(offset, index);
+}
+
 
 std::size_t std::hash<Location>::operator()(const Location &key) const
 {

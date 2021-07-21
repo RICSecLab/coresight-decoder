@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 #include <set>
+#include <optional>
 
 using addr_t = std::uint64_t;
 using file_index_t = std::size_t;
@@ -55,7 +56,6 @@ struct MemoryMap {
 
 using MemoryMaps = std::vector<MemoryMap>;
 
-std::size_t getMemoryMapIndex(const MemoryMaps &memory_maps, uint64_t address);
 bool checkTraceRange(const MemoryMaps &memory_map, const Location &location);
 
 
@@ -65,10 +65,14 @@ struct Location {
 
     Location() = default;
     Location(addr_t offset, file_index_t index);
-    Location(const std::vector<MemoryMap> &memory_map, addr_t address);
 
     bool operator==(const Location &right) const;
 };
+
+// メモリマップを用いて、仮想アドレス（address）から、
+// Location（メモリマップ上のファイルの番号と、そのファイル上のオフセット）を計算する。
+std::optional<Location> getLocation(
+    const std::vector<MemoryMap> &memory_map, addr_t address);
 
 namespace std {
     template <>

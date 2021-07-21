@@ -11,6 +11,7 @@ enum class ProcessResultType {
     PROCESS_SUCCESS,
     PROCESS_ERROR_OVERFLOW_PACKET,
     PROCESS_ERROR_TRACE_DATA_INCOMPLETE,
+    PROCESS_ERROR_PAGE_FAULT,
 };
 
 enum class TraceStateType {
@@ -77,6 +78,7 @@ struct Process {
         const std::uint8_t* trace_data_addr, std::size_t trace_data_size,
         std::uint8_t trace_id);
     AtomTrace processAtomPacket(ProcessState &state, const BranchPacket &atom_packet);
-    AddressTrace processAddressPacket(ProcessState &state, const BranchPacket &address_packet);
+    std::optional<AddressTrace> processAddressPacket(
+        ProcessState &state, const BranchPacket &address_packet);
     BranchInsn processNextBranchInsn(const ProcessState &state, const Location &base_location);
 };
