@@ -20,6 +20,7 @@ typedef enum libcsdec_result {
     LIBCSDEC_ERROR,
     LIBCSDEC_ERROR_OVERFLOW_PACKET,
     LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE,
+    LIBCSDEC_ERROR_PAGE_FAULT
 } libcsdec_result_t;
 
 libcsdec_t libcsdec_init(

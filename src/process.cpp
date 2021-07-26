@@ -42,7 +42,16 @@ ProcessResultType Process::run(ProcessState state,
             // Otherwise, the trace start address is not known.
             assert(branch_packet.type == BRANCH_PKT_ADDRESS);
 
-            const Location start_location = Location(state.memory_maps, branch_packet.target_address);
+            // トレースの開始アドレスがメモリマップ上にあるか調べる。
+            // もしなければ、エラーを返す。
+            const std::optional<Location> optional_start_location =
+                getLocation(state.memory_maps, branch_packet.target_address);
+            if (not optional_start_location.has_value()) {
+                return ProcessResultType::PROCESS_ERROR_PAGE_FAULT;
+            }
+
+            const Location start_location = optional_start_location.value();
+
             state.prev_location = start_location;
             state.trace_state = checkTraceRange(state.memory_maps, start_location)
                 ? TraceStateType::TRACE_ON : TraceStateType::TRACE_OUT_OF_RANGE;
@@ -115,7 +124,16 @@ ProcessResultType Process::run(ProcessState state,
 
             if (state.has_pending_address_packet or
                 state.trace_state == TraceStateType::TRACE_OUT_OF_RANGE) {
-                const AddressTrace &&trace = processAddressPacket(state, branch_packet);
+                // 間接分岐でジャンプした先のアドレスがメモリマップ上にあるか調べる。
+                // もしなければ、エラーを返す。
+                const std::optional<AddressTrace> optional_trace =
+                    processAddressPacket(state, branch_packet);
+                if (not optional_trace.has_value()) {
+                    return ProcessResultType::PROCESS_ERROR_PAGE_FAULT;
+                }
+
+                const AddressTrace trace = optional_trace.value();
+
                 // Save trace
                 if (state.trace_state == TraceStateType::TRACE_ON) {
                     // Write bitmap
@@ -185,10 +203,18 @@ AtomTrace Process::processAtomPacket(ProcessState &state, const BranchPacket &at
     return trace;
 }
 
-AddressTrace Process::processAddressPacket(ProcessState &state, const BranchPacket &address_packet)
+std::optional<AddressTrace> Process::processAddressPacket(
+    ProcessState &state, const BranchPacket &address_packet)
 {
+    const std::optional<Location> optional_dest_location =
+        getLocation(state.memory_maps, address_packet.target_address);
+    // ターゲットアドレスに対応するバイナリデータが存在しない。
+    if (not optional_dest_location.has_value()) {
+        return std::nullopt;
+    }
+
     const Location src_location  = state.prev_location;
-    const Location dest_location = Location(state.memory_maps, address_packet.target_address);
+    const Location dest_location = optional_dest_location.value();
 
     // Set branch destination address by indirect branch
     AddressTrace trace(src_location, dest_location);

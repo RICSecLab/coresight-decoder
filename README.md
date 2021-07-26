@@ -47,3 +47,4 @@ libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
         * `LIBCSDEC_ERROR`:  実行失敗
         * `LIBCSDEC_ERROR_OVERFLOW_PACKET`: トレースデータの中にオーバーフローパケットが含まれていることによる失敗
         * `LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE`: トレースデータが途中で途切れていることによる失敗
+        * `LIBCSDEC_ERROR_PAGE_FAULT`: メモリマップ上に存在しないアドレスをトレースすることによる失敗
