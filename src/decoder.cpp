@@ -365,11 +365,13 @@ Packet decodeTimestampPacket(const std::vector<uint8_t> &trace_data, const size_
     }
 
     uint64_t timestamp = 0;
-    for (int i = 1; i <= 7; i++) {
-        uint64_t val = trace_data[offset + i];
-        val = i < 7 ? val & ~0x80 : val;
-        timestamp |= val << (7 * (i - 1));
-    }
+    timestamp |= ((uint64_t)trace_data[offset + 1] & ~0x80) << (7 * 0);
+    timestamp |= ((uint64_t)trace_data[offset + 2] & ~0x80) << (7 * 1);
+    timestamp |= ((uint64_t)trace_data[offset + 3] & ~0x80) << (7 * 2);
+    timestamp |= ((uint64_t)trace_data[offset + 4] & ~0x80) << (7 * 3);
+    timestamp |= ((uint64_t)trace_data[offset + 5] & ~0x80) << (7 * 4);
+    timestamp |= ((uint64_t)trace_data[offset + 6] & ~0x80) << (7 * 5);
+    timestamp |= ((uint64_t)trace_data[offset + 7]) << (7 * 6);
 
     Packet packet = {
         ETM4_PKT_I_TIMESTAMP,
