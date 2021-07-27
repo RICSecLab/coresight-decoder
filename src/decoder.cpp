@@ -7,6 +7,8 @@
 #include "utils.hpp"
 #include "deformatter.hpp"
 
+const uint64_t overflow_threshold = 0x10000;
+
 Packet decodePacket(const std::vector<uint8_t> &trace_data, const size_t offset);
 
 Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_t offset);
@@ -36,13 +38,14 @@ Packet decodeAtomF6Packet(const std::vector<uint8_t> &trace_data, const size_t o
 // TODO: 現在、Exceptionによって発生するAddress packetは取り出さず、
 // deterministicなエッジカバレッジになるようにしてある。
 std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& trace_data,
-    std::size_t &trace_data_offset)
+    std::size_t &trace_data_offset, uint64_t last_timestamp)
 {
     enum State {
         IDLE,
         TRACE,
         EXCEPTION_ADDR1,
         EXCEPTION_ADDR2,
+        OVERFLOW,
     };
 
     // Load
@@ -51,8 +54,11 @@ std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& t
     State state = (offset == 0 ? IDLE : TRACE);
 
     BranchPacket branch_packet = {
-        BRANCH_PKT_END, 0, 0, 0
+        BRANCH_PKT_END, 0, 0, 0,
     };
+
+    uint64_t timestamp = last_timestamp;
+    State prev_state = state;
 
     const std::size_t size = trace_data.size();
     while (offset < size) {
@@ -79,7 +85,8 @@ std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& t
                             BRANCH_PKT_ATOM,
                             packet.en_bits,
                             packet.en_bits_len,
-                            0
+                            0,
+                            timestamp,
                         };
                         goto end;
 
@@ -88,7 +95,8 @@ std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& t
                             BRANCH_PKT_ADDRESS,
                             0,
                             0,
-                            packet.addr
+                            packet.addr,
+                            timestamp,
                         };
                         goto end;
 
@@ -101,12 +109,14 @@ std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& t
                         state = EXCEPTION_ADDR1;
                         break;
                     case ETM4_PKT_I_OVERFLOW:
-                        // An Overflow packet is output in the data trace stream whenever the data trace buffer
-                        // in the trace unit overflows. This means that part of the data trace stream might be lost,
-                        // and tracing is inactive until the overflow condition clears.
-                        std::cerr << "Found an overflow packet that indicates that a trace unit buffer overflow has occurred. ";
-                        std::cerr << "The trace data may be corrupted." << std::endl;
-                        return std::nullopt;
+                        // An overflow packet found.
+                        // Save current state and change to OVERFLOW state.
+                        prev_state = state;
+                        state = OVERFLOW;
+                        break;
+                    case ETM4_PKT_I_TIMESTAMP:
+                        timestamp = packet.timestamp;
+                        break;
                     default:
                         break;
                 }
@@ -123,6 +133,22 @@ std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& t
             case EXCEPTION_ADDR2: {
                 if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
                     state = TRACE;
+                }
+                break;
+            }
+
+            case OVERFLOW: {
+                if (packet.type == ETM4_PKT_I_TIMESTAMP) {
+                    // A timestamp packet found in OVERFLOW state.
+                    // If the delta of two timestamp values are acceptable,
+                    // recover decoding previous state and continue.
+                    if (packet.timestamp - timestamp < overflow_threshold) {
+                        state = prev_state;
+                    } else {
+                        std::cerr << "Found an overflow packet and not recoverable. ";
+                        std::cerr << "The trace data may be corrupted." << std::endl;
+                        return std::nullopt;
+                    }
                 }
                 break;
             }
@@ -338,12 +364,20 @@ Packet decodeTimestampPacket(const std::vector<uint8_t> &trace_data, const size_
         };
     }
 
+    uint64_t timestamp = 0;
+    for (int i = 1; i <= 7; i++) {
+        uint64_t val = trace_data[offset + i];
+        val = i < 7 ? val & ~0x80 : val;
+        timestamp |= val << (7 * (i - 1));
+    }
+
     Packet packet = {
         ETM4_PKT_I_TIMESTAMP,
         packet_size,
         0,
         0,
-        0
+        0,
+        timestamp,
     };
     return packet;
 }

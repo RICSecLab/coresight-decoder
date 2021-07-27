@@ -24,10 +24,12 @@ ProcessResultType Process::run(ProcessState state,
     const std::vector<std::uint8_t> trace_data =
         deformatTraceData(trace_data_addr, trace_data_size, trace_id);
 
+    uint64_t last_timestamp = 0;
     const std::size_t size = trace_data.size();
     while (state.trace_data_offset < size) {
         const std::optional<BranchPacket> optional_branch_packet =
-            decodeNextBranchPacket(trace_data, state.trace_data_offset);
+            decodeNextBranchPacket(trace_data, state.trace_data_offset,
+                last_timestamp);
 
         // An error occurred during the trace data decoding process
         // Currently, the decoder only fails if it finds an overflow packet.
@@ -36,6 +38,10 @@ ProcessResultType Process::run(ProcessState state,
         }
 
         const BranchPacket branch_packet = optional_branch_packet.value();
+
+        if (branch_packet.timestamp != 0) {
+            last_timestamp = branch_packet.timestamp;
+        }
 
         if (state.is_first_branch_packet) {
             // The first branch packet is always an address pocket.

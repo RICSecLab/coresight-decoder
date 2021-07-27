@@ -46,6 +46,9 @@ struct Packet
 
     // Address packet
     uint64_t addr;
+
+    // Timestamp packet
+    uint64_t timestamp = 0;
 };
 
 
@@ -66,9 +69,12 @@ struct BranchPacket
 
     // for ADDRESS packet (indirect branch)
     uint64_t target_address;
+
+    // for TIMESTAMP packet (last timestamp)
+    uint64_t timestamp = 0;
 };
 
 
 std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& trace_data,
-    std::size_t &trace_data_offset);
+    std::size_t &trace_data_offset, uint64_t last_timestamp);
 void printPacket(const Packet packet);
