@@ -21,28 +21,8 @@ enum class TraceStateType {
 };
 
 
-struct ProcessState {
-    TraceStateType trace_state;
-
-    Location prev_location;
-    bool has_pending_address_packet;
-    std::size_t trace_data_offset;
-    bool is_first_branch_packet;
-
-    MemoryMaps memory_maps;
-
-    // Disable copy constructor.
-    ProcessState(const ProcessState&) = delete;
-    ProcessState& operator=(const ProcessState&) = delete;
-
-    ProcessState(MemoryMaps &&memory_maps)
-        : trace_state(TraceStateType::TRACE_ON), prev_location(Location()),
-          has_pending_address_packet(false), trace_data_offset(0),
-          is_first_branch_packet(true), memory_maps(std::move(memory_maps)) {}
-};
-
-
-struct Process {
+// デコード処理に永続的に使われるデータ
+struct ProcessData {
     // トレースする領域のバイナリファイルを保存
     const BinaryFiles binary_files;
 
@@ -58,10 +38,10 @@ struct Process {
     csh handle;
 
     // Disable copy constructor.
-    Process(const Process&) = delete;
-    Process& operator=(const Process&) = delete;
+    ProcessData(const ProcessData&) = delete;
+    ProcessData& operator=(const ProcessData&) = delete;
 
-    Process(BinaryFiles &&binary_files, const Bitmap &bitmap, Cache &&cache)
+    ProcessData(BinaryFiles &&binary_files, const Bitmap &bitmap, Cache &&cache)
         : binary_files(std::move(binary_files)), bitmap(bitmap), cache(std::move(cache))
     {
         csh handle;
@@ -69,18 +49,58 @@ struct Process {
         this->handle = handle;
     };
 
-    ~Process()
+    ~ProcessData()
     {
         disassembleDelete(&this->handle);
     }
+};
 
-    ProcessResultType run(ProcessState state,
-        const std::uint8_t* trace_data_addr, std::size_t trace_data_size,
-        std::uint8_t trace_id);
-    AtomTrace processAtomPacket(ProcessState &state, const BranchPacket &atom_packet);
+
+struct ProcessState {
+    TraceStateType trace_state;
+
+    Location prev_location;
+    bool has_pending_address_packet;
+    std::size_t trace_data_offset;
+    bool is_first_branch_packet;
+
+    MemoryMaps memory_maps;
+
+    // Disable copy constructor.
+    ProcessState(const ProcessState&) = delete;
+    ProcessState& operator=(const ProcessState&) = delete;
+
+    ProcessState() = default;
+
+    void reset(MemoryMaps &&memory_maps) {
+        this->trace_state = TraceStateType::TRACE_ON;
+        this->prev_location = Location();
+        this->has_pending_address_packet = false;
+        this->trace_data_offset = 0;
+        this->is_first_branch_packet = true;
+        this->memory_maps = std::move(memory_maps);
+    }
+};
+
+
+struct Process {
+    ProcessData data;
+    ProcessState state;
+
+    Deformatter deformatter;
+    Decoder decoder;
+
+    Process(BinaryFiles &&binary_files, const Bitmap &bitmap, Cache &&cache)
+        : data(ProcessData(std::move(binary_files), bitmap, std::move(cache))) {}
+
+    void reset(MemoryMaps &&memory_maps, std::uint8_t target_trace_id);
+    ProcessResultType final();
+    ProcessResultType run(const std::uint8_t* trace_data_addr, std::size_t trace_data_size);
+
+    AtomTrace processAtomPacket(const BranchPacket &atom_packet);
     std::optional<AddressTrace> processAddressPacket(
-        ProcessState &state, const BranchPacket &address_packet);
-    BranchInsn processNextBranchInsn(const ProcessState &state, const Location &base_location);
+        const BranchPacket &address_packet);
+    BranchInsn processNextBranchInsn(const Location &base_location);
 };
 
 

@@ -35,34 +35,26 @@ Packet decodeAtomF6Packet(const std::vector<uint8_t> &trace_data, const size_t o
 //
 // TODO: 現在、Exceptionによって発生するAddress packetは取り出さず、
 // deterministicなエッジカバレッジになるようにしてある。
-std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& trace_data,
-    std::size_t &trace_data_offset)
+std::optional<BranchPacket> Decoder::decodeNextBranchPacket(const std::vector<uint8_t>& trace_data)
 {
-    enum State {
-        IDLE,
-        TRACE,
-        EXCEPTION_ADDR1,
-        EXCEPTION_ADDR2,
-    };
-
-    // Load
-    size_t offset = trace_data_offset;
-
-    State state = (offset == 0 ? IDLE : TRACE);
-
-    BranchPacket branch_packet = {
-        BRANCH_PKT_END, 0, 0, 0
-    };
-
     const std::size_t size = trace_data.size();
-    while (offset < size) {
-        Packet packet = decodePacket(trace_data, offset);
-        offset += packet.size;
+    while (this->trace_data_offset < size) {
+        Packet packet = decodePacket(trace_data, this->trace_data_offset);
 
-        switch (state) {
+        // パケットデータの長さが不十分であり、現段階でデコードを正しく行うことができない
+        // このとき、デコードを進めずに、途中で終わる
+        if (packet.type == PKT_INCOMPLETE) {
+            return BranchPacket {
+                BRANCH_PKT_NOT_FOUND, 0, 0, 0
+            };
+        }
+
+        this->trace_data_offset += packet.size;
+
+        switch (this->state) {
             case IDLE: {
                 if (packet.type == ETM4_PKT_I_ASYNC) {
-                    state = TRACE;
+                    this->state = TRACE;
                 }
                 break;
             }
@@ -75,22 +67,20 @@ std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& t
                     case ETM4_PKT_I_ATOM_F4:
                     case ETM4_PKT_I_ATOM_F5:
                     case ETM4_PKT_I_ATOM_F6:
-                        branch_packet = BranchPacket {
+                        return BranchPacket {
                             BRANCH_PKT_ATOM,
                             packet.en_bits,
                             packet.en_bits_len,
                             0
                         };
-                        goto end;
 
                     case ETM4_PKT_I_ADDR_L_64IS0:
-                        branch_packet = BranchPacket {
+                        return BranchPacket {
                             BRANCH_PKT_ADDRESS,
                             0,
                             0,
                             packet.addr
                         };
-                        goto end;
 
                     // Exception Packetは例外が発生したときに、生成される。
                     // Exceptionパケットに続き、2つのAddress Packetが生成される。
@@ -98,7 +88,7 @@ std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& t
                     // 2つ目は実際にException後に実行が開始されたアドレスを示している。
                     // そのため、ユーザ空間のトレースではこの2つのAddress Packetを無視する。
                     case ETM4_PKT_I_EXCEPT:
-                        state = EXCEPTION_ADDR1;
+                        this->state = EXCEPTION_ADDR1;
                         break;
                     case ETM4_PKT_I_OVERFLOW:
                         // An Overflow packet is output in the data trace stream whenever the data trace buffer
@@ -115,14 +105,14 @@ std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& t
 
             case EXCEPTION_ADDR1: {
                 if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
-                    state = EXCEPTION_ADDR2;
+                    this->state = EXCEPTION_ADDR2;
                 }
                 break;
             }
 
             case EXCEPTION_ADDR2: {
                 if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
-                    state = TRACE;
+                    this->state = TRACE;
                 }
                 break;
             }
@@ -132,12 +122,10 @@ std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& t
         }
     }
 
-end:
-    // Save
-    trace_data_offset = offset;
-    return branch_packet;
+    return BranchPacket {
+        BRANCH_PKT_NOT_FOUND, 0, 0, 0
+    };
 }
-
 
 Packet decodePacket(const std::vector<uint8_t> &trace_data, const size_t offset)
 {

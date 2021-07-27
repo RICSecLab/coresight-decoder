@@ -14,21 +14,37 @@
 #include "trace.hpp"
 
 
-ProcessResultType Process::run(ProcessState state,
-    const std::uint8_t* trace_data_addr, const std::size_t trace_data_size,
-    const std::uint8_t trace_id)
+void Process::reset(MemoryMaps &&memory_maps, const std::uint8_t target_trace_id)
 {
     // Reset bitmap
-    this->bitmap.resetBitmap();
+    this->data.bitmap.resetBitmap();
+    // Reset deformatter
+    this->deformatter.reset(target_trace_id);
+    this->decoder.reset();
+    // Reset state
+    this->state.reset(std::move(memory_maps));
+}
 
+ProcessResultType Process::final()
+{
+    if (state.has_pending_address_packet) {
+        // This trace data is incomplete. There is no Address packet following Atom packet.
+        return ProcessResultType::PROCESS_ERROR_TRACE_DATA_INCOMPLETE;
+    }
+
+    return ProcessResultType::PROCESS_SUCCESS;
+}
+
+ProcessResultType Process::run(
+    const std::uint8_t* trace_data_addr, const std::size_t trace_data_size)
+{
     // Read trace data and deformat trace data.
-    const std::vector<std::uint8_t> trace_data =
-        deformatTraceData(trace_data_addr, trace_data_size, trace_id);
+    this->deformatter.deformatTraceData(trace_data_addr, trace_data_size);
 
-    const std::size_t size = trace_data.size();
-    while (state.trace_data_offset < size) {
+    const std::size_t size = this->deformatter.deformat_data.size();
+    while (this->state.trace_data_offset < size) {
         const std::optional<BranchPacket> optional_branch_packet =
-            decodeNextBranchPacket(trace_data, state.trace_data_offset);
+            decoder.decodeNextBranchPacket(this->deformatter.deformat_data);
 
         // An error occurred during the trace data decoding process
         // Currently, the decoder only fails if it finds an overflow packet.
@@ -38,7 +54,12 @@ ProcessResultType Process::run(ProcessState state,
 
         const BranchPacket branch_packet = optional_branch_packet.value();
 
-        if (state.is_first_branch_packet) {
+        // 現在のトレースデータの末尾まで見ても、次の分岐命令が見つけられなかった。
+        if (branch_packet.type == BRANCH_PKT_NOT_FOUND) {
+            return ProcessResultType::PROCESS_SUCCESS;
+        }
+
+        if (this->state.is_first_branch_packet) {
             // The first branch packet is always an address pocket.
             // Otherwise, the trace start address is not known.
             assert(branch_packet.type == BRANCH_PKT_ADDRESS);
@@ -46,17 +67,17 @@ ProcessResultType Process::run(ProcessState state,
             // トレースの開始アドレスがメモリマップ上にあるか調べる。
             // もしなければ、エラーを返す。
             const std::optional<Location> optional_start_location =
-                getLocation(state.memory_maps, branch_packet.target_address);
+                getLocation(this->state.memory_maps, branch_packet.target_address);
             if (not optional_start_location.has_value()) {
                 return ProcessResultType::PROCESS_ERROR_PAGE_FAULT;
             }
 
             const Location start_location = optional_start_location.value();
 
-            state.prev_location = start_location;
-            state.trace_state = checkTraceRange(state.memory_maps, start_location)
+            this->state.prev_location = start_location;
+            this->state.trace_state = checkTraceRange(this->state.memory_maps, start_location)
                 ? TraceStateType::TRACE_ON : TraceStateType::TRACE_OUT_OF_RANGE;
-            state.is_first_branch_packet = false;
+            this->state.is_first_branch_packet = false;
         }
 
         if (branch_packet.type == BRANCH_PKT_ATOM) { // Atom packet
@@ -80,33 +101,33 @@ ProcessResultType Process::run(ProcessState state,
                     branch_packet.en_bits_len
                 );
 
-                if (cache.isCachedTrace(trace_key)) {
-                    AtomTrace trace = cache.getTraceCache(trace_key);
+                if (this->data.cache.isCachedTrace(trace_key)) {
+                    AtomTrace trace = this->data.cache.getTraceCache(trace_key);
                     // Update state
-                    state.prev_location = trace.locations.back();
-                    state.has_pending_address_packet = trace.has_pending_address_packet;
+                    this->state.prev_location = trace.locations.back();
+                    this->state.has_pending_address_packet = trace.has_pending_address_packet;
 
                     // Write bitmap
-                    trace.writeBitmapKeys(this->bitmap);
+                    trace.writeBitmapKeys(this->data.bitmap);
                     #if defined(PRINT_EDGE_COV)
-                        trace.printTraceLocations(state.memory_maps);
+                        trace.printTraceLocations(this->state.memory_maps);
                     #endif
                 } else {
-                    AtomTrace trace = processAtomPacket(state, branch_packet);
+                    AtomTrace trace = processAtomPacket(branch_packet);
 
                     // Write bitmap
-                    trace.writeBitmapKeys(this->bitmap);
+                    trace.writeBitmapKeys(this->data.bitmap);
                     #if defined(PRINT_EDGE_COV)
-                        trace.printTraceLocations(state.memory_maps);
+                        trace.printTraceLocations(this->state.memory_maps);
                     #endif
 
                     // Add trace to cache
-                    cache.addTraceCache(trace_key, trace);
+                    this->data.cache.addTraceCache(trace_key, trace);
                 }
             #else
-                AtomTrace trace = processAtomPacket(state, branch_packet);
+                AtomTrace trace = processAtomPacket(branch_packet);
                 // Write bitmap
-                trace.writeBitmapKeys(this->bitmap);
+                trace.writeBitmapKeys(this->data.bitmap);
                 #if defined(PRINT_EDGE_COV)
                     trace.printTraceLocations(state.memory_maps);
                 #endif
@@ -128,7 +149,7 @@ ProcessResultType Process::run(ProcessState state,
                 // 間接分岐でジャンプした先のアドレスがメモリマップ上にあるか調べる。
                 // もしなければ、エラーを返す。
                 const std::optional<AddressTrace> optional_trace =
-                    processAddressPacket(state, branch_packet);
+                    processAddressPacket(branch_packet);
                 if (not optional_trace.has_value()) {
                     return ProcessResultType::PROCESS_ERROR_PAGE_FAULT;
                 }
@@ -138,7 +159,7 @@ ProcessResultType Process::run(ProcessState state,
                 // Save trace
                 if (state.trace_state == TraceStateType::TRACE_ON) {
                     // Write bitmap
-                    trace.writeBitmapKey(this->bitmap);
+                    trace.writeBitmapKey(this->data.bitmap);
                     #if defined(PRINT_EDGE_COV)
                         trace.printTraceLocation(state.memory_maps);
                     #endif
@@ -147,30 +168,23 @@ ProcessResultType Process::run(ProcessState state,
                     state.trace_state = TraceStateType::TRACE_ON;
                 }
             }
-        } else if (branch_packet.type == BRANCH_PKT_END) {
-            break;
         } else {
             // Unknown branch packet.
             __builtin_unreachable();
         }
     }
 
-    if (state.has_pending_address_packet) {
-        // This trace data is incomplete. There is no Address packet following Atom packet.
-        return ProcessResultType::PROCESS_ERROR_TRACE_DATA_INCOMPLETE;
-    }
-
     return ProcessResultType::PROCESS_SUCCESS;
 }
 
-AtomTrace Process::processAtomPacket(ProcessState &state, const BranchPacket &atom_packet)
+AtomTrace Process::processAtomPacket(const BranchPacket &atom_packet)
 {
     AtomTrace trace = AtomTrace(state.prev_location);
 
     for (std::size_t i = 0; i < atom_packet.en_bits_len; ++i) {
         const Location base_location = state.prev_location;
 
-        const BranchInsn insn = processNextBranchInsn(state, base_location);
+        const BranchInsn insn = processNextBranchInsn(base_location);
 
         bool is_taken = atom_packet.en_bits & (1 << i);
 
@@ -183,8 +197,10 @@ AtomTrace Process::processAtomPacket(ProcessState &state, const BranchPacket &at
             assert(i == atom_packet.en_bits_len - 1);
 
             // Indirect branchのジャンプ先アドレスを示すAddress packetを次に処理することを期待する。
-            state.has_pending_address_packet = true;
+            this->state.has_pending_address_packet = true;
             trace.setPendingAddressPacket();
+
+            // TODO: この時のaddress packetは長さが1なので、トレースデータに保存する必要なし
         } else {
             const addr_t next_offset = (is_taken) ? insn.taken_offset : insn.not_taken_offset;
             const addr_t next_index = insn.index;
@@ -194,18 +210,17 @@ AtomTrace Process::processAtomPacket(ProcessState &state, const BranchPacket &at
             trace.addLocation(next_location);
 
             // Update state
-            state.prev_location = next_location;
+            this->state.prev_location = next_location;
         }
     }
 
     // Create bitmap keys from the trace generated by the Direct Branch
-    trace.calculateBitmapKeys(this->bitmap.size);
+    trace.calculateBitmapKeys(this->data.bitmap.size);
 
     return trace;
 }
 
-std::optional<AddressTrace> Process::processAddressPacket(
-    ProcessState &state, const BranchPacket &address_packet)
+std::optional<AddressTrace> Process::processAddressPacket(const BranchPacket &address_packet)
 {
     const std::optional<Location> optional_dest_location =
         getLocation(state.memory_maps, address_packet.target_address);
@@ -221,25 +236,25 @@ std::optional<AddressTrace> Process::processAddressPacket(
     AddressTrace trace(src_location, dest_location);
 
     // Create bitmap keys from the trace generated by the Indirect Branch
-    trace.calculateBitmapKey(this->bitmap.size);
+    trace.calculateBitmapKey(this->data.bitmap.size);
 
     // Update state
-    state.prev_location = dest_location;
-    state.has_pending_address_packet = false;
+    this->state.prev_location = dest_location;
+    this->state.has_pending_address_packet = false;
 
-    if (checkTraceRange(state.memory_maps, src_location) and
-        checkTraceRange(state.memory_maps, dest_location)) {
+    if (checkTraceRange(this->state.memory_maps, src_location) and
+        checkTraceRange(this->state.memory_maps, dest_location)) {
         state.trace_state = TraceStateType::TRACE_ON;
     } else if (checkTraceRange(state.memory_maps, dest_location)) {
-        state.trace_state = TraceStateType::TRACE_RESTART;
+        this->state.trace_state = TraceStateType::TRACE_RESTART;
     } else {
-        state.trace_state = TraceStateType::TRACE_OUT_OF_RANGE;
+        this->state.trace_state = TraceStateType::TRACE_OUT_OF_RANGE;
     }
 
     return trace;
 }
 
-BranchInsn Process::processNextBranchInsn(const ProcessState &state, const Location &base_location)
+BranchInsn Process::processNextBranchInsn(const Location &base_location)
 {
     // 次の分岐命令を計算する。
     BranchInsn insn; {
@@ -250,18 +265,18 @@ BranchInsn Process::processNextBranchInsn(const ProcessState &state, const Locat
             // Cacheにアクセスして、既にディスアセンブルした命令か調べる。
             // 同じバイナリファイル&オフセットに対するこの処理は、キャッシュ化することができる。
             // もし既にキャッシュに存在するなら、そのデータを使うことで高速化できる。
-            if (this->cache.isCachedBranchInsn(insn_key)) {
+            if (this->data.cache.isCachedBranchInsn(insn_key)) {
                 // 既にディスアセンブルした結果がキャッシュにあるため、そのデータを読み込む。
-                insn = this->cache.getBranchInsnCache(insn_key);
+                insn = this->data.cache.getBranchInsnCache(insn_key);
             } else {
                 // 命令列をディスアセンブルし、分岐命令を探す。
-                insn = getNextBranchInsn(this->handle, base_location, state.memory_maps);
+                insn = getNextBranchInsn(this->data.handle, base_location, this->state.memory_maps);
                 // Cacheに分岐命令をディスアセンブルした結果を格納する。
-                this->cache.addBranchInsnCache(std::move(insn_key), insn);
+                this->data.cache.addBranchInsnCache(std::move(insn_key), insn);
             }
         #else
             // 命令列をディスアセンブルし、分岐命令を探す。
-            insn = getNextBranchInsn(this->handle, base_location, state.memory_maps);
+            insn = getNextBranchInsn(this->data.handle, base_location, this->state.memory_maps);
         #endif
     }
     return insn;

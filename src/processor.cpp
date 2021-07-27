@@ -104,11 +104,17 @@ int main(int argc, char const *argv[])
     const std::vector<uint8_t> trace_data = readBinaryFile(trace_data_filename);
 
     // Calculate edge coverage from trace data and binary data
-    const ProcessResultType result = process.run(
-        ProcessState(std::move(memory_maps)),
-        trace_data.data(), trace_data.size(), trace_id
-    );
+    process.reset(std::move(memory_maps), trace_id);
 
+    ProcessResultType run_result = process.run(
+        trace_data.data(), trace_data.size()
+    );
+    if (run_result != ProcessResultType::PROCESS_SUCCESS) {
+        std::cerr << "Failed to run process()." << std::endl;
+        std::exit(1);
+    }
+
+    ProcessResultType result = process.final();
     if (result != ProcessResultType::PROCESS_SUCCESS) {
         std::cerr << "Failed to run process()." << std::endl;
         std::exit(1);

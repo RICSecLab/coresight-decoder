@@ -18,6 +18,9 @@
 #include "libcsdec.h"
 
 
+libcsdec_result_t covert_result_type(ProcessResultType result);
+
+
 libcsdec_t libcsdec_init(
     const int binary_file_num, const char *binary_file_path[],
     void *bitmap_addr, const int bitmap_size)
@@ -35,7 +38,7 @@ libcsdec_t libcsdec_init(
         }
     }
 
-    std::unique_ptr<Process> param = std::make_unique<Process>(
+    std::unique_ptr<Process> process = std::make_unique<Process>(
         std::move(binary_files),
         Bitmap(
             reinterpret_cast<std::uint8_t*>(bitmap_addr),
@@ -45,13 +48,13 @@ libcsdec_t libcsdec_init(
     );
 
     // Release ownership and pass it to the C API side.
-    // Therefore, do not free param here.
-    return reinterpret_cast<Process*>(param.release());
+    // Therefore, do not free it here.
+    return reinterpret_cast<Process*>(process.release());
 }
 
 
-libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
-    const void *trace_data_addr, const size_t trace_data_size,
+libcsdec_result_t libcsdec_init_process_state(
+    const libcsdec_t libcsdec,
     const char trace_id, const int memory_map_num,
     const struct libcsdec_memory_map libcsdec_memory_map[])
 {
@@ -68,19 +71,42 @@ libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
         for (int i = 0; i < memory_map_num; i++) {
             const std::string path = std::string(libcsdec_memory_map[i].path);
             memory_maps.emplace_back(MemoryMap(
-                process->binary_files, path,
+                process->data.binary_files, path,
                 libcsdec_memory_map[i].start, libcsdec_memory_map[i].end
             ));
         }
     }
 
-    // Calculate edge coverage from trace data and binary data
-    const ProcessResultType result = process->run(
-        ProcessState(std::move(memory_maps)),
-        reinterpret_cast<const std::uint8_t*>(trace_data_addr),
-        trace_data_size, trace_id
-    );
+    process->reset(std::move(memory_maps), trace_id);
+    return LIBCEDEC_SUCCESS;
+}
 
+
+libcsdec_result_t libcsdec_run_process(
+    const libcsdec_t libcsdec,
+    const void *trace_data_addr, const std::size_t trace_data_size)
+{
+    // Cast
+    Process *process = reinterpret_cast<Process*>(libcsdec);
+
+    ProcessResultType result = process->run(
+        reinterpret_cast<const std::uint8_t*>(trace_data_addr), trace_data_size);
+    return covert_result_type(result);
+}
+
+
+libcsdec_result_t libcsdec_finish_process(const libcsdec_t libcsdec)
+{
+    // Cast
+    Process *process = reinterpret_cast<Process*>(libcsdec);
+
+    ProcessResultType result = process->final();
+    return covert_result_type(result);
+}
+
+
+libcsdec_result_t covert_result_type(ProcessResultType result)
+{
     switch (result) {
         case ProcessResultType::PROCESS_SUCCESS:
             return LIBCEDEC_SUCCESS;
