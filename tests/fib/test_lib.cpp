@@ -77,7 +77,7 @@ void test1(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_init_process_state(libcsdec, trace_id,
+        libcsdec_reset_process(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         enum libcsdec_result result1 = libcsdec_run_process(
@@ -110,7 +110,7 @@ void test1(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_init_process_state(libcsdec, trace_id,
+        libcsdec_reset_process(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         enum libcsdec_result result1 = libcsdec_run_process(
@@ -143,7 +143,7 @@ void test1(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_init_process_state(libcsdec, trace_id,
+        libcsdec_reset_process(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         enum libcsdec_result result1 = libcsdec_run_process(
@@ -176,7 +176,7 @@ void test1(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_init_process_state(libcsdec, trace_id,
+        libcsdec_reset_process(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         enum libcsdec_result result1 = libcsdec_run_process(
@@ -227,7 +227,7 @@ void test2(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_init_process_state(libcsdec, trace_id,
+        libcsdec_reset_process(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         for (size_t i = 0; i < trace_data_size; i += 16) {
@@ -265,7 +265,7 @@ void test2(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_init_process_state(libcsdec, trace_id,
+        libcsdec_reset_process(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         for (size_t i = 0; i < trace_data_size; i += 16) {
@@ -303,7 +303,7 @@ void test2(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_init_process_state(libcsdec, trace_id,
+        libcsdec_reset_process(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         for (size_t i = 0; i < trace_data_size; i += 32) {
@@ -341,7 +341,7 @@ void test2(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_init_process_state(libcsdec, trace_id,
+        libcsdec_reset_process(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         for (size_t i = 0; i < trace_data_size; i += 64) {

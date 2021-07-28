@@ -27,7 +27,7 @@ libcsdec_t libcsdec_init(
     int binary_file_num, const char *binary_file_path[],
     void *bitmap_addr, int bitmap_size);
 
-libcsdec_result_t libcsdec_init_process_state(
+libcsdec_result_t libcsdec_reset_process(
     const libcsdec_t libcsdec,
     char trace_id, int memory_map_num,
     const struct libcsdec_memory_map libcsdec_memory_map[]);

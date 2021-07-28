@@ -53,7 +53,7 @@ libcsdec_t libcsdec_init(
 }
 
 
-libcsdec_result_t libcsdec_init_process_state(
+libcsdec_result_t libcsdec_reset_process(
     const libcsdec_t libcsdec,
     const char trace_id, const int memory_map_num,
     const struct libcsdec_memory_map libcsdec_memory_map[])
