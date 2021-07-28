@@ -449,7 +449,7 @@ Packet decodeAddressLong64ISOPacket(const std::vector<uint8_t> &trace_data, cons
 {
     const size_t rest_data_size = trace_data.size() - offset;
     // Header is correct, but packet size is incomplete.
-    if (rest_data_size < 8) {
+    if (rest_data_size < 9) {
         return Packet{
             PKT_INCOMPLETE,
             rest_data_size,
@@ -471,7 +471,7 @@ Packet decodeAddressLong64ISOPacket(const std::vector<uint8_t> &trace_data, cons
 
     Packet packet = {
         ETM4_PKT_I_ADDR_L_64IS0,
-        8,
+        9,
         0,
         0,
         address
