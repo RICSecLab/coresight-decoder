@@ -19,12 +19,18 @@ CACHE_MODE := 1
 
 PRINT_EDGE_COV := 0
 
+OVERFLOW_TH := 0x10000
+
 ifeq ($(CACHE_MODE), 1)
 	CXXFLAGS += -DCACHE_MODE
 endif
 
 ifeq ($(PRINT_EDGE_COV), 1)
 	CXXFLAGS += -DPRINT_EDGE_COV
+endif
+
+ifneq ($(strip $(OVERFLOW_TH)),)
+	CXXFLAGS += -DOVERFLOW_TH=$(OVERFLOW_TH)
 endif
 
 SRCS := $(SRC_DIR)/decoder.cpp \

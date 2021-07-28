@@ -7,8 +7,6 @@
 #include "utils.hpp"
 #include "deformatter.hpp"
 
-const uint64_t overflow_threshold = 0x10000;
-
 Packet decodePacket(const std::vector<uint8_t> &trace_data, const size_t offset);
 
 Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_t offset);
@@ -142,7 +140,7 @@ std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& t
                     // A timestamp packet found in OVERFLOW state.
                     // If the delta of two timestamp values are acceptable,
                     // recover decoding previous state and continue.
-                    if (packet.timestamp - timestamp < overflow_threshold) {
+                    if (packet.timestamp - timestamp < OVERFLOW_TH) {
                         state = prev_state;
                     } else {
                         std::cerr << "Found an overflow packet and not recoverable. ";
