@@ -407,12 +407,23 @@ Packet decodeContextPacket(const std::vector<uint8_t> &trace_data, const size_t 
 
 Packet decodeExceptionPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
 {
+    const size_t rest_data_size = trace_data.size() - offset;
+
+    if (rest_data_size < 2) {
+        return Packet{
+            PKT_INCOMPLETE,
+            rest_data_size,
+            0,
+            0,
+            0
+        };
+    }
+
     // If c is set, then a second exception information byte follows.
     // Otherwise, if c is not set, there are no more exception information bytes in the packet.
     bool c = (trace_data[offset + 1] & 0b10000000) ? true : false;
     size_t packet_size = c ? 3 : 2;
 
-    const size_t rest_data_size = trace_data.size() - offset;
     // Header is correct, but packet size is incomplete.
     if (rest_data_size < packet_size) {
         return Packet{
