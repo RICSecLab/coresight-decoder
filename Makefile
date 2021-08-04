@@ -27,6 +27,18 @@ ifeq ($(PRINT_EDGE_COV), 1)
 	CXXFLAGS += -DPRINT_EDGE_COV
 endif
 
+
+# For ptrix mode
+MAX_ATOM_LEN := 4096
+MAX_ADDRESS_LEN := 4
+ifneq ($(strip $(MAX_ATOM_LEN)),)
+	CXXFLAGS += -DMAX_ATOM_LEN=$(MAX_ATOM_LEN)
+endif
+ifneq ($(strip $(MAX_ADDRESS_LEN)),)
+	CXXFLAGS += -DMAX_ADDRESS_LEN=$(MAX_ADDRESS_LEN)
+endif
+
+
 SRCS := $(SRC_DIR)/decoder.cpp \
 	$(SRC_DIR)/deformatter.cpp \
 	$(SRC_DIR)/disassembler.cpp \

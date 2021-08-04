@@ -39,6 +39,10 @@ MemoryMap::MemoryMap(const BinaryFiles &binary_files, const std::string &path,
     : binary_file(getBinaryFilePtr(binary_files, path)),
       start_address(start_address), end_address(end_address) {}
 
+MemoryMap::MemoryMap(addr_t start_address, addr_t end_address)
+    : binary_file(nullptr),
+      start_address(start_address), end_address(end_address) {}
+
 const std::string MemoryMap::getBinaryPath() const
 {
     assert(this->binary_file != nullptr);

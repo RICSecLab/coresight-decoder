@@ -2,6 +2,7 @@
 #include <vector>
 #include <cassert>
 #include <cstdint>
+#include <bitset>
 
 #include "process.hpp"
 #include "decoder.hpp"
@@ -264,4 +265,83 @@ BranchInsn Process::processNextBranchInsn(const ProcessState &state, const Locat
         #endif
     }
     return insn;
+}
+
+
+ProcessResultType run_ptrix(
+    const std::uint8_t* trace_data_addr, const std::size_t trace_data_size,
+    const std::uint8_t trace_id,
+    const std::vector<MemoryMap> &memory_maps, Bitmap &bitmap)
+{
+    // Reset bitmap
+    bitmap.resetBitmap();
+
+    // Read trace data and deformat trace data.
+    const std::vector<std::uint8_t> trace_data =
+        deformatTraceData(trace_data_addr, trace_data_size, trace_id);
+
+    std::bitset<MAX_ATOM_LEN> ctx_en_bits(0);
+    std::size_t ctx_en_bits_len = 0;
+    std::size_t ctx_address_cnt = 0;
+    std::uint64_t ctx_hash = 0;
+
+    const std::size_t size = trace_data.size();
+    std::size_t trace_data_offset = 0;
+
+    while (trace_data_offset < size) {
+        const std::optional<BranchPacket> optional_branch_packet =
+            decodeNextBranchPacket(trace_data, trace_data_offset);
+
+        // An error occurred during the trace data decoding process
+        // Currently, the decoder only fails if it finds an overflow packet.
+        if (not optional_branch_packet.has_value()) {
+            return ProcessResultType::PROCESS_ERROR_OVERFLOW_PACKET;
+        }
+
+        const BranchPacket branch_packet = optional_branch_packet.value();
+
+        if (branch_packet.type == BRANCH_PKT_ATOM) { // Atom packet
+            if (ctx_en_bits_len < MAX_ATOM_LEN) {
+                // std::cerr << "en_bit_len:" << branch_packet.en_bits_len << std::endl;
+                ctx_en_bits |= std::bitset<MAX_ATOM_LEN>(branch_packet.en_bits) << ctx_en_bits_len;
+                ctx_en_bits_len += branch_packet.en_bits_len;
+            }
+        } else if (branch_packet.type == BRANCH_PKT_ADDRESS) { // Address packet
+            const std::optional<Location> optional_target_location =
+                getLocation(memory_maps, branch_packet.target_address);
+            if (not optional_target_location.has_value()) {
+                return ProcessResultType::PROCESS_ERROR_PAGE_FAULT;
+            }
+
+            const Location target_location = optional_target_location.value();
+
+            // ATOMのEN列でhashを更新
+            if (ctx_en_bits_len != 0) {
+                ctx_hash ^= std::hash<std::bitset<MAX_ATOM_LEN>>()(ctx_en_bits);
+                ctx_en_bits = 0;
+                ctx_en_bits_len = 0;
+            }
+
+            // Addressでhashを更新
+            ctx_hash ^= std::hash<Location>()(target_location);
+            ctx_address_cnt++;
+
+            if (ctx_address_cnt >= MAX_ADDRESS_LEN) {
+                // bitmapのindexを計算する
+                std::size_t index = ctx_hash & (bitmap.size - 1);
+                // bitmapを更新する
+                bitmap.data[index]++;
+
+                ctx_address_cnt = 0;
+                ctx_hash = 0;
+            }
+        } else if (branch_packet.type == BRANCH_PKT_END) {
+            break;
+        } else {
+            // Unknown branch packet.
+            __builtin_unreachable();
+        }
+    }
+
+    return ProcessResultType::PROCESS_SUCCESS;
 }

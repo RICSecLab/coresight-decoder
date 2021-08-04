@@ -50,6 +50,8 @@ struct MemoryMap {
     MemoryMap(const BinaryFiles &binary_files, const std::string &path,
         addr_t start_address, addr_t end_address);
 
+    MemoryMap(addr_t start_address, addr_t end_address);
+
     const std::string getBinaryPath() const;
     const binary_data_t& getBinaryData() const;
 };
