@@ -33,7 +33,7 @@ libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
     const struct libcsdec_memory_map libcsdec_memory_map[]);
 
 libcsdec_result_t libcsdec_run_ptrix(
-    const void *trace_data_addr, std::size_t trace_data_size,
+    const void *trace_data_addr, const size_t trace_data_size,
     char trace_id, int memory_map_num,
     const struct libcsdec_memory_map libcsdec_memory_map[],
     void *bitmap_addr, int bitmap_size);
