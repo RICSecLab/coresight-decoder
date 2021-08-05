@@ -104,7 +104,6 @@ void test_pt()
         }
 
         int diff_cnt = check_bitmaps((unsigned char*)global_bitmap, (unsigned char*)local_bitmap, bitmap_size);
-        printf("DIFF: %d\n", diff_cnt);
         // Find no new edge
         assert(diff_cnt == 0);
     }
