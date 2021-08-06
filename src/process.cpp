@@ -17,7 +17,7 @@
 void Process::reset(MemoryMaps &&memory_maps, const std::uint8_t target_trace_id)
 {
     // Reset bitmap
-    this->data.bitmap.resetBitmap();
+    this->data.bitmap.reset();
     // Reset deformatter
     this->deformatter.reset(target_trace_id);
     this->decoder.reset();

@@ -9,7 +9,7 @@
 Bitmap::Bitmap(uint8_t* data, std::size_t size)
     : data(data), size(size) {}
 
-void Bitmap::resetBitmap() const
+void Bitmap::reset() const
 {
     // Fill the bitmap with zeros.
     std::fill(this->data, this->data + this->size, 0);

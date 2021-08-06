@@ -15,7 +15,7 @@ struct Bitmap
 
     Bitmap(uint8_t* data, std::size_t size);
 
-    void resetBitmap() const;
+    void reset() const;
 };
 
 std::uint64_t generateBitmapKey(const Location& from_location, const Location& to_location,
