@@ -2,6 +2,7 @@
 #include <vector>
 #include <cassert>
 #include <cstdint>
+#include <bitset>
 
 #include "process.hpp"
 #include "decoder.hpp"
@@ -264,4 +265,138 @@ BranchInsn Process::processNextBranchInsn(const ProcessState &state, const Locat
         #endif
     }
     return insn;
+}
+
+
+ProcessResultType run_ptrix(
+    const std::uint8_t* trace_data_addr, const std::size_t trace_data_size,
+    const std::uint8_t trace_id,
+    const std::vector<MemoryMap> &memory_maps, Bitmap &bitmap)
+{
+    // Reset bitmap
+    bitmap.resetBitmap();
+
+    // Read trace data and deformat trace data.
+    const std::vector<std::uint8_t> trace_data =
+        deformatTraceData(trace_data_addr, trace_data_size, trace_id);
+
+    std::bitset<MAX_ATOM_LEN> ctx_en_bits(0);
+    std::size_t ctx_en_bits_len = 0;
+    std::size_t ctx_address_cnt = 0;
+    std::uint64_t ctx_hash = 0;
+
+    const std::size_t size = trace_data.size();
+    std::size_t trace_data_offset = 0;
+
+    enum State {
+        TRACE,
+        EXCEPTION_ADDR1,
+        EXCEPTION_ADDR2,
+        WAIT_ADDR_AFTER_TRACE_ON,
+    };
+
+    State state = TRACE;
+
+    while (trace_data_offset < size) {
+        const Packet packet = decodePacket(trace_data, trace_data_offset);
+        trace_data_offset += packet.size;
+
+        switch (state) {
+            case TRACE: {
+                switch (packet.type) {
+                    case ETM4_PKT_I_ATOM_F1:
+                    case ETM4_PKT_I_ATOM_F2:
+                    case ETM4_PKT_I_ATOM_F3:
+                    case ETM4_PKT_I_ATOM_F4:
+                    case ETM4_PKT_I_ATOM_F5:
+                    case ETM4_PKT_I_ATOM_F6:
+                        if (ctx_en_bits_len < MAX_ATOM_LEN) {
+                            ctx_en_bits |= std::bitset<MAX_ATOM_LEN>(packet.en_bits) << ctx_en_bits_len;
+                            ctx_en_bits_len += packet.en_bits_len;
+                        }
+                        break;
+
+                    case ETM4_PKT_I_ADDR_L_64IS0: {
+                        const std::optional<Location> optional_target_location =
+                            getLocation(memory_maps, packet.addr);
+                        if (not optional_target_location.has_value()) {
+                            return ProcessResultType::PROCESS_ERROR_PAGE_FAULT;
+                        }
+
+                        const Location target_location = optional_target_location.value();
+
+                        // ATOMのEN列でhashを更新
+                        if (ctx_en_bits_len != 0) {
+                            ctx_hash ^= std::hash<std::bitset<MAX_ATOM_LEN>>()(ctx_en_bits);
+                            ctx_en_bits = 0;
+                            ctx_en_bits_len = 0;
+                        }
+
+                        // Addressでhashを更新
+                        ctx_hash ^= std::hash<Location>()(target_location);
+                        ctx_address_cnt++;
+
+                        if (ctx_address_cnt >= MAX_ADDRESS_LEN) {
+                            // bitmapのindexを計算する
+                            std::size_t index = ctx_hash & (bitmap.size - 1);
+                            // bitmapを更新する
+                            bitmap.data[index]++;
+
+                            ctx_address_cnt = 0;
+                            ctx_hash = 0;
+                        }
+                        break;
+                    }
+
+                    // Exception Packetは例外が発生したときに、生成される。
+                    // Exception Packetに続き、2つのAddress Packetが生成される。
+                    // 1つ目はException後に戻るアドレスを示し、
+                    // 2つ目は実際にException後に実行が開始されたアドレスを示している。
+                    // そのため、ユーザ空間のトレースではこの2つのAddress Packetを無視する。
+                    case ETM4_PKT_I_EXCEPT:
+                        state = EXCEPTION_ADDR1;
+                        break;
+
+                    // Trace On Packetは、トレースストリームの不連続性を示す。
+                    // トレースユニットはTrace On Packetを生成した後、
+                    // 次のAtom、Exception Packetを発生する前に、
+                    // トレースの開始位置を示すAddress Packetを生成する。
+                    case ETM4_PKT_I_TRACE_ON:
+                        state = WAIT_ADDR_AFTER_TRACE_ON;
+                        break;
+
+                    default:
+                        break;
+                }
+                break;
+            }
+
+            case EXCEPTION_ADDR1: {
+                if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
+                    state = EXCEPTION_ADDR2;
+                }
+                break;
+            }
+
+            case EXCEPTION_ADDR2: {
+                if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
+                    state = TRACE;
+                }
+                break;
+            }
+
+            case WAIT_ADDR_AFTER_TRACE_ON: {
+                if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
+                    state = TRACE;
+                }
+                break;
+            }
+
+            default:
+                __builtin_unreachable();
+        }
+
+    }
+
+    return ProcessResultType::PROCESS_SUCCESS;
 }

@@ -96,3 +96,53 @@ libcsdec_result_t libcsdec_write_bitmap(const libcsdec_t libcsdec,
 
     return LIBCSDEC_ERROR;
 }
+
+
+libcsdec_result_t libcsdec_run_ptrix(
+    const void *trace_data_addr, const std::size_t trace_data_size,
+    const char trace_id, const int memory_map_num,
+    const struct libcsdec_memory_map libcsdec_memory_map[],
+    void *bitmap_addr, const int bitmap_size)
+{
+    if (memory_map_num <= 0) {
+        std::cerr << "Specify 1 or more for the number of memory maps" << std::endl;
+        return LIBCSDEC_ERROR;
+    }
+
+    MemoryMaps memory_maps; {
+        for (int i = 0; i < memory_map_num; i++) {
+            const std::string path = std::string(libcsdec_memory_map[i].path);
+            memory_maps.emplace_back(MemoryMap(
+                libcsdec_memory_map[i].start, libcsdec_memory_map[i].end
+            ));
+        }
+    }
+
+    Bitmap bitmap(
+        reinterpret_cast<std::uint8_t*>(bitmap_addr),
+        static_cast<std::size_t>(bitmap_size)
+    );
+
+    const ProcessResultType result = run_ptrix(
+        reinterpret_cast<const std::uint8_t*>(trace_data_addr),
+        trace_data_size,
+        trace_id,
+        memory_maps,
+        bitmap
+    );
+
+    switch (result) {
+        case ProcessResultType::PROCESS_SUCCESS:
+            return LIBCEDEC_SUCCESS;
+        case ProcessResultType::PROCESS_ERROR_OVERFLOW_PACKET:
+            return LIBCSDEC_ERROR_OVERFLOW_PACKET;
+        case ProcessResultType::PROCESS_ERROR_TRACE_DATA_INCOMPLETE:
+            return LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE;
+        case ProcessResultType::PROCESS_ERROR_PAGE_FAULT:
+            return LIBCSDEC_ERROR_PAGE_FAULT;
+        default:
+            __builtin_unreachable();
+    }
+
+    return LIBCSDEC_ERROR;
+}

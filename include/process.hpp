@@ -82,3 +82,9 @@ struct Process {
         ProcessState &state, const BranchPacket &address_packet);
     BranchInsn processNextBranchInsn(const ProcessState &state, const Location &base_location);
 };
+
+
+ProcessResultType run_ptrix(
+    const std::uint8_t* trace_data_addr, const size_t trace_data_size,
+    const std::uint8_t trace_id,
+    const std::vector<MemoryMap> &memory_maps, Bitmap &bitmap);
