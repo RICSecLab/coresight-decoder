@@ -7,7 +7,6 @@
 #include "utils.hpp"
 #include "deformatter.hpp"
 
-Packet decodePacket(const std::vector<uint8_t> &trace_data, const size_t offset);
 
 Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_t offset);
 
@@ -28,184 +27,85 @@ Packet decodeAtomF5Packet(const std::vector<uint8_t> &trace_data, const size_t o
 Packet decodeAtomF6Packet(const std::vector<uint8_t> &trace_data, const size_t offset);
 
 
-// Trace dataの中から、エッジカバレッジの復元に必要な
-//     - Address packet
-//     - Atom packet
-// を取り出す。
-//
-// TODO: 現在、Exceptionによって発生するAddress packetは取り出さず、
-// deterministicなエッジカバレッジになるようにしてある。
-std::optional<BranchPacket> Decoder::decodeNextBranchPacket(const std::vector<uint8_t>& trace_data)
+Packet Decoder::decodePacket() const
 {
-    const std::size_t size = trace_data.size();
-    while (this->trace_data_offset < size) {
-        Packet packet = decodePacket(trace_data, this->trace_data_offset);
-
-        // パケットデータの長さが不十分であり、現段階でデコードを正しく行うことができない
-        // このとき、デコードを進めずに、途中で終わる
-        if (packet.type == PKT_INCOMPLETE) {
-            return BranchPacket {
-                BRANCH_PKT_NOT_FOUND, 0, 0, 0
-            };
-        }
-
-        this->trace_data_offset += packet.size;
-
-        switch (this->state) {
-            case IDLE: {
-                if (packet.type == ETM4_PKT_I_ASYNC) {
-                    this->state = TRACE;
-                }
-                break;
-            }
-
-            case TRACE: {
-                switch (packet.type) {
-                    case ETM4_PKT_I_ATOM_F1:
-                    case ETM4_PKT_I_ATOM_F2:
-                    case ETM4_PKT_I_ATOM_F3:
-                    case ETM4_PKT_I_ATOM_F4:
-                    case ETM4_PKT_I_ATOM_F5:
-                    case ETM4_PKT_I_ATOM_F6:
-                        return BranchPacket {
-                            BRANCH_PKT_ATOM,
-                            packet.en_bits,
-                            packet.en_bits_len,
-                            0
-                        };
-
-                    case ETM4_PKT_I_ADDR_L_64IS0:
-                        return BranchPacket {
-                            BRANCH_PKT_ADDRESS,
-                            0,
-                            0,
-                            packet.addr
-                        };
-
-                    // Exception Packetは例外が発生したときに、生成される。
-                    // Exceptionパケットに続き、2つのAddress Packetが生成される。
-                    // 1つ目はException後に戻るアドレスを示し、
-                    // 2つ目は実際にException後に実行が開始されたアドレスを示している。
-                    // そのため、ユーザ空間のトレースではこの2つのAddress Packetを無視する。
-                    case ETM4_PKT_I_EXCEPT:
-                        this->state = EXCEPTION_ADDR1;
-                        break;
-                    case ETM4_PKT_I_OVERFLOW:
-                        // An Overflow packet is output in the data trace stream whenever the data trace buffer
-                        // in the trace unit overflows. This means that part of the data trace stream might be lost,
-                        // and tracing is inactive until the overflow condition clears.
-                        std::cerr << "Found an overflow packet that indicates that a trace unit buffer overflow has occurred. ";
-                        std::cerr << "The trace data may be corrupted." << std::endl;
-                        return std::nullopt;
-                    default:
-                        break;
-                }
-                break;
-            }
-
-            case EXCEPTION_ADDR1: {
-                if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
-                    this->state = EXCEPTION_ADDR2;
-                }
-                break;
-            }
-
-            case EXCEPTION_ADDR2: {
-                if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
-                    this->state = TRACE;
-                }
-                break;
-            }
-
-            default:
-                __builtin_unreachable();
-        }
-    }
-
-    return BranchPacket {
-        BRANCH_PKT_NOT_FOUND, 0, 0, 0
-    };
-}
-
-Packet decodePacket(const std::vector<uint8_t> &trace_data, const size_t offset)
-{
-    const uint8_t header = trace_data[offset];
+    const uint8_t header = this->trace_data[this->trace_data_offset];
     Packet result;
 
     switch (header) {
         // Extension packet header: 0b00000000
         case 0b00000000:
-            result = decodeExtensionPacket(trace_data, offset);
+            result = decodeExtensionPacket(this->trace_data, this->trace_data_offset);
             break;
 
         // Trace Info packet header: 0b00000001
         case 0b00000001:
-            result = decodeTraceInfoPacket(trace_data, offset);
+            result = decodeTraceInfoPacket(this->trace_data, this->trace_data_offset);
             break;
 
         // Timestamp packet header: 0b0000001x
         case 0b00000010 ... 0b00000011:
-            result = decodeTimestampPacket(trace_data, offset);
+            result = decodeTimestampPacket(this->trace_data, this->trace_data_offset);
             break;
 
         // Trace On packet header: 0b00000100
         case 0b00000100:
-            result = decodeTraceOnPacket(trace_data, offset);
+            result = decodeTraceOnPacket(this->trace_data, this->trace_data_offset);
             break;
 
         // Exception packet header: 0b00000110
         case 0b00000110:
-            result = decodeExceptionPacket(trace_data, offset);
+            result = decodeExceptionPacket(this->trace_data, this->trace_data_offset);
             break;
 
         // Context packet header: 0b1000000x
         case 0b10000000 ... 0b10000001:
-            result = decodeContextPacket(trace_data, offset);
+            result = decodeContextPacket(this->trace_data, this->trace_data_offset);
             break;
 
         // 64-bit IS0 long Address packet header: 0b10011101
         case 0b10011101:
-            result = decodeAddressLong64ISOPacket(trace_data, offset);
+            result = decodeAddressLong64ISOPacket(this->trace_data, this->trace_data_offset);
             break;
 
         // Atom 6 packet header:  0b11000000 - 0b11010100
         case 0b11000000 ... 0b11010100:
-            result = decodeAtomF6Packet(trace_data, offset);
+            result = decodeAtomF6Packet(this->trace_data, this->trace_data_offset);
             break;
 
         // Atom 5 packet header: 0b11010101 - 0b11010111
         case 0b11010101 ... 0b11010111:
-            result = decodeAtomF5Packet(trace_data, offset);
+            result = decodeAtomF5Packet(this->trace_data, this->trace_data_offset);
             break;
 
         // Atom 2 packet header: 0b110110xx
         case 0b11011000 ... 0b11011011:
-            result = decodeAtomF2Packet(trace_data, offset);
+            result = decodeAtomF2Packet(this->trace_data, this->trace_data_offset);
             break;
 
         // Atom 4 packet header: 0b110111xx
         case 0b11011100 ... 0b11011111:
-            result = decodeAtomF4Packet(trace_data, offset);
+            result = decodeAtomF4Packet(this->trace_data, this->trace_data_offset);
             break;
 
         // Atom 6 packet header: 0b11100000 - 0b11110100
         case 0b11100000 ... 0b11110100:
-            result = decodeAtomF6Packet(trace_data, offset);
+            result = decodeAtomF6Packet(this->trace_data, this->trace_data_offset);
             break;
 
         // Atom 5 packet header: 0b11110101
         case 0b11110101:
-            result = decodeAtomF5Packet(trace_data, offset);
+            result = decodeAtomF5Packet(this->trace_data, this->trace_data_offset);
             break;
 
         // Atom 1 packet header: 0b1111011x
         case 0b11110110 ... 0b11110111:
-            result = decodeAtomF1Packet(trace_data, offset);
+            result = decodeAtomF1Packet(this->trace_data, this->trace_data_offset);
             break;
 
         // Atom 3 packet header: 0b11111xxx
         case 0b11111000 ... 0b11111111:
-            result = decodeAtomF3Packet(trace_data, offset);
+            result = decodeAtomF3Packet(this->trace_data, this->trace_data_offset);
             break;
 
         default:
@@ -217,6 +117,12 @@ Packet decodePacket(const std::vector<uint8_t> &trace_data, const size_t offset)
     }
 
     return result;
+}
+
+void Decoder::reset() {
+    this->trace_data = std::vector<std::uint8_t>();
+    this->trace_data_offset = 0;
+    this->state = DecodeState::TRACE;
 }
 
 Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_t offset)

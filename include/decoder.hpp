@@ -48,43 +48,19 @@ struct Packet
     uint64_t addr;
 };
 
-
-enum BranchPacketType
-{
-    BRANCH_PKT_ATOM,
-    BRANCH_PKT_ADDRESS,
-    BRANCH_PKT_NOT_FOUND
-};
-
-struct BranchPacket
-{
-    BranchPacketType type;
-
-    // for ATOM packet (direct branch)
-    uint32_t en_bits;
-    size_t en_bits_len;
-
-    // for ADDRESS packet (indirect branch)
-    uint64_t target_address;
-};
-
-
-enum DecodeState {
-    IDLE,
+enum class DecodeState {
     TRACE,
     EXCEPTION_ADDR1,
     EXCEPTION_ADDR2,
+    WAIT_ADDR_AFTER_TRACE_ON
 };
 
 struct Decoder
 {
+    std::vector<std::uint8_t> trace_data;
     std::size_t trace_data_offset;
     DecodeState state;
 
-    std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& trace_data);
-
-    void reset() {
-        trace_data_offset = 0;
-        state = IDLE;
-    }
+    Packet decodePacket() const;
+    void reset();
 };

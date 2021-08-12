@@ -43,141 +43,190 @@ ProcessResultType Process::run(
 
     const std::size_t size = this->deformatter.deformat_data.size();
     while (this->state.trace_data_offset < size) {
-        const std::optional<BranchPacket> optional_branch_packet =
-            decoder.decodeNextBranchPacket(this->deformatter.deformat_data);
 
-        // An error occurred during the trace data decoding process
-        // Currently, the decoder only fails if it finds an overflow packet.
-        if (not optional_branch_packet.has_value()) {
-            return ProcessResultType::PROCESS_ERROR_OVERFLOW_PACKET;
-        }
+        // if (this->state.is_first_branch_packet) {
+        //     // The first branch packet is always an address pocket.
+        //     // Otherwise, the trace start address is not known.
+        //     assert(branch_packet.type == BRANCH_PKT_ADDRESS);
 
-        const BranchPacket branch_packet = optional_branch_packet.value();
+        //     // トレースの開始アドレスがメモリマップ上にあるか調べる。
+        //     // もしなければ、エラーを返す。
+        //     const std::optional<Location> optional_start_location =
+        //         getLocation(this->state.memory_maps, branch_packet.target_address);
+        //     if (not optional_start_location.has_value()) {
+        //         return ProcessResultType::PROCESS_ERROR_PAGE_FAULT;
+        //     }
 
-        // 現在のトレースデータの末尾まで見ても、次の分岐命令が見つけられなかった。
-        if (branch_packet.type == BRANCH_PKT_NOT_FOUND) {
+        //     const Location start_location = optional_start_location.value();
+
+        //     this->state.prev_location = start_location;
+        //     this->state.trace_state = checkTraceRange(this->state.memory_maps, start_location)
+        //         ? TraceStateType::TRACE_ON : TraceStateType::TRACE_OUT_OF_RANGE;
+        //     this->state.is_first_branch_packet = false;
+        // }
+
+        Packet packet = this->decoder.decodePacket();
+
+        // パケットデータの長さが不十分であり、現段階でデコードを正しく行うことができない
+        // このとき、デコードを進めずに、いったん途中で終わる。
+        if (packet.type == PKT_INCOMPLETE) {
             return ProcessResultType::PROCESS_SUCCESS;
         }
 
-        if (this->state.is_first_branch_packet) {
-            // The first branch packet is always an address pocket.
-            // Otherwise, the trace start address is not known.
-            assert(branch_packet.type == BRANCH_PKT_ADDRESS);
+        this->decoder.trace_data_offset += packet.size;
 
-            // トレースの開始アドレスがメモリマップ上にあるか調べる。
-            // もしなければ、エラーを返す。
-            const std::optional<Location> optional_start_location =
-                getLocation(this->state.memory_maps, branch_packet.target_address);
-            if (not optional_start_location.has_value()) {
-                return ProcessResultType::PROCESS_ERROR_PAGE_FAULT;
+        switch (this->decoder.state) {
+            case DecodeState::TRACE: {
+                switch (packet.type) {
+                    case ETM4_PKT_I_ATOM_F1:
+                    case ETM4_PKT_I_ATOM_F2:
+                    case ETM4_PKT_I_ATOM_F3:
+                    case ETM4_PKT_I_ATOM_F4:
+                    case ETM4_PKT_I_ATOM_F5:
+                    case ETM4_PKT_I_ATOM_F6: {
+                        // ATOMパケットでは、トレースしているバイナリファイルに変化はないため、
+                        // 既にトレース領域外であれば、ここでもトレース領域外である。
+                        if (state.trace_state == TraceStateType::TRACE_OUT_OF_RANGE) {
+                            break;
+                        }
+
+                        // Atomパケットの処理時に、未処理のIndirect Branchがある。
+                        // 本来であれば、Atomパケットではなく、Addressパケットがあるはずである。
+                        // このエラーが発生するとき、おそらくこのプログラム自体にバグがある。
+                        assert(state.has_pending_address_packet == false);
+
+                        // Cacheにアクセスして、既に同じトレースデータと開始アドレスから、
+                        // エッジカバレッジを復元したことがあるか調べる。
+                        // もし既にキャッシュに存在するなら、そのデータを使うことで高速化できる。
+                        #if defined(CACHE_MODE)
+                            // Create a key for cache.
+                            const TraceKey trace_key (
+                                state.prev_location,
+                                packet.en_bits,
+                                packet.en_bits_len
+                            );
+
+                            if (this->data.cache.isCachedTrace(trace_key)) {
+                                AtomTrace trace = this->data.cache.getTraceCache(trace_key);
+                                // Update state
+                                this->state.prev_location = trace.locations.back();
+                                this->state.has_pending_address_packet = trace.has_pending_address_packet;
+
+                                // Write bitmap
+                                trace.writeBitmapKeys(this->data.bitmap);
+                                #if defined(PRINT_EDGE_COV)
+                                    trace.printTraceLocations(this->state.memory_maps);
+                                #endif
+                            } else {
+                                AtomTrace trace = processAtomPacket(packet);
+
+                                // Write bitmap
+                                trace.writeBitmapKeys(this->data.bitmap);
+                                #if defined(PRINT_EDGE_COV)
+                                    trace.printTraceLocations(this->state.memory_maps);
+                                #endif
+
+                                // Add trace to cache
+                                this->data.cache.addTraceCache(trace_key, trace);
+                            }
+                        #else
+                            AtomTrace trace = processAtomPacket(packet);
+                            // Write bitmap
+                            trace.writeBitmapKeys(this->data.bitmap);
+                            #if defined(PRINT_EDGE_COV)
+                                trace.printTraceLocations(state.memory_maps);
+                            #endif
+                        #endif
+                        break;
+                    }
+
+                    case ETM4_PKT_I_ADDR_L_64IS0: {
+                        // Address packetは下記の3つの場合に生成される。
+                        //     1. トレース開始時に、トレース開始アドレスを示すために生成される。
+                        //     2. Indirect branchのときに、Atom pakcet(E)に続き、生成される。
+                        //     3. トレースが途切れたときに、Trace On packetに続き、生成される。
+                        // 3.のとき、
+                        //     3.1 トレースが再開されたアドレスを示すAddress packetの場合と、
+                        //     3.2 トレースが途切れる前のAtom(E)に続く、Address packetの場合がある。
+                        // 3.1の場合は必要ないので無視する。
+
+                        // 3.1の場合 has_pending_address_packet == false
+
+                        if (state.has_pending_address_packet or
+                            state.trace_state == TraceStateType::TRACE_OUT_OF_RANGE) {
+                            // 間接分岐でジャンプした先のアドレスがメモリマップ上にあるか調べる。
+                            // もしなければ、エラーを返す。
+                            const std::optional<AddressTrace> optional_trace =
+                                processAddressPacket(packet);
+                            if (not optional_trace.has_value()) {
+                                return ProcessResultType::PROCESS_ERROR_PAGE_FAULT;
+                            }
+
+                            const AddressTrace trace = optional_trace.value();
+
+                            // Save trace
+                            if (state.trace_state == TraceStateType::TRACE_ON) {
+                                // Write bitmap
+                                trace.writeBitmapKey(this->data.bitmap);
+                                #if defined(PRINT_EDGE_COV)
+                                    trace.printTraceLocation(state.memory_maps);
+                                #endif
+                            }
+                            if (state.trace_state == TraceStateType::TRACE_RESTART) {
+                                state.trace_state = TraceStateType::TRACE_ON;
+                            }
+                        }
+                        break;
+                    }
+
+                    // Exception Packetは例外が発生したときに、生成される。
+                    // Exceptionパケットに続き、2つのAddress Packetが生成される。
+                    // 1つ目はException後に戻るアドレスを示し、
+                    // 2つ目は実際にException後に実行が開始されたアドレスを示している。
+                    // そのため、ユーザ空間のトレースではこの2つのAddress Packetを無視する。
+                    case ETM4_PKT_I_EXCEPT: {
+                        this->decoder.state = DecodeState::EXCEPTION_ADDR1;
+                        break;
+                    }
+
+                    case ETM4_PKT_I_OVERFLOW: {
+                        // An Overflow packet is output in the data trace stream whenever the data trace buffer
+                        // in the trace unit overflows. This means that part of the data trace stream might be lost,
+                        // and tracing is inactive until the overflow condition clears.
+                        std::cerr << "Found an overflow packet that indicates that a trace unit buffer overflow has occurred. ";
+                        std::cerr << "The trace data may be corrupted." << std::endl;
+                        return ProcessResultType::PROCESS_ERROR_OVERFLOW_PACKET;
+                    }
+
+                    default:
+                        break;
+                }
+                break;
             }
 
-            const Location start_location = optional_start_location.value();
-
-            this->state.prev_location = start_location;
-            this->state.trace_state = checkTraceRange(this->state.memory_maps, start_location)
-                ? TraceStateType::TRACE_ON : TraceStateType::TRACE_OUT_OF_RANGE;
-            this->state.is_first_branch_packet = false;
-        }
-
-        if (branch_packet.type == BRANCH_PKT_ATOM) { // Atom packet
-            if (state.trace_state == TraceStateType::TRACE_OUT_OF_RANGE) {
-                continue;
+            case DecodeState::EXCEPTION_ADDR1: {
+                if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
+                    this->decoder.state = DecodeState::EXCEPTION_ADDR2;
+                }
+                break;
             }
 
-            // Atomパケットの処理時に、未処理のIndirect Branchがある。
-            // 本来であれば、Atomパケットではなく、Addressパケットがあるはずである。
-            // このエラーが発生するとき、おそらくこのプログラム自体にバグがある。
-            assert(state.has_pending_address_packet == false);
-
-            // Cacheにアクセスして、既に同じトレースデータと開始アドレスから、
-            // エッジカバレッジを復元したことがあるか調べる。
-            // もし既にキャッシュに存在するなら、そのデータを使うことで高速化できる。
-            #if defined(CACHE_MODE)
-                // Create a key for cache.
-                const TraceKey trace_key (
-                    state.prev_location,
-                    branch_packet.en_bits,
-                    branch_packet.en_bits_len
-                );
-
-                if (this->data.cache.isCachedTrace(trace_key)) {
-                    AtomTrace trace = this->data.cache.getTraceCache(trace_key);
-                    // Update state
-                    this->state.prev_location = trace.locations.back();
-                    this->state.has_pending_address_packet = trace.has_pending_address_packet;
-
-                    // Write bitmap
-                    trace.writeBitmapKeys(this->data.bitmap);
-                    #if defined(PRINT_EDGE_COV)
-                        trace.printTraceLocations(this->state.memory_maps);
-                    #endif
-                } else {
-                    AtomTrace trace = processAtomPacket(branch_packet);
-
-                    // Write bitmap
-                    trace.writeBitmapKeys(this->data.bitmap);
-                    #if defined(PRINT_EDGE_COV)
-                        trace.printTraceLocations(this->state.memory_maps);
-                    #endif
-
-                    // Add trace to cache
-                    this->data.cache.addTraceCache(trace_key, trace);
+            case DecodeState::EXCEPTION_ADDR2: {
+                if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
+                    this->decoder.state = DecodeState::TRACE;
                 }
-            #else
-                AtomTrace trace = processAtomPacket(branch_packet);
-                // Write bitmap
-                trace.writeBitmapKeys(this->data.bitmap);
-                #if defined(PRINT_EDGE_COV)
-                    trace.printTraceLocations(state.memory_maps);
-                #endif
-            #endif
-        } else if (branch_packet.type == BRANCH_PKT_ADDRESS) { // Address packet
-            // Address packetは下記の3つの場合に生成される。
-            //     1. トレース開始時に、トレース開始アドレスを示すために生成される。
-            //     2. Indirect branchのときに、Atom pakcet(E)に続き、生成される。
-            //     3. トレースが途切れたときに、Trace On packetに続き、生成される。
-            // 3.のとき、
-            //     3.1 トレースが再開されたアドレスを示すAddress packetの場合と、
-            //     3.2 トレースが途切れる前のAtom(E)に続く、Address packetの場合がある。
-            // 3.1の場合は必要ないので無視する。
-
-            // 3.1の場合 has_pending_address_packet == false
-
-            if (state.has_pending_address_packet or
-                state.trace_state == TraceStateType::TRACE_OUT_OF_RANGE) {
-                // 間接分岐でジャンプした先のアドレスがメモリマップ上にあるか調べる。
-                // もしなければ、エラーを返す。
-                const std::optional<AddressTrace> optional_trace =
-                    processAddressPacket(branch_packet);
-                if (not optional_trace.has_value()) {
-                    return ProcessResultType::PROCESS_ERROR_PAGE_FAULT;
-                }
-
-                const AddressTrace trace = optional_trace.value();
-
-                // Save trace
-                if (state.trace_state == TraceStateType::TRACE_ON) {
-                    // Write bitmap
-                    trace.writeBitmapKey(this->data.bitmap);
-                    #if defined(PRINT_EDGE_COV)
-                        trace.printTraceLocation(state.memory_maps);
-                    #endif
-                }
-                if (state.trace_state == TraceStateType::TRACE_RESTART) {
-                    state.trace_state = TraceStateType::TRACE_ON;
-                }
+                break;
             }
-        } else {
-            // Unknown branch packet.
-            __builtin_unreachable();
+
+            default:
+                __builtin_unreachable();
         }
     }
 
     return ProcessResultType::PROCESS_SUCCESS;
 }
 
-AtomTrace Process::processAtomPacket(const BranchPacket &atom_packet)
+AtomTrace Process::processAtomPacket(const Packet &atom_packet)
 {
     AtomTrace trace = AtomTrace(state.prev_location);
 
@@ -220,10 +269,10 @@ AtomTrace Process::processAtomPacket(const BranchPacket &atom_packet)
     return trace;
 }
 
-std::optional<AddressTrace> Process::processAddressPacket(const BranchPacket &address_packet)
+std::optional<AddressTrace> Process::processAddressPacket(const Packet &address_packet)
 {
     const std::optional<Location> optional_dest_location =
-        getLocation(state.memory_maps, address_packet.target_address);
+        getLocation(state.memory_maps, address_packet.addr);
     // ターゲットアドレスに対応するバイナリデータが存在しない。
     if (not optional_dest_location.has_value()) {
         return std::nullopt;
@@ -283,41 +332,24 @@ BranchInsn Process::processNextBranchInsn(const Location &base_location)
 }
 
 
-ProcessResultType run_ptrix(
-    const std::uint8_t* trace_data_addr, const std::size_t trace_data_size,
-    const std::uint8_t trace_id,
-    const std::vector<MemoryMap> &memory_maps, Bitmap &bitmap)
+ProcessResultType PTrixProcess::run(
+    const std::uint8_t* trace_data_addr, const std::size_t trace_data_size)
 {
-    // Reset bitmap
-    bitmap.resetBitmap();
-
-    // Read trace data and deformat trace data.
-    const std::vector<std::uint8_t> trace_data =
-        deformatTraceData(trace_data_addr, trace_data_size, trace_id);
+    this->deformatter.deformatTraceData(trace_data_addr, trace_data_size);
 
     std::bitset<MAX_ATOM_LEN> ctx_en_bits(0);
     std::size_t ctx_en_bits_len = 0;
     std::size_t ctx_address_cnt = 0;
     std::uint64_t ctx_hash = 0;
 
-    const std::size_t size = trace_data.size();
-    std::size_t trace_data_offset = 0;
+    const std::size_t size = this->decoder.trace_data.size();
 
-    enum State {
-        TRACE,
-        EXCEPTION_ADDR1,
-        EXCEPTION_ADDR2,
-        WAIT_ADDR_AFTER_TRACE_ON,
-    };
+    while (this->decoder.trace_data_offset < size) {
+        const Packet packet = this->decoder.decodePacket();
+        this->decoder.trace_data_offset += packet.size;
 
-    State state = TRACE;
-
-    while (trace_data_offset < size) {
-        const Packet packet = decodePacket(trace_data, trace_data_offset);
-        trace_data_offset += packet.size;
-
-        switch (state) {
-            case TRACE: {
+        switch (this->decoder.state) {
+            case DecodeState::TRACE: {
                 switch (packet.type) {
                     case ETM4_PKT_I_ATOM_F1:
                     case ETM4_PKT_I_ATOM_F2:
@@ -333,7 +365,7 @@ ProcessResultType run_ptrix(
 
                     case ETM4_PKT_I_ADDR_L_64IS0: {
                         const std::optional<Location> optional_target_location =
-                            getLocation(memory_maps, packet.addr);
+                            getLocation(this->memory_maps, packet.addr);
                         if (not optional_target_location.has_value()) {
                             return ProcessResultType::PROCESS_ERROR_PAGE_FAULT;
                         }
@@ -353,9 +385,9 @@ ProcessResultType run_ptrix(
 
                         if (ctx_address_cnt >= MAX_ADDRESS_LEN) {
                             // bitmapのindexを計算する
-                            std::size_t index = ctx_hash & (bitmap.size - 1);
+                            std::size_t index = ctx_hash & (this->bitmap.size - 1);
                             // bitmapを更新する
-                            bitmap.data[index]++;
+                            this->bitmap.data[index]++;
 
                             ctx_address_cnt = 0;
                             ctx_hash = 0;
@@ -369,7 +401,7 @@ ProcessResultType run_ptrix(
                     // 2つ目は実際にException後に実行が開始されたアドレスを示している。
                     // そのため、ユーザ空間のトレースではこの2つのAddress Packetを無視する。
                     case ETM4_PKT_I_EXCEPT:
-                        state = EXCEPTION_ADDR1;
+                        this->decoder.state = DecodeState::EXCEPTION_ADDR1;
                         break;
 
                     // Trace On Packetは、トレースストリームの不連続性を示す。
@@ -377,7 +409,7 @@ ProcessResultType run_ptrix(
                     // 次のAtom、Exception Packetを発生する前に、
                     // トレースの開始位置を示すAddress Packetを生成する。
                     case ETM4_PKT_I_TRACE_ON:
-                        state = WAIT_ADDR_AFTER_TRACE_ON;
+                        this->decoder.state = DecodeState::WAIT_ADDR_AFTER_TRACE_ON;
                         break;
 
                     default:
@@ -386,23 +418,23 @@ ProcessResultType run_ptrix(
                 break;
             }
 
-            case EXCEPTION_ADDR1: {
+            case DecodeState::EXCEPTION_ADDR1: {
                 if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
-                    state = EXCEPTION_ADDR2;
+                    this->decoder.state = DecodeState::EXCEPTION_ADDR2;
                 }
                 break;
             }
 
-            case EXCEPTION_ADDR2: {
+            case DecodeState::EXCEPTION_ADDR2: {
                 if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
-                    state = TRACE;
+                    this->decoder.state = DecodeState::TRACE;
                 }
                 break;
             }
 
-            case WAIT_ADDR_AFTER_TRACE_ON: {
+            case DecodeState::WAIT_ADDR_AFTER_TRACE_ON: {
                 if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
-                    state = TRACE;
+                    this->decoder.state = DecodeState::TRACE;
                 }
                 break;
             }
@@ -413,5 +445,18 @@ ProcessResultType run_ptrix(
 
     }
 
+    return ProcessResultType::PROCESS_SUCCESS;
+}
+
+void PTrixProcess::reset(MemoryMaps &&memory_maps, std::uint8_t target_trace_id)
+{
+    this->bitmap.reset();
+    this->deformatter.reset(target_trace_id);
+    this->decoder.reset();
+    this->memory_maps = std::move(memory_maps);
+}
+
+ProcessResultType PTrixProcess::final()
+{
     return ProcessResultType::PROCESS_SUCCESS;
 }

@@ -105,36 +105,38 @@ libcsdec_result_t libcsdec_finish_process(const libcsdec_t libcsdec)
 }
 
 
-libcsdec_result_t covert_result_type(ProcessResultType result)
-{
-    switch (result) {
-        case ProcessResultType::PROCESS_SUCCESS:
-            return LIBCEDEC_SUCCESS;
-        case ProcessResultType::PROCESS_ERROR_OVERFLOW_PACKET:
-            return LIBCSDEC_ERROR_OVERFLOW_PACKET;
-        case ProcessResultType::PROCESS_ERROR_TRACE_DATA_INCOMPLETE:
-            return LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE;
-        case ProcessResultType::PROCESS_ERROR_PAGE_FAULT:
-            return LIBCSDEC_ERROR_PAGE_FAULT;
-        default:
-            __builtin_unreachable();
-    }
 
-    return LIBCSDEC_ERROR;
+
+libcsdec_t libcsdec_init_ptrix_process(
+    void *bitmap_addr, const int bitmap_size)
+{
+    std::unique_ptr<PTrixProcess> process = std::make_unique<PTrixProcess>(
+        Bitmap(
+            reinterpret_cast<std::uint8_t*>(bitmap_addr),
+            static_cast<std::size_t>(bitmap_size)
+        )
+    );
+
+    // Release ownership and pass it to the C API side.
+    // Therefore, do not free it here.
+    return reinterpret_cast<PTrixProcess*>(process.release());
 }
 
 
-libcsdec_result_t libcsdec_run_ptrix(
-    const void *trace_data_addr, const std::size_t trace_data_size,
+libcsdec_result_t libcsdec_reset_ptrix_process(
+    const libcsdec_t libcsdec,
     const char trace_id, const int memory_map_num,
-    const struct libcsdec_memory_map libcsdec_memory_map[],
-    void *bitmap_addr, const int bitmap_size)
+    const struct libcsdec_memory_map libcsdec_memory_map[])
 {
     if (memory_map_num <= 0) {
         std::cerr << "Specify 1 or more for the number of memory maps" << std::endl;
         return LIBCSDEC_ERROR;
     }
 
+    // Cast
+    PTrixProcess *process = reinterpret_cast<PTrixProcess*>(libcsdec);
+
+    // Read binary data and entry point
     MemoryMaps memory_maps; {
         for (int i = 0; i < memory_map_num; i++) {
             const std::string path = std::string(libcsdec_memory_map[i].path);
@@ -144,19 +146,38 @@ libcsdec_result_t libcsdec_run_ptrix(
         }
     }
 
-    Bitmap bitmap(
-        reinterpret_cast<std::uint8_t*>(bitmap_addr),
-        static_cast<std::size_t>(bitmap_size)
-    );
+    process->reset(std::move(memory_maps), trace_id);
+    return LIBCEDEC_SUCCESS;
+}
 
-    const ProcessResultType result = run_ptrix(
-        reinterpret_cast<const std::uint8_t*>(trace_data_addr),
-        trace_data_size,
-        trace_id,
-        memory_maps,
-        bitmap
-    );
 
+libcsdec_result_t libcsdec_run_ptrix_process(
+    const libcsdec_t libcsdec,
+    const void *trace_data_addr, const std::size_t trace_data_size)
+{
+    // Cast
+    PTrixProcess *process = reinterpret_cast<PTrixProcess*>(libcsdec);
+
+    ProcessResultType result = process->run(
+        reinterpret_cast<const std::uint8_t*>(trace_data_addr), trace_data_size);
+    return covert_result_type(result);
+}
+
+
+libcsdec_result_t libcsdec_finish_ptrix_process(const libcsdec_t libcsdec)
+{
+    // Cast
+    PTrixProcess *process = reinterpret_cast<PTrixProcess*>(libcsdec);
+
+    ProcessResultType result = process->final();
+    return covert_result_type(result);
+}
+
+
+
+
+libcsdec_result_t covert_result_type(ProcessResultType result)
+{
     switch (result) {
         case ProcessResultType::PROCESS_SUCCESS:
             return LIBCEDEC_SUCCESS;

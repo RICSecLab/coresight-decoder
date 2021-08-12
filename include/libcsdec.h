@@ -38,11 +38,20 @@ libcsdec_result_t libcsdec_run_process(
 
 libcsdec_result_t libcsdec_finish_process(const libcsdec_t libcsdec);
 
-libcsdec_result_t libcsdec_run_ptrix(
-    const void *trace_data_addr, const size_t trace_data_size,
-    char trace_id, int memory_map_num,
-    const struct libcsdec_memory_map libcsdec_memory_map[],
+
+libcsdec_t libcsdec_init_ptrix_process(
     void *bitmap_addr, int bitmap_size);
+
+libcsdec_result_t libcsdec_reset_ptrix_process(
+    const libcsdec_t libcsdec,
+    char trace_id, int memory_map_num,
+    const struct libcsdec_memory_map libcsdec_memory_map[]);
+
+libcsdec_result_t libcsdec_run_ptrix_process(
+    const libcsdec_t libcsdec,
+    const void *trace_data_addr, const size_t trace_data_size);
+
+libcsdec_result_t libcsdec_finish_ptrix_process(const libcsdec_t libcsdec);
 
 #ifdef __cplusplus
 } // extern "C"

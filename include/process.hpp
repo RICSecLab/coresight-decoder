@@ -97,14 +97,26 @@ struct Process {
     ProcessResultType final();
     ProcessResultType run(const std::uint8_t* trace_data_addr, std::size_t trace_data_size);
 
-    AtomTrace processAtomPacket(const BranchPacket &atom_packet);
+private:
+    AtomTrace processAtomPacket(const Packet &atom_packet);
     std::optional<AddressTrace> processAddressPacket(
-        const BranchPacket &address_packet);
+        const Packet &address_packet);
     BranchInsn processNextBranchInsn(const Location &base_location);
 };
 
 
-ProcessResultType run_ptrix(
-    const std::uint8_t* trace_data_addr, const size_t trace_data_size,
-    const std::uint8_t trace_id,
-    const std::vector<MemoryMap> &memory_maps, Bitmap &bitmap);
+struct PTrixProcess {
+    Deformatter deformatter;
+    Decoder decoder;
+
+    Bitmap bitmap;
+    MemoryMaps memory_maps;
+
+    PTrixProcess(const Bitmap &bitmap)
+        : bitmap(bitmap) {}
+
+    void reset(MemoryMaps &&memory_maps, std::uint8_t target_trace_id);
+    ProcessResultType final();
+    ProcessResultType run(
+        const std::uint8_t* trace_data_addr, const size_t trace_data_size);
+};
