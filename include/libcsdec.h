@@ -34,7 +34,7 @@ libcsdec_result_t libcsdec_reset_process(
 
 libcsdec_result_t libcsdec_run_process(
     const libcsdec_t libcsdec,
-    const void *trace_data_addr, std::size_t trace_data_size);
+    const void *trace_data_addr, const size_t trace_data_size);
 
 libcsdec_result_t libcsdec_finish_process(const libcsdec_t libcsdec);
 
