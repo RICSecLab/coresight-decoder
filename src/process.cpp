@@ -2,7 +2,6 @@
 #include <vector>
 #include <cassert>
 #include <cstdint>
-#include <bitset>
 
 #include "process.hpp"
 #include "decoder.hpp"
@@ -16,12 +15,9 @@
 
 void Process::reset(MemoryMaps &&memory_maps, const std::uint8_t target_trace_id)
 {
-    // Reset bitmap
     this->data.bitmap.reset();
-    // Reset deformatter
     this->deformatter.reset(target_trace_id);
     this->decoder.reset();
-    // Reset state
     this->state.reset(std::move(memory_maps));
 }
 
@@ -39,33 +35,12 @@ ProcessResultType Process::run(
     const std::uint8_t* trace_data_addr, const std::size_t trace_data_size)
 {
     // Read trace data and deformat trace data.
-    this->deformatter.deformatTraceData(trace_data_addr, trace_data_size);
+    this->deformatter.deformatTraceData(trace_data_addr, trace_data_size, decoder.trace_data);
 
-    const std::size_t size = this->deformatter.deformat_data.size();
-    while (this->state.trace_data_offset < size) {
-
-        // if (this->state.is_first_branch_packet) {
-        //     // The first branch packet is always an address pocket.
-        //     // Otherwise, the trace start address is not known.
-        //     assert(branch_packet.type == BRANCH_PKT_ADDRESS);
-
-        //     // トレースの開始アドレスがメモリマップ上にあるか調べる。
-        //     // もしなければ、エラーを返す。
-        //     const std::optional<Location> optional_start_location =
-        //         getLocation(this->state.memory_maps, branch_packet.target_address);
-        //     if (not optional_start_location.has_value()) {
-        //         return ProcessResultType::PROCESS_ERROR_PAGE_FAULT;
-        //     }
-
-        //     const Location start_location = optional_start_location.value();
-
-        //     this->state.prev_location = start_location;
-        //     this->state.trace_state = checkTraceRange(this->state.memory_maps, start_location)
-        //         ? TraceStateType::TRACE_ON : TraceStateType::TRACE_OUT_OF_RANGE;
-        //     this->state.is_first_branch_packet = false;
-        // }
-
-        Packet packet = this->decoder.decodePacket();
+    const std::size_t size = this->decoder.trace_data.size();
+    while (this->decoder.trace_data_offset < size) {
+        const Packet packet = this->decoder.decodePacket();
+        DEBUG(packet.toString());
 
         // パケットデータの長さが不十分であり、現段階でデコードを正しく行うことができない
         // このとき、デコードを進めずに、いったん途中で終わる。
@@ -76,6 +51,44 @@ ProcessResultType Process::run(
         this->decoder.trace_data_offset += packet.size;
 
         switch (this->decoder.state) {
+            case DecodeState::START: {
+                switch (packet.type) {
+                    case ETM4_PKT_I_ATOM_F1:
+                    case ETM4_PKT_I_ATOM_F2:
+                    case ETM4_PKT_I_ATOM_F3:
+                    case ETM4_PKT_I_ATOM_F4:
+                    case ETM4_PKT_I_ATOM_F5:
+                    case ETM4_PKT_I_ATOM_F6: {
+                        // The first branch packet is always an address pocket.
+                        // Otherwise, the trace start address is not known.
+                        std::cerr << "The first branch packet is always an address pocket." << std::endl;
+                        std::exit(EXIT_FAILURE);
+                    }
+
+                    case ETM4_PKT_I_ADDR_L_64IS0: {
+                        // トレースの開始アドレスがメモリマップ上にあるか調べる。
+                        // もしなければ、エラーを返す。
+                        const std::optional<Location> optional_start_location =
+                            getLocation(this->state.memory_maps, packet.addr);
+                        if (not optional_start_location.has_value()) {
+                            return ProcessResultType::PROCESS_ERROR_PAGE_FAULT;
+                        }
+
+                        const Location start_location = optional_start_location.value();
+                        this->state.prev_location = start_location;
+                        this->state.trace_state = checkTraceRange(this->state.memory_maps, start_location)
+                            ? TraceStateType::TRACE_ON : TraceStateType::TRACE_OUT_OF_RANGE;
+
+                        this->decoder.state = DecodeState::TRACE;
+                        break;
+                    }
+
+                    default:
+                        break;
+                }
+                break;
+            }
+
             case DecodeState::TRACE: {
                 switch (packet.type) {
                     case ETM4_PKT_I_ATOM_F1:
@@ -335,28 +348,32 @@ BranchInsn Process::processNextBranchInsn(const Location &base_location)
 ProcessResultType PTrixProcess::run(
     const std::uint8_t* trace_data_addr, const std::size_t trace_data_size)
 {
-    this->deformatter.deformatTraceData(trace_data_addr, trace_data_size);
-
-    std::bitset<MAX_ATOM_LEN> ctx_en_bits(0);
-    std::size_t ctx_en_bits_len = 0;
-    std::size_t ctx_address_cnt = 0;
-    std::uint64_t ctx_hash = 0;
+    this->deformatter.deformatTraceData(trace_data_addr, trace_data_size, decoder.trace_data);
 
     const std::size_t size = this->decoder.trace_data.size();
 
     while (this->decoder.trace_data_offset < size) {
         const Packet packet = this->decoder.decodePacket();
+        DEBUG(packet.toString());
+
+        // パケットデータの長さが不十分であり、現段階でデコードを正しく行うことができない
+        // このとき、デコードを進めずに、いったん途中で終わる。
+        if (packet.type == PKT_INCOMPLETE) {
+            return ProcessResultType::PROCESS_SUCCESS;
+        }
+
         this->decoder.trace_data_offset += packet.size;
 
         switch (this->decoder.state) {
+            case DecodeState::START:
             case DecodeState::TRACE: {
-                switch (packet.type) {
+                switch (packet.type)
                     case ETM4_PKT_I_ATOM_F1:
                     case ETM4_PKT_I_ATOM_F2:
                     case ETM4_PKT_I_ATOM_F3:
                     case ETM4_PKT_I_ATOM_F4:
                     case ETM4_PKT_I_ATOM_F5:
-                    case ETM4_PKT_I_ATOM_F6:
+                    case ETM4_PKT_I_ATOM_F6: {
                         if (ctx_en_bits_len < MAX_ATOM_LEN) {
                             ctx_en_bits |= std::bitset<MAX_ATOM_LEN>(packet.en_bits) << ctx_en_bits_len;
                             ctx_en_bits_len += packet.en_bits_len;
@@ -454,6 +471,11 @@ void PTrixProcess::reset(MemoryMaps &&memory_maps, std::uint8_t target_trace_id)
     this->deformatter.reset(target_trace_id);
     this->decoder.reset();
     this->memory_maps = std::move(memory_maps);
+
+    ctx_en_bits = 0;
+    ctx_en_bits_len = 0;
+    ctx_address_cnt = 0;
+    ctx_hash = 0;
 }
 
 ProcessResultType PTrixProcess::final()

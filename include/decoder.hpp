@@ -51,6 +51,7 @@ struct Packet
 };
 
 enum class DecodeState {
+    START,
     TRACE,
     EXCEPTION_ADDR1,
     EXCEPTION_ADDR2,

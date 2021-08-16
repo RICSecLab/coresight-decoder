@@ -123,7 +123,7 @@ Packet Decoder::decodePacket() const
 void Decoder::reset() {
     this->trace_data = std::vector<std::uint8_t>();
     this->trace_data_offset = 0;
-    this->state = DecodeState::TRACE;
+    this->state = DecodeState::START;
 }
 
 Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_t offset)

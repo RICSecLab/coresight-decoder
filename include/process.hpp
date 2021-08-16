@@ -1,5 +1,7 @@
 #pragma once
 
+#include <bitset>
+
 #include "common.hpp"
 #include "trace.hpp"
 #include "cache.hpp"
@@ -61,8 +63,6 @@ struct ProcessState {
 
     Location prev_location;
     bool has_pending_address_packet;
-    std::size_t trace_data_offset;
-    bool is_first_branch_packet;
 
     MemoryMaps memory_maps;
 
@@ -76,8 +76,6 @@ struct ProcessState {
         this->trace_state = TraceStateType::TRACE_ON;
         this->prev_location = Location();
         this->has_pending_address_packet = false;
-        this->trace_data_offset = 0;
-        this->is_first_branch_packet = true;
         this->memory_maps = std::move(memory_maps);
     }
 };
@@ -111,6 +109,11 @@ struct PTrixProcess {
 
     Bitmap bitmap;
     MemoryMaps memory_maps;
+
+    std::bitset<MAX_ATOM_LEN> ctx_en_bits;
+    std::size_t ctx_en_bits_len;
+    std::size_t ctx_address_cnt;
+    std::uint64_t ctx_hash;
 
     PTrixProcess(const Bitmap &bitmap)
         : bitmap(bitmap) {}
