@@ -27,16 +27,8 @@ ProcessResultType Process::run(ProcessState state,
 
     const std::size_t size = trace_data.size();
     while (state.trace_data_offset < size) {
-        const std::optional<BranchPacket> optional_branch_packet =
+        const BranchPacket branch_packet =
             decodeNextBranchPacket(trace_data, state.trace_data_offset);
-
-        // An error occurred during the trace data decoding process
-        // Currently, the decoder only fails if it finds an overflow packet.
-        if (not optional_branch_packet.has_value()) {
-            return ProcessResultType::PROCESS_ERROR_OVERFLOW_PACKET;
-        }
-
-        const BranchPacket branch_packet = optional_branch_packet.value();
 
         if (state.is_first_branch_packet) {
             // The first branch packet is always an address pocket.

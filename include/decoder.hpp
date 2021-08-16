@@ -69,7 +69,7 @@ struct BranchPacket
 };
 
 
-std::optional<BranchPacket> decodeNextBranchPacket(const std::vector<uint8_t>& trace_data,
+BranchPacket decodeNextBranchPacket(const std::vector<uint8_t>& trace_data,
     std::size_t &trace_data_offset);
 Packet decodePacket(const std::vector<uint8_t> &trace_data, size_t offset);
 void printPacket(const Packet packet);
