@@ -2,6 +2,7 @@
 #include <vector>
 #include <cassert>
 #include <optional>
+#include <sstream>
 
 #include "decoder.hpp"
 #include "utils.hpp"
@@ -534,58 +535,95 @@ Packet decodeAtomF6Packet(const std::vector<uint8_t> &trace_data, const size_t o
     return packet;
 }
 
-void printPacket(const Packet packet)
+
+std::string atomBitsToString(std::uint32_t en_bits, std::size_t en_bits_len)
 {
-    switch (packet.type) {
+    std::string bits;
+    for (std::size_t i = 0; i < en_bits_len; ++i) {
+        bits += (en_bits & (1 << i)) ? "E" : "N";
+    }
+    return bits;
+}
+
+std::string Packet::toString() const
+{
+    std::stringstream stream;
+
+    switch (this->type) {
         case ETM4_PKT_I_TRACE_INFO:
-            printf("ETM4_PKT_I_TRACE_INFO\n");
+            stream << "ETM4_PKT_I_TRACE_INFO";
             break;
 
         case ETM4_PKT_I_TIMESTAMP:
-            printf("ETM4_PKT_I_TIMESTAMP\n");
+            stream << "ETM4_PKT_I_TIMESTAMP";
             break;
 
         case ETM4_PKT_I_TRACE_ON:
-            printf("ETM4_PKT_I_TRACE_ON\n");
+            stream << "ETM4_PKT_I_TRACE_ON";
             break;
 
         case ETM4_PKT_I_CTXT:
-            printf("ETM4_PKT_I_CTXT\n");
+            stream << "ETM4_PKT_I_CTXT";
             break;
 
         case ETM4_PKT_I_EXCEPT:
-            printf("ETM4_PKT_I_EXCEPT\n");
+            stream << "ETM4_PKT_I_EXCEPT";
             break;
 
         case ETM4_PKT_I_ADDR_L_64IS0:
-            printf("ETM4_PKT_I_ADDR_L_64IS0 addr=%lx\n", packet.addr);
+            stream << "ETM4_PKT_I_ADDR_L_64IS0 Addr="
+                   << std::hex << this->addr;
             break;
 
         case ETM4_PKT_I_ATOM_F1:
-            printf("ETM4_PKT_I_ATOM_F1 %x\n", packet.en_bits);
+            stream << "ETM4_PKT_I_ATOM_F1 "
+                   << atomBitsToString(this->en_bits, this->en_bits_len);
             break;
 
         case ETM4_PKT_I_ATOM_F2:
-            printf("ETM4_PKT_I_ATOM_F2 %x\n", packet.en_bits);
+            stream << "ETM4_PKT_I_ATOM_F2 "
+                   << atomBitsToString(this->en_bits, this->en_bits_len);
             break;
 
         case ETM4_PKT_I_ATOM_F3:
-            printf("ETM4_PKT_I_ATOM_F3 %x\n", packet.en_bits);
+            stream << "ETM4_PKT_I_ATOM_F3 "
+                   << atomBitsToString(this->en_bits, this->en_bits_len);
             break;
 
         case ETM4_PKT_I_ATOM_F4:
-            printf("ETM4_PKT_I_ATOM_F4 %x\n", packet.en_bits);
+            stream << "ETM4_PKT_I_ATOM_F4 "
+                   << atomBitsToString(this->en_bits, this->en_bits_len);
             break;
 
         case ETM4_PKT_I_ATOM_F5:
-            printf("ETM4_PKT_I_ATOM_F5 %x\n", packet.en_bits);
+            stream << "ETM4_PKT_I_ATOM_F5 "
+                   << atomBitsToString(this->en_bits, this->en_bits_len);
             break;
 
         case ETM4_PKT_I_ATOM_F6:
-            printf("ETM4_PKT_I_ATOM_F6 %x\n", packet.en_bits);
+            stream << "ETM4_PKT_I_ATOM_F6 "
+                   << atomBitsToString(this->en_bits, this->en_bits_len);
+            break;
+
+        case ETM4_PKT_I_ASYNC:
+            stream << "ETM4_PKT_I_ASYNC";
+            break;
+
+        case ETM4_PKT_I_OVERFLOW:
+            stream << "ETM4_PKT_I_OVERFLOW";
+            break;
+
+        case PKT_UNKNOWN:
+            stream << "PKT_UNKNOWN";
+            break;
+
+        case PKT_INCOMPLETE:
+            stream << "PKT_INCOMPLETE";
             break;
 
         default:
             break;
     }
+
+    return stream.str();
 }

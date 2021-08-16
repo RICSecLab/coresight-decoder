@@ -46,6 +46,8 @@ struct Packet
 
     // Address packet
     uint64_t addr;
+
+    std::string toString() const;
 };
 
 enum class DecodeState {
