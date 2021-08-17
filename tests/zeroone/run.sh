@@ -27,13 +27,7 @@ run_decoder () {
     edge_coverage_file=$trace_out_dir/$EDGE_COVERAGE_FILENAME
     bitmap_file=$trace_out_dir/$BITMAP_FILENAME
 
-    decoder_args=($(cat $trace_out_dir"/decoderargs.txt"))
-
-    lower_address=${decoder_args[4]}
-    upper_address=${decoder_args[5]}
-
-    $DECODER $(cat $trace_out_dir/decoderargs.txt) --bitmap-mode \
-                                                   --bitmap-size=0x10000 \
+    $DECODER $(cat $trace_out_dir/decoderargs.txt) --bitmap-size=0x10000 \
                                                    --bitmap-filename=$bitmap_file \
                                                    --trace-binary-filename=$TRACEE \
                                                    > $edge_coverage_file
