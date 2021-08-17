@@ -88,7 +88,7 @@ std::optional<double> run_decoder(libcsdec_t &libcsdec, const std::string &decod
     size_t trace_data_size = 0;
     load_bin(trace_data_filepath, &trace_data_addr, &trace_data_size);
 
-    libcsdec_init_process_state(libcsdec, trace_id,
+    libcsdec_reset_process(libcsdec, trace_id,
         memory_map_num, memory_map);
 
     // Run decoder and measure its execution time.
