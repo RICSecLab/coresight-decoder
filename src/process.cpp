@@ -40,7 +40,7 @@ ProcessResultType Process::run(
     const std::size_t size = this->decoder.trace_data.size();
     while (this->decoder.trace_data_offset < size) {
         const Packet packet = this->decoder.decodePacket();
-        DEBUG(packet.toString());
+        DEBUG("%s\n", packet.toString().c_str());
 
         // パケットデータの長さが不十分であり、現段階でデコードを正しく行うことができない
         // このとき、デコードを進めずに、いったん途中で終わる。
