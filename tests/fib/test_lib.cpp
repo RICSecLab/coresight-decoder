@@ -48,7 +48,7 @@ int check_bitmaps(unsigned char* global_bitmap, unsigned char* local_bitmap, int
 }
 
 
-void test_process(unsigned char *global_bitmap, const int bitmap_size) {
+void test_edge(unsigned char *global_bitmap, const int bitmap_size) {
     const int binary_file_num = 1;
     const char* binary_file_path[] = {
         "fib",
@@ -196,7 +196,7 @@ void test_process(unsigned char *global_bitmap, const int bitmap_size) {
 }
 
 
-void test_process_sequence(unsigned char *global_bitmap, const int bitmap_size) {
+void test_edge_sequence(unsigned char *global_bitmap, const int bitmap_size) {
     const int binary_file_num = 1;
     const char* binary_file_path[] = {
         "fib",
@@ -365,7 +365,7 @@ void test_process_sequence(unsigned char *global_bitmap, const int bitmap_size) 
 
 
 
-void test_ptrix_process(unsigned char *global_bitmap, const int bitmap_size) {
+void test_path(unsigned char *global_bitmap, const int bitmap_size) {
     unsigned char* local_bitmap = (unsigned char*)malloc(bitmap_size);
 
     libcsdec_t libcsdec = libcsdec_init_path(local_bitmap, bitmap_size);
@@ -508,7 +508,7 @@ void test_ptrix_process(unsigned char *global_bitmap, const int bitmap_size) {
 }
 
 
-void test_ptrix_process_sequence(unsigned char *global_bitmap, const int bitmap_size) {
+void test_path_sequence(unsigned char *global_bitmap, const int bitmap_size) {
     unsigned char* local_bitmap = (unsigned char*)malloc(bitmap_size);
 
     libcsdec_t libcsdec = libcsdec_init_path(local_bitmap, bitmap_size);
@@ -679,11 +679,11 @@ int main(int argc, char const *argv[])
     {
         unsigned char* global_bitmap1 = (unsigned char*)malloc(bitmap_size);
         memset(global_bitmap1, 0, bitmap_size);
-        test_process(global_bitmap1, bitmap_size);
+        test_edge(global_bitmap1, bitmap_size);
 
         unsigned char* global_bitmap2 = (unsigned char*)malloc(bitmap_size);
         memset(global_bitmap2, 0, bitmap_size);
-        test_process_sequence(global_bitmap2, bitmap_size);
+        test_edge_sequence(global_bitmap2, bitmap_size);
 
         int diff_cnt = check_bitmaps(global_bitmap1, global_bitmap2, bitmap_size);
         assert(diff_cnt == 0);
@@ -692,11 +692,11 @@ int main(int argc, char const *argv[])
     {
         unsigned char* global_bitmap1 = (unsigned char*)malloc(bitmap_size);
         memset(global_bitmap1, 0, bitmap_size);
-        test_ptrix_process(global_bitmap1, bitmap_size);
+        test_path(global_bitmap1, bitmap_size);
 
         unsigned char* global_bitmap2 = (unsigned char*)malloc(bitmap_size);
         memset(global_bitmap2, 0, bitmap_size);
-        test_ptrix_process_sequence(global_bitmap2, bitmap_size);
+        test_path_sequence(global_bitmap2, bitmap_size);
 
         int diff_cnt = check_bitmaps(global_bitmap1, global_bitmap2, bitmap_size);
         assert(diff_cnt == 0);
