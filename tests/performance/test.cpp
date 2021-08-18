@@ -88,19 +88,19 @@ std::optional<double> run_decoder(libcsdec_t &libcsdec, const std::string &decod
     size_t trace_data_size = 0;
     load_bin(trace_data_filepath, &trace_data_addr, &trace_data_size);
 
-    libcsdec_init_process_state(libcsdec, trace_id,
+    libcsdec_reset_edge(libcsdec, trace_id,
         memory_map_num, memory_map);
 
     // Run decoder and measure its execution time.
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 
-    enum libcsdec_result result1 = libcsdec_run_process(
+    enum libcsdec_result result1 = libcsdec_run_edge(
         libcsdec, trace_data_addr, trace_data_size);
 
     std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
     double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 
-    enum libcsdec_result result2 = libcsdec_finish_process(libcsdec);
+    enum libcsdec_result result2 = libcsdec_finish_edge(libcsdec);
 
     if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
         std::cerr << "Failed to run decoder." << std::endl;
@@ -157,7 +157,7 @@ int main(int argc, char const *argv[])
     const int bitmap_size = 0x10000;
     unsigned char* local_bitmap  = (unsigned char*)malloc(bitmap_size);
 
-    libcsdec_t libcsdec = libcsdec_init(binary_file_num, binary_file_path,local_bitmap, bitmap_size);
+    libcsdec_t libcsdec = libcsdec_init_edge(binary_file_num, binary_file_path,local_bitmap, bitmap_size);
     if (libcsdec == NULL) {
         std::cerr << "Failed to initialize libcsdec" << std::endl;
         std::exit(EXIT_FAILURE);

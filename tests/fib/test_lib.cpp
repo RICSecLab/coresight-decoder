@@ -48,7 +48,7 @@ int check_bitmaps(unsigned char* global_bitmap, unsigned char* local_bitmap, int
 }
 
 
-void test_process(unsigned char *global_bitmap, const int bitmap_size) {
+void test_edge(unsigned char *global_bitmap, const int bitmap_size) {
     const int binary_file_num = 1;
     const char* binary_file_path[] = {
         "fib",
@@ -56,7 +56,7 @@ void test_process(unsigned char *global_bitmap, const int bitmap_size) {
 
     unsigned char* local_bitmap = (unsigned char*)malloc(bitmap_size);
 
-    libcsdec_t libcsdec = libcsdec_init(binary_file_num, binary_file_path, local_bitmap, bitmap_size);
+    libcsdec_t libcsdec = libcsdec_init_edge(binary_file_num, binary_file_path, local_bitmap, bitmap_size);
     if (libcsdec == NULL) {
         printf("Failed to initialize libcsdec\n");
         exit(1);
@@ -77,13 +77,13 @@ void test_process(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_process(libcsdec, trace_id,
+        libcsdec_reset_edge(libcsdec, trace_id,
             memory_map_num, memory_map);
 
-        enum libcsdec_result result1 = libcsdec_run_process(
+        enum libcsdec_result result1 = libcsdec_run_edge(
             libcsdec, trace_data_addr, trace_data_size);
 
-        enum libcsdec_result result2 = libcsdec_finish_process(libcsdec);
+        enum libcsdec_result result2 = libcsdec_finish_edge(libcsdec);
 
         if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
@@ -110,13 +110,13 @@ void test_process(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_process(libcsdec, trace_id,
+        libcsdec_reset_edge(libcsdec, trace_id,
             memory_map_num, memory_map);
 
-        enum libcsdec_result result1 = libcsdec_run_process(
+        enum libcsdec_result result1 = libcsdec_run_edge(
             libcsdec, trace_data_addr, trace_data_size);
 
-        enum libcsdec_result result2 = libcsdec_finish_process(libcsdec);
+        enum libcsdec_result result2 = libcsdec_finish_edge(libcsdec);
 
         if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
@@ -143,13 +143,13 @@ void test_process(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_process(libcsdec, trace_id,
+        libcsdec_reset_edge(libcsdec, trace_id,
             memory_map_num, memory_map);
 
-        enum libcsdec_result result1 = libcsdec_run_process(
+        enum libcsdec_result result1 = libcsdec_run_edge(
             libcsdec, trace_data_addr, trace_data_size);
 
-        enum libcsdec_result result2 = libcsdec_finish_process(libcsdec);
+        enum libcsdec_result result2 = libcsdec_finish_edge(libcsdec);
 
         if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
@@ -176,13 +176,13 @@ void test_process(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_process(libcsdec, trace_id,
+        libcsdec_reset_edge(libcsdec, trace_id,
             memory_map_num, memory_map);
 
-        enum libcsdec_result result1 = libcsdec_run_process(
+        enum libcsdec_result result1 = libcsdec_run_edge(
             libcsdec, trace_data_addr, trace_data_size);
 
-        enum libcsdec_result result2 = libcsdec_finish_process(libcsdec);
+        enum libcsdec_result result2 = libcsdec_finish_edge(libcsdec);
 
         if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
@@ -196,7 +196,7 @@ void test_process(unsigned char *global_bitmap, const int bitmap_size) {
 }
 
 
-void test_process_sequence(unsigned char *global_bitmap, const int bitmap_size) {
+void test_edge_sequence(unsigned char *global_bitmap, const int bitmap_size) {
     const int binary_file_num = 1;
     const char* binary_file_path[] = {
         "fib",
@@ -204,7 +204,7 @@ void test_process_sequence(unsigned char *global_bitmap, const int bitmap_size) 
 
     unsigned char* local_bitmap = (unsigned char*)malloc(bitmap_size);
 
-    libcsdec_t libcsdec = libcsdec_init(binary_file_num, binary_file_path, local_bitmap, bitmap_size);
+    libcsdec_t libcsdec = libcsdec_init_edge(binary_file_num, binary_file_path, local_bitmap, bitmap_size);
     if (libcsdec == NULL) {
         printf("Failed to initialize libcsdec\n");
         exit(1);
@@ -225,11 +225,11 @@ void test_process_sequence(unsigned char *global_bitmap, const int bitmap_size) 
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_process(libcsdec, trace_id,
+        libcsdec_reset_edge(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         for (size_t i = 0; i < trace_data_size; i += 16) {
-            enum libcsdec_result result = libcsdec_run_process(
+            enum libcsdec_result result = libcsdec_run_edge(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(16, trace_data_size - i));
             if (result != LIBCEDEC_SUCCESS) {
@@ -238,7 +238,7 @@ void test_process_sequence(unsigned char *global_bitmap, const int bitmap_size) 
             }
         }
 
-        if (libcsdec_finish_process(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_edge(libcsdec) != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -263,11 +263,11 @@ void test_process_sequence(unsigned char *global_bitmap, const int bitmap_size) 
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_process(libcsdec, trace_id,
+        libcsdec_reset_edge(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         for (size_t i = 0; i < trace_data_size; i += 16) {
-            enum libcsdec_result result = libcsdec_run_process(
+            enum libcsdec_result result = libcsdec_run_edge(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(16, trace_data_size - i));
             if (result != LIBCEDEC_SUCCESS) {
@@ -276,7 +276,7 @@ void test_process_sequence(unsigned char *global_bitmap, const int bitmap_size) 
             }
         }
 
-        if (libcsdec_finish_process(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_edge(libcsdec) != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -301,11 +301,11 @@ void test_process_sequence(unsigned char *global_bitmap, const int bitmap_size) 
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_process(libcsdec, trace_id,
+        libcsdec_reset_edge(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         for (size_t i = 0; i < trace_data_size; i += 32) {
-            enum libcsdec_result result = libcsdec_run_process(
+            enum libcsdec_result result = libcsdec_run_edge(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(32, trace_data_size - i));
             if (result != LIBCEDEC_SUCCESS) {
@@ -314,7 +314,7 @@ void test_process_sequence(unsigned char *global_bitmap, const int bitmap_size) 
             }
         }
 
-        if (libcsdec_finish_process(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_edge(libcsdec) != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -339,11 +339,11 @@ void test_process_sequence(unsigned char *global_bitmap, const int bitmap_size) 
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_process(libcsdec, trace_id,
+        libcsdec_reset_edge(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         for (size_t i = 0; i < trace_data_size; i += 64) {
-            enum libcsdec_result result = libcsdec_run_process(
+            enum libcsdec_result result = libcsdec_run_edge(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(64, trace_data_size - i));
             if (result != LIBCEDEC_SUCCESS) {
@@ -352,7 +352,7 @@ void test_process_sequence(unsigned char *global_bitmap, const int bitmap_size) 
             }
         }
 
-        if (libcsdec_finish_process(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_edge(libcsdec) != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -365,10 +365,10 @@ void test_process_sequence(unsigned char *global_bitmap, const int bitmap_size) 
 
 
 
-void test_ptrix_process(unsigned char *global_bitmap, const int bitmap_size) {
+void test_path(unsigned char *global_bitmap, const int bitmap_size) {
     unsigned char* local_bitmap = (unsigned char*)malloc(bitmap_size);
 
-    libcsdec_t libcsdec = libcsdec_init_ptrix_process(local_bitmap, bitmap_size);
+    libcsdec_t libcsdec = libcsdec_init_path(local_bitmap, bitmap_size);
     if (libcsdec == NULL) {
         printf("Failed to initialize libcsdec\n");
         exit(1);
@@ -389,13 +389,13 @@ void test_ptrix_process(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_ptrix_process(libcsdec, trace_id,
+        libcsdec_reset_path(libcsdec, trace_id,
             memory_map_num, memory_map);
 
-        enum libcsdec_result result1 = libcsdec_run_ptrix_process(
+        enum libcsdec_result result1 = libcsdec_run_path(
             libcsdec, trace_data_addr, trace_data_size);
 
-        enum libcsdec_result result2 = libcsdec_finish_ptrix_process(libcsdec);
+        enum libcsdec_result result2 = libcsdec_finish_path(libcsdec);
 
         if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
@@ -422,13 +422,13 @@ void test_ptrix_process(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_ptrix_process(libcsdec, trace_id,
+        libcsdec_reset_path(libcsdec, trace_id,
             memory_map_num, memory_map);
 
-        enum libcsdec_result result1 = libcsdec_run_ptrix_process(
+        enum libcsdec_result result1 = libcsdec_run_path(
             libcsdec, trace_data_addr, trace_data_size);
 
-        enum libcsdec_result result2 = libcsdec_finish_ptrix_process(libcsdec);
+        enum libcsdec_result result2 = libcsdec_finish_path(libcsdec);
 
         if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
@@ -455,13 +455,13 @@ void test_ptrix_process(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_ptrix_process(libcsdec, trace_id,
+        libcsdec_reset_path(libcsdec, trace_id,
             memory_map_num, memory_map);
 
-        enum libcsdec_result result1 = libcsdec_run_ptrix_process(
+        enum libcsdec_result result1 = libcsdec_run_path(
             libcsdec, trace_data_addr, trace_data_size);
 
-        enum libcsdec_result result2 = libcsdec_finish_ptrix_process(libcsdec);
+        enum libcsdec_result result2 = libcsdec_finish_path(libcsdec);
 
         if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
@@ -488,13 +488,13 @@ void test_ptrix_process(unsigned char *global_bitmap, const int bitmap_size) {
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_ptrix_process(libcsdec, trace_id,
+        libcsdec_reset_path(libcsdec, trace_id,
             memory_map_num, memory_map);
 
-        enum libcsdec_result result1 = libcsdec_run_ptrix_process(
+        enum libcsdec_result result1 = libcsdec_run_path(
             libcsdec, trace_data_addr, trace_data_size);
 
-        enum libcsdec_result result2 = libcsdec_finish_ptrix_process(libcsdec);
+        enum libcsdec_result result2 = libcsdec_finish_path(libcsdec);
 
         if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
@@ -508,10 +508,10 @@ void test_ptrix_process(unsigned char *global_bitmap, const int bitmap_size) {
 }
 
 
-void test_ptrix_process_sequence(unsigned char *global_bitmap, const int bitmap_size) {
+void test_path_sequence(unsigned char *global_bitmap, const int bitmap_size) {
     unsigned char* local_bitmap = (unsigned char*)malloc(bitmap_size);
 
-    libcsdec_t libcsdec = libcsdec_init_ptrix_process(local_bitmap, bitmap_size);
+    libcsdec_t libcsdec = libcsdec_init_path(local_bitmap, bitmap_size);
     if (libcsdec == NULL) {
         printf("Failed to initialize libcsdec\n");
         exit(1);
@@ -532,11 +532,11 @@ void test_ptrix_process_sequence(unsigned char *global_bitmap, const int bitmap_
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_ptrix_process(libcsdec, trace_id,
+        libcsdec_reset_path(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         for (size_t i = 0; i < trace_data_size; i += 16) {
-            enum libcsdec_result result = libcsdec_run_ptrix_process(
+            enum libcsdec_result result = libcsdec_run_path(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(16, trace_data_size - i));
             if (result != LIBCEDEC_SUCCESS) {
@@ -545,7 +545,7 @@ void test_ptrix_process_sequence(unsigned char *global_bitmap, const int bitmap_
             }
         }
 
-        if (libcsdec_finish_ptrix_process(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_path(libcsdec) != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -570,11 +570,11 @@ void test_ptrix_process_sequence(unsigned char *global_bitmap, const int bitmap_
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_ptrix_process(libcsdec, trace_id,
+        libcsdec_reset_path(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         for (size_t i = 0; i < trace_data_size; i += 16) {
-            enum libcsdec_result result = libcsdec_run_ptrix_process(
+            enum libcsdec_result result = libcsdec_run_path(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(16, trace_data_size - i));
             if (result != LIBCEDEC_SUCCESS) {
@@ -583,7 +583,7 @@ void test_ptrix_process_sequence(unsigned char *global_bitmap, const int bitmap_
             }
         }
 
-        if (libcsdec_finish_ptrix_process(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_path(libcsdec) != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -608,11 +608,11 @@ void test_ptrix_process_sequence(unsigned char *global_bitmap, const int bitmap_
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_ptrix_process(libcsdec, trace_id,
+        libcsdec_reset_path(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         for (size_t i = 0; i < trace_data_size; i += 32) {
-            enum libcsdec_result result = libcsdec_run_ptrix_process(
+            enum libcsdec_result result = libcsdec_run_path(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(32, trace_data_size - i));
             if (result != LIBCEDEC_SUCCESS) {
@@ -621,7 +621,7 @@ void test_ptrix_process_sequence(unsigned char *global_bitmap, const int bitmap_
             }
         }
 
-        if (libcsdec_finish_ptrix_process(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_path(libcsdec) != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -646,11 +646,11 @@ void test_ptrix_process_sequence(unsigned char *global_bitmap, const int bitmap_
         size_t trace_data_size = 0;
         load_bin(trace_data_filename, &trace_data_addr, &trace_data_size);
 
-        libcsdec_reset_ptrix_process(libcsdec, trace_id,
+        libcsdec_reset_path(libcsdec, trace_id,
             memory_map_num, memory_map);
 
         for (size_t i = 0; i < trace_data_size; i += 64) {
-            enum libcsdec_result result = libcsdec_run_ptrix_process(
+            enum libcsdec_result result = libcsdec_run_path(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(64, trace_data_size - i));
             if (result != LIBCEDEC_SUCCESS) {
@@ -659,7 +659,7 @@ void test_ptrix_process_sequence(unsigned char *global_bitmap, const int bitmap_
             }
         }
 
-        if (libcsdec_finish_ptrix_process(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_path(libcsdec) != LIBCEDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -679,11 +679,11 @@ int main(int argc, char const *argv[])
     {
         unsigned char* global_bitmap1 = (unsigned char*)malloc(bitmap_size);
         memset(global_bitmap1, 0, bitmap_size);
-        test_process(global_bitmap1, bitmap_size);
+        test_edge(global_bitmap1, bitmap_size);
 
         unsigned char* global_bitmap2 = (unsigned char*)malloc(bitmap_size);
         memset(global_bitmap2, 0, bitmap_size);
-        test_process_sequence(global_bitmap2, bitmap_size);
+        test_edge_sequence(global_bitmap2, bitmap_size);
 
         int diff_cnt = check_bitmaps(global_bitmap1, global_bitmap2, bitmap_size);
         assert(diff_cnt == 0);
@@ -692,11 +692,11 @@ int main(int argc, char const *argv[])
     {
         unsigned char* global_bitmap1 = (unsigned char*)malloc(bitmap_size);
         memset(global_bitmap1, 0, bitmap_size);
-        test_ptrix_process(global_bitmap1, bitmap_size);
+        test_path(global_bitmap1, bitmap_size);
 
         unsigned char* global_bitmap2 = (unsigned char*)malloc(bitmap_size);
         memset(global_bitmap2, 0, bitmap_size);
-        test_ptrix_process_sequence(global_bitmap2, bitmap_size);
+        test_path_sequence(global_bitmap2, bitmap_size);
 
         int diff_cnt = check_bitmaps(global_bitmap1, global_bitmap2, bitmap_size);
         assert(diff_cnt == 0);

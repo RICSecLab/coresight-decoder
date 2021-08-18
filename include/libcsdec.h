@@ -23,35 +23,35 @@ typedef enum libcsdec_result {
     LIBCSDEC_ERROR_PAGE_FAULT
 } libcsdec_result_t;
 
-libcsdec_t libcsdec_init(
+libcsdec_t libcsdec_init_edge(
     int binary_file_num, const char *binary_file_path[],
     void *bitmap_addr, int bitmap_size);
 
-libcsdec_result_t libcsdec_reset_process(
+libcsdec_result_t libcsdec_reset_edge(
     const libcsdec_t libcsdec,
     char trace_id, int memory_map_num,
     const struct libcsdec_memory_map libcsdec_memory_map[]);
 
-libcsdec_result_t libcsdec_run_process(
-    const libcsdec_t libcsdec,
-    const void *trace_data_addr, std::size_t trace_data_size);
-
-libcsdec_result_t libcsdec_finish_process(const libcsdec_t libcsdec);
-
-
-libcsdec_t libcsdec_init_ptrix_process(
-    void *bitmap_addr, int bitmap_size);
-
-libcsdec_result_t libcsdec_reset_ptrix_process(
-    const libcsdec_t libcsdec,
-    char trace_id, int memory_map_num,
-    const struct libcsdec_memory_map libcsdec_memory_map[]);
-
-libcsdec_result_t libcsdec_run_ptrix_process(
+libcsdec_result_t libcsdec_run_edge(
     const libcsdec_t libcsdec,
     const void *trace_data_addr, const size_t trace_data_size);
 
-libcsdec_result_t libcsdec_finish_ptrix_process(const libcsdec_t libcsdec);
+libcsdec_result_t libcsdec_finish_edge(const libcsdec_t libcsdec);
+
+
+libcsdec_t libcsdec_init_path(
+    void *bitmap_addr, int bitmap_size);
+
+libcsdec_result_t libcsdec_reset_path(
+    const libcsdec_t libcsdec,
+    char trace_id, int memory_map_num,
+    const struct libcsdec_memory_map libcsdec_memory_map[]);
+
+libcsdec_result_t libcsdec_run_path(
+    const libcsdec_t libcsdec,
+    const void *trace_data_addr, const size_t trace_data_size);
+
+libcsdec_result_t libcsdec_finish_path(const libcsdec_t libcsdec);
 
 #ifdef __cplusplus
 } // extern "C"
