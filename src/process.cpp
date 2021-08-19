@@ -206,9 +206,7 @@ ProcessResultType Process::run(
                         // An Overflow packet is output in the data trace stream whenever the data trace buffer
                         // in the trace unit overflows. This means that part of the data trace stream might be lost,
                         // and tracing is inactive until the overflow condition clears.
-                        std::cerr << "Found an overflow packet that indicates that a trace unit buffer overflow has occurred. ";
-                        std::cerr << "The trace data may be corrupted." << std::endl;
-                        return ProcessResultType::PROCESS_ERROR_OVERFLOW_PACKET;
+                        // An Overflow packet is intentionally ignored.
                     }
 
                     default:
