@@ -202,7 +202,7 @@ void checkCapstoneVersion() {
     int major = 0, minor = 0;
     cs_version(&major, &minor);
     if (major < 4) {
-        std::cerr << "Unsupported capstone version (capstone engine v4 is required).";
+        std::cerr << "Unsupported capstone version (capstone engine v4 is required)." << std::endl;
         std::exit(1);
     }
 }
