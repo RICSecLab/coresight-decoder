@@ -20,6 +20,17 @@
 #include "libcsdec.h"
 
 
+enum class Cov { Edge, Path };
+
+#if defined EDGE_COV
+    constexpr Cov cov = Cov::Edge;
+#elif defined PATH_COV
+    constexpr Cov cov = Cov::Path;
+#else
+    #error Specify the coverage recording method with edge or path.
+#endif
+
+
 int load_bin(const char *path, void **buf, size_t *size) {
     int fd = open(path, O_RDONLY);
     if (fd < 0) {
@@ -88,23 +99,44 @@ std::optional<double> run_decoder(libcsdec_t &libcsdec, const std::string &decod
     size_t trace_data_size = 0;
     load_bin(trace_data_filepath, &trace_data_addr, &trace_data_size);
 
-    libcsdec_reset_edge(libcsdec, trace_id,
-        memory_map_num, memory_map);
+    if (cov == Cov::Edge) {
+        libcsdec_reset_edge(libcsdec,trace_id, memory_map_num, memory_map);
+    } else if (cov == Cov::Path) {
+        libcsdec_reset_path(libcsdec, trace_id, memory_map_num, memory_map);
+    } else {
+        __builtin_unreachable();
+    }
 
     // Run decoder and measure its execution time.
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 
-    enum libcsdec_result result1 = libcsdec_run_edge(
-        libcsdec, trace_data_addr, trace_data_size);
+    if (cov == Cov::Edge) {
+        if (libcsdec_run_edge(libcsdec, trace_data_addr, trace_data_size) != LIBCEDEC_SUCCESS) {
+            std::cerr << "Failed to run decoder." << std::endl;
+        }
+    } else if (cov == Cov::Path) {
+        if (libcsdec_run_path(libcsdec, trace_data_addr, trace_data_size) != LIBCEDEC_SUCCESS) {
+            std::cerr << "Failed to run decoder." << std::endl;
+        }
+    } else {
+        __builtin_unreachable();
+    }
 
     std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
     double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 
-    enum libcsdec_result result2 = libcsdec_finish_edge(libcsdec);
-
-    if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
-        std::cerr << "Failed to run decoder." << std::endl;
-        return std::nullopt;
+    if (cov == Cov::Edge) {
+        if (libcsdec_finish_edge(libcsdec) != LIBCEDEC_SUCCESS) {
+            std::cerr << "Failed to finish decoder." << std::endl;
+            return std::nullopt;
+        }
+    } else if (cov == Cov::Path) {
+        if (libcsdec_finish_path(libcsdec) != LIBCEDEC_SUCCESS) {
+            std::cerr << "Failed to finish decoder." << std::endl;
+            return std::nullopt;
+        }
+    } else {
+        __builtin_unreachable();
     }
 
     int diff_cnt = check_bitmaps((unsigned char*)global_bitmap, (unsigned char*)local_bitmap, bitmap_size);
@@ -157,7 +189,16 @@ int main(int argc, char const *argv[])
     const int bitmap_size = 0x10000;
     unsigned char* local_bitmap  = (unsigned char*)malloc(bitmap_size);
 
-    libcsdec_t libcsdec = libcsdec_init_edge(binary_file_num, binary_file_path,local_bitmap, bitmap_size);
+    libcsdec_t libcsdec; {
+        if (cov == Cov::Edge) {
+            libcsdec = libcsdec_init_edge(binary_file_num, binary_file_path,local_bitmap, bitmap_size);
+        } else if (cov == Cov::Path) {
+            libcsdec = libcsdec_init_path(local_bitmap, bitmap_size);
+        } else {
+            __builtin_unreachable();
+        }
+    }
+
     if (libcsdec == NULL) {
         std::cerr << "Failed to initialize libcsdec" << std::endl;
         std::exit(EXIT_FAILURE);
