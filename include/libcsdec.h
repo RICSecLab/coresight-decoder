@@ -16,7 +16,7 @@ struct libcsdec_memory_map {
 };
 
 typedef enum libcsdec_result {
-    LIBCEDEC_SUCCESS,
+    LIBCSDEC_SUCCESS,
     LIBCSDEC_ERROR,
     LIBCSDEC_ERROR_OVERFLOW_PACKET,
     LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE,

@@ -78,7 +78,7 @@ libcsdec_result_t libcsdec_reset_edge(
     }
 
     process->reset(std::move(memory_maps), trace_id);
-    return LIBCEDEC_SUCCESS;
+    return LIBCSDEC_SUCCESS;
 }
 
 
@@ -147,7 +147,7 @@ libcsdec_result_t libcsdec_reset_path(
     }
 
     process->reset(std::move(memory_maps), trace_id);
-    return LIBCEDEC_SUCCESS;
+    return LIBCSDEC_SUCCESS;
 }
 
 
@@ -180,7 +180,7 @@ libcsdec_result_t covert_result_type(ProcessResultType result)
 {
     switch (result) {
         case ProcessResultType::PROCESS_SUCCESS:
-            return LIBCEDEC_SUCCESS;
+            return LIBCSDEC_SUCCESS;
         case ProcessResultType::PROCESS_ERROR_OVERFLOW_PACKET:
             return LIBCSDEC_ERROR_OVERFLOW_PACKET;
         case ProcessResultType::PROCESS_ERROR_TRACE_DATA_INCOMPLETE:

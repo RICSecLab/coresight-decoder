@@ -85,7 +85,7 @@ void test_edge(unsigned char *global_bitmap, const int bitmap_size) {
 
         enum libcsdec_result result2 = libcsdec_finish_edge(libcsdec);
 
-        if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
+        if (result1 != LIBCSDEC_SUCCESS or result2 != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -118,7 +118,7 @@ void test_edge(unsigned char *global_bitmap, const int bitmap_size) {
 
         enum libcsdec_result result2 = libcsdec_finish_edge(libcsdec);
 
-        if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
+        if (result1 != LIBCSDEC_SUCCESS or result2 != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -151,7 +151,7 @@ void test_edge(unsigned char *global_bitmap, const int bitmap_size) {
 
         enum libcsdec_result result2 = libcsdec_finish_edge(libcsdec);
 
-        if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
+        if (result1 != LIBCSDEC_SUCCESS or result2 != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -184,7 +184,7 @@ void test_edge(unsigned char *global_bitmap, const int bitmap_size) {
 
         enum libcsdec_result result2 = libcsdec_finish_edge(libcsdec);
 
-        if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
+        if (result1 != LIBCSDEC_SUCCESS or result2 != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -232,13 +232,13 @@ void test_edge_sequence(unsigned char *global_bitmap, const int bitmap_size) {
             enum libcsdec_result result = libcsdec_run_edge(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(16, trace_data_size - i));
-            if (result != LIBCEDEC_SUCCESS) {
+            if (result != LIBCSDEC_SUCCESS) {
                 printf("Decoder error occurred.\n");
                 exit(1);
             }
         }
 
-        if (libcsdec_finish_edge(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_edge(libcsdec) != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -270,13 +270,13 @@ void test_edge_sequence(unsigned char *global_bitmap, const int bitmap_size) {
             enum libcsdec_result result = libcsdec_run_edge(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(16, trace_data_size - i));
-            if (result != LIBCEDEC_SUCCESS) {
+            if (result != LIBCSDEC_SUCCESS) {
                 printf("Decoder error occurred.\n");
                 exit(1);
             }
         }
 
-        if (libcsdec_finish_edge(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_edge(libcsdec) != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -308,13 +308,13 @@ void test_edge_sequence(unsigned char *global_bitmap, const int bitmap_size) {
             enum libcsdec_result result = libcsdec_run_edge(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(32, trace_data_size - i));
-            if (result != LIBCEDEC_SUCCESS) {
+            if (result != LIBCSDEC_SUCCESS) {
                 printf("Decoder error occurred.\n");
                 exit(1);
             }
         }
 
-        if (libcsdec_finish_edge(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_edge(libcsdec) != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -346,13 +346,13 @@ void test_edge_sequence(unsigned char *global_bitmap, const int bitmap_size) {
             enum libcsdec_result result = libcsdec_run_edge(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(64, trace_data_size - i));
-            if (result != LIBCEDEC_SUCCESS) {
+            if (result != LIBCSDEC_SUCCESS) {
                 printf("Decoder error occurred.\n");
                 exit(1);
             }
         }
 
-        if (libcsdec_finish_edge(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_edge(libcsdec) != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -397,7 +397,7 @@ void test_path(unsigned char *global_bitmap, const int bitmap_size) {
 
         enum libcsdec_result result2 = libcsdec_finish_path(libcsdec);
 
-        if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
+        if (result1 != LIBCSDEC_SUCCESS or result2 != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -430,7 +430,7 @@ void test_path(unsigned char *global_bitmap, const int bitmap_size) {
 
         enum libcsdec_result result2 = libcsdec_finish_path(libcsdec);
 
-        if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
+        if (result1 != LIBCSDEC_SUCCESS or result2 != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -463,7 +463,7 @@ void test_path(unsigned char *global_bitmap, const int bitmap_size) {
 
         enum libcsdec_result result2 = libcsdec_finish_path(libcsdec);
 
-        if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
+        if (result1 != LIBCSDEC_SUCCESS or result2 != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -496,7 +496,7 @@ void test_path(unsigned char *global_bitmap, const int bitmap_size) {
 
         enum libcsdec_result result2 = libcsdec_finish_path(libcsdec);
 
-        if (result1 != LIBCEDEC_SUCCESS or result2 != LIBCEDEC_SUCCESS) {
+        if (result1 != LIBCSDEC_SUCCESS or result2 != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -539,13 +539,13 @@ void test_path_sequence(unsigned char *global_bitmap, const int bitmap_size) {
             enum libcsdec_result result = libcsdec_run_path(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(16, trace_data_size - i));
-            if (result != LIBCEDEC_SUCCESS) {
+            if (result != LIBCSDEC_SUCCESS) {
                 printf("Decoder error occurred.\n");
                 exit(1);
             }
         }
 
-        if (libcsdec_finish_path(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_path(libcsdec) != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -577,13 +577,13 @@ void test_path_sequence(unsigned char *global_bitmap, const int bitmap_size) {
             enum libcsdec_result result = libcsdec_run_path(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(16, trace_data_size - i));
-            if (result != LIBCEDEC_SUCCESS) {
+            if (result != LIBCSDEC_SUCCESS) {
                 printf("Decoder error occurred.\n");
                 exit(1);
             }
         }
 
-        if (libcsdec_finish_path(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_path(libcsdec) != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -615,13 +615,13 @@ void test_path_sequence(unsigned char *global_bitmap, const int bitmap_size) {
             enum libcsdec_result result = libcsdec_run_path(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(32, trace_data_size - i));
-            if (result != LIBCEDEC_SUCCESS) {
+            if (result != LIBCSDEC_SUCCESS) {
                 printf("Decoder error occurred.\n");
                 exit(1);
             }
         }
 
-        if (libcsdec_finish_path(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_path(libcsdec) != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
@@ -653,13 +653,13 @@ void test_path_sequence(unsigned char *global_bitmap, const int bitmap_size) {
             enum libcsdec_result result = libcsdec_run_path(
                 libcsdec, (unsigned char*)trace_data_addr + i,
                 std::min<size_t>(64, trace_data_size - i));
-            if (result != LIBCEDEC_SUCCESS) {
+            if (result != LIBCSDEC_SUCCESS) {
                 printf("Decoder error occurred.\n");
                 exit(1);
             }
         }
 
-        if (libcsdec_finish_path(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_path(libcsdec) != LIBCSDEC_SUCCESS) {
             printf("Decoder error occurred.\n");
             exit(1);
         }
