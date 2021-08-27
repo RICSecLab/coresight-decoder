@@ -23,10 +23,11 @@ void Process::reset(MemoryMaps &&memory_maps, const std::uint8_t target_trace_id
 
 ProcessResultType Process::final()
 {
-    if (state.has_pending_address_packet) {
-        // This trace data is incomplete. There is no Address packet following Atom packet.
-        return ProcessResultType::PROCESS_ERROR_TRACE_DATA_INCOMPLETE;
-    }
+    // If the area to be traced is limited on the tracer side, this condition may not be satisfied.
+    // if (state.has_pending_address_packet) {
+    //     // This trace data is incomplete. There is no Address packet following Atom packet.
+    //     return ProcessResultType::PROCESS_ERROR_TRACE_DATA_INCOMPLETE;
+    // }
 
     return ProcessResultType::PROCESS_SUCCESS;
 }
