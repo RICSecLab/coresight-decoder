@@ -111,11 +111,11 @@ std::optional<double> run_decoder(libcsdec_t &libcsdec, const std::string &decod
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 
     if (cov == Cov::Edge) {
-        if (libcsdec_run_edge(libcsdec, trace_data_addr, trace_data_size) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_run_edge(libcsdec, trace_data_addr, trace_data_size) != LIBCSDEC_SUCCESS) {
             std::cerr << "Failed to run decoder." << std::endl;
         }
     } else if (cov == Cov::Path) {
-        if (libcsdec_run_path(libcsdec, trace_data_addr, trace_data_size) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_run_path(libcsdec, trace_data_addr, trace_data_size) != LIBCSDEC_SUCCESS) {
             std::cerr << "Failed to run decoder." << std::endl;
         }
     } else {
@@ -126,12 +126,12 @@ std::optional<double> run_decoder(libcsdec_t &libcsdec, const std::string &decod
     double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 
     if (cov == Cov::Edge) {
-        if (libcsdec_finish_edge(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_edge(libcsdec) != LIBCSDEC_SUCCESS) {
             std::cerr << "Failed to finish decoder." << std::endl;
             return std::nullopt;
         }
     } else if (cov == Cov::Path) {
-        if (libcsdec_finish_path(libcsdec) != LIBCEDEC_SUCCESS) {
+        if (libcsdec_finish_path(libcsdec) != LIBCSDEC_SUCCESS) {
             std::cerr << "Failed to finish decoder." << std::endl;
             return std::nullopt;
         }
