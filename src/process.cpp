@@ -384,7 +384,7 @@ ProcessResultType PTrixProcess::run(
                         break;
 
                     case ETM4_PKT_I_ADDR_S_IS0:
-                    case ETM4_PKT_I_ADDR_L_64IS0
+                    case ETM4_PKT_I_ADDR_L_64IS0:
                     case ETM4_PKT_I_ADDR_CTXT_L_64IS0: {
                         const std::optional<Location> optional_target_location =
                             getLocation(this->memory_maps, packet.addr);
