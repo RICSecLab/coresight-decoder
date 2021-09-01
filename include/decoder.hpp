@@ -13,9 +13,11 @@ enum PacketType
     // Exceptions
     ETM4_PKT_I_EXCEPT,
 
-    // Address
+    // Address and Context
     ETM4_PKT_I_CTXT,
+    ETM4_PKT_I_ADDR_S_IS0,
     ETM4_PKT_I_ADDR_L_64IS0,
+    ETM4_PKT_I_ADDR_CTXT_L_64IS0,
 
     // Atom
     ETM4_PKT_I_ATOM_F1,
@@ -64,6 +66,29 @@ struct Decoder
     std::size_t trace_data_offset;
     DecodeState state;
 
-    Packet decodePacket() const;
+    std::uint64_t address_reg;
+
+    Packet decodePacket();
     void reset();
+
+private:
+    Packet decodeExtensionPacket();
+
+    Packet decodeTraceInfoPacket();
+    Packet decodeTimestampPacket();
+    Packet decodeTraceOnPacket();
+    Packet decodeContextPacket();
+
+    Packet decodeExceptionPacket();
+
+    Packet decodeAddressShortIS0Packet();
+    Packet decodeAddressLong64IS0Packet();
+    Packet decodeAddressLong64IS0WithContextPacket();
+
+    Packet decodeAtomF1Packet();
+    Packet decodeAtomF2Packet();
+    Packet decodeAtomF3Packet();
+    Packet decodeAtomF4Packet();
+    Packet decodeAtomF5Packet();
+    Packet decodeAtomF6Packet();
 };
