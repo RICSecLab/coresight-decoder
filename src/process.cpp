@@ -157,7 +157,7 @@ ProcessResultType Process::run(
                     }
 
                     case ETM4_PKT_I_ADDR_S_IS0:
-                    case ETM4_PKT_I_ADDR_L_64IS0
+                    case ETM4_PKT_I_ADDR_L_64IS0:
                     case ETM4_PKT_I_ADDR_CTXT_L_64IS0: {
                         // Address packetは下記の3つの場合に生成される。
                         //     1. トレース開始時に、トレース開始アドレスを示すために生成される。
