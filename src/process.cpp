@@ -66,7 +66,9 @@ ProcessResultType Process::run(
                         std::exit(EXIT_FAILURE);
                     }
 
-                    case ETM4_PKT_I_ADDR_L_64IS0: {
+                    case ETM4_PKT_I_ADDR_S_IS0:
+                    case ETM4_PKT_I_ADDR_L_64IS0:
+                    case ETM4_PKT_I_ADDR_CTXT_L_64IS0: {
                         // トレースの開始アドレスがメモリマップ上にあるか調べる。
                         // もしなければ、エラーを返す。
                         const std::optional<Location> optional_start_location =
@@ -154,7 +156,9 @@ ProcessResultType Process::run(
                         break;
                     }
 
-                    case ETM4_PKT_I_ADDR_L_64IS0: {
+                    case ETM4_PKT_I_ADDR_S_IS0:
+                    case ETM4_PKT_I_ADDR_L_64IS0:
+                    case ETM4_PKT_I_ADDR_CTXT_L_64IS0: {
                         // Address packetは下記の3つの場合に生成される。
                         //     1. トレース開始時に、トレース開始アドレスを示すために生成される。
                         //     2. Indirect branchのときに、Atom pakcet(E)に続き、生成される。
@@ -379,7 +383,9 @@ ProcessResultType PTrixProcess::run(
                         }
                         break;
 
-                    case ETM4_PKT_I_ADDR_L_64IS0: {
+                    case ETM4_PKT_I_ADDR_S_IS0:
+                    case ETM4_PKT_I_ADDR_L_64IS0:
+                    case ETM4_PKT_I_ADDR_CTXT_L_64IS0: {
                         const std::optional<Location> optional_target_location =
                             getLocation(this->memory_maps, packet.addr);
                         if (not optional_target_location.has_value()) {

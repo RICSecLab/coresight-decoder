@@ -9,26 +9,7 @@
 #include "deformatter.hpp"
 
 
-Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_t offset);
-
-Packet decodeTraceInfoPacket(const std::vector<uint8_t> &trace_data, const size_t offset);
-Packet decodeTimestampPacket(const std::vector<uint8_t> &trace_data, const size_t offset);
-Packet decodeTraceOnPacket(const std::vector<uint8_t> &trace_data, const size_t offset);
-Packet decodeContextPacket(const std::vector<uint8_t> &trace_data, const size_t offset);
-
-Packet decodeExceptionPacket(const std::vector<uint8_t> &trace_data, const size_t offset);
-
-Packet decodeAddressLong64ISOPacket(const std::vector<uint8_t> &trace_data, const size_t offset);
-
-Packet decodeAtomF1Packet(const std::vector<uint8_t> &trace_data, const size_t offset);
-Packet decodeAtomF2Packet(const std::vector<uint8_t> &trace_data, const size_t offset);
-Packet decodeAtomF3Packet(const std::vector<uint8_t> &trace_data, const size_t offset);
-Packet decodeAtomF4Packet(const std::vector<uint8_t> &trace_data, const size_t offset);
-Packet decodeAtomF5Packet(const std::vector<uint8_t> &trace_data, const size_t offset);
-Packet decodeAtomF6Packet(const std::vector<uint8_t> &trace_data, const size_t offset);
-
-
-Packet Decoder::decodePacket() const
+Packet Decoder::decodePacket()
 {
     const uint8_t header = this->trace_data[this->trace_data_offset];
     Packet result;
@@ -36,77 +17,87 @@ Packet Decoder::decodePacket() const
     switch (header) {
         // Extension packet header: 0b00000000
         case 0b00000000:
-            result = decodeExtensionPacket(this->trace_data, this->trace_data_offset);
+            result = this->decodeExtensionPacket();
             break;
 
         // Trace Info packet header: 0b00000001
         case 0b00000001:
-            result = decodeTraceInfoPacket(this->trace_data, this->trace_data_offset);
+            result = this->decodeTraceInfoPacket();
             break;
 
         // Timestamp packet header: 0b0000001x
         case 0b00000010 ... 0b00000011:
-            result = decodeTimestampPacket(this->trace_data, this->trace_data_offset);
+            result = this->decodeTimestampPacket();
             break;
 
         // Trace On packet header: 0b00000100
         case 0b00000100:
-            result = decodeTraceOnPacket(this->trace_data, this->trace_data_offset);
+            result = this->decodeTraceOnPacket();
             break;
 
         // Exception packet header: 0b00000110
         case 0b00000110:
-            result = decodeExceptionPacket(this->trace_data, this->trace_data_offset);
+            result = this->decodeExceptionPacket();
             break;
 
         // Context packet header: 0b1000000x
         case 0b10000000 ... 0b10000001:
-            result = decodeContextPacket(this->trace_data, this->trace_data_offset);
+            result = this->decodeContextPacket();
+            break;
+
+        // 64-bit IS0 long Address and Context packet header: 0b10000101
+        case 0b10000101:
+            result = this->decodeAddressLong64IS0WithContextPacket();
+            break;
+
+        // IS0 Short Address packet header: 0b10010101
+        case 0b10010101:
+            result = this->decodeAddressShortIS0Packet();
             break;
 
         // 64-bit IS0 long Address packet header: 0b10011101
         case 0b10011101:
-            result = decodeAddressLong64ISOPacket(this->trace_data, this->trace_data_offset);
+            result = this->decodeAddressLong64IS0Packet();
             break;
 
         // Atom 6 packet header:  0b11000000 - 0b11010100
         case 0b11000000 ... 0b11010100:
-            result = decodeAtomF6Packet(this->trace_data, this->trace_data_offset);
+            result = this->decodeAtomF6Packet();
             break;
 
         // Atom 5 packet header: 0b11010101 - 0b11010111
         case 0b11010101 ... 0b11010111:
-            result = decodeAtomF5Packet(this->trace_data, this->trace_data_offset);
+            result = this->decodeAtomF5Packet();
             break;
 
         // Atom 2 packet header: 0b110110xx
         case 0b11011000 ... 0b11011011:
-            result = decodeAtomF2Packet(this->trace_data, this->trace_data_offset);
+            result = this->decodeAtomF2Packet();
             break;
 
         // Atom 4 packet header: 0b110111xx
         case 0b11011100 ... 0b11011111:
-            result = decodeAtomF4Packet(this->trace_data, this->trace_data_offset);
+            result = this->decodeAtomF4Packet();
             break;
 
         // Atom 6 packet header: 0b11100000 - 0b11110100
         case 0b11100000 ... 0b11110100:
-            result = decodeAtomF6Packet(this->trace_data, this->trace_data_offset);
+            result = this->decodeAtomF6Packet();
             break;
 
         // Atom 5 packet header: 0b11110101
         case 0b11110101:
-            result = decodeAtomF5Packet(this->trace_data, this->trace_data_offset);
+            result = this->decodeAtomF5Packet();
             break;
 
         // Atom 1 packet header: 0b1111011x
         case 0b11110110 ... 0b11110111:
-            result = decodeAtomF1Packet(this->trace_data, this->trace_data_offset);
+            result = this->decodeAtomF1Packet();
             break;
 
         // Atom 3 packet header: 0b11111xxx
         case 0b11111000 ... 0b11111111:
-            result = decodeAtomF3Packet(this->trace_data, this->trace_data_offset);
+            result = this->decodeAtomF3Packet();
             break;
 
         default:
@@ -126,9 +117,9 @@ void Decoder::reset() {
     this->state = DecodeState::START;
 }
 
-Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
+Packet Decoder::decodeExtensionPacket()
 {
-    const size_t rest_data_size = trace_data.size() - offset;
+    const size_t rest_data_size = this->trace_data.size() - this->trace_data_offset;
 
     // Header is correct, but packet size is incomplete.
     if (rest_data_size < 2) {
@@ -142,7 +133,7 @@ Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_
     }
 
     // Overflow packet
-    if (trace_data[offset + 1] == 0x5) {
+    if (this->trace_data[this->trace_data_offset + 1] == 0x5) {
         return Packet{
             ETM4_PKT_I_OVERFLOW,
             2,
@@ -166,11 +157,11 @@ Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_
     // Check Async packet
     bool is_async = true;
     for (size_t i = 0; i <= 10; i++) {
-        if (trace_data[offset + i] != 0) {
+        if (this->trace_data[this->trace_data_offset + i] != 0) {
             is_async = false;
         }
     }
-    if (trace_data[offset + 11] != 0x80) {
+    if (this->trace_data[this->trace_data_offset + 11] != 0x80) {
         is_async = false;
     }
 
@@ -187,10 +178,10 @@ Packet decodeExtensionPacket(const std::vector<uint8_t> &trace_data, const size_
     return packet;
 }
 
-Packet decodeTraceInfoPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
+Packet Decoder::decodeTraceInfoPacket()
 {
     // Header is correct, but packet size is incomplete.
-    const size_t rest_data_size = trace_data.size() - offset;
+    const size_t rest_data_size = this->trace_data.size() - this->trace_data_offset;
     if (rest_data_size < 2) {
         return Packet{
             PKT_INCOMPLETE,
@@ -203,7 +194,7 @@ Packet decodeTraceInfoPacket(const std::vector<uint8_t> &trace_data, const size_
 
     // TODO
     size_t packet_size = 2;
-    while(trace_data[packet_size - 1] & 0b10000000) {
+    while(this->trace_data[packet_size - 1] & 0b10000000) {
         break;
     }
 
@@ -217,12 +208,12 @@ Packet decodeTraceInfoPacket(const std::vector<uint8_t> &trace_data, const size_
     return packet;
 }
 
-Packet decodeTimestampPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
+Packet Decoder::decodeTimestampPacket()
 {
-    const size_t packet_size = (trace_data[offset] & 0x1) ? 11 : 8;
+    const size_t packet_size = (this->trace_data[this->trace_data_offset] & 0x1) ? 11 : 8;
 
     // Header is correct, but packet size is incomplete.
-    const size_t rest_data_size = trace_data.size() - offset;
+    const size_t rest_data_size = this->trace_data.size() - this->trace_data_offset;
     if (rest_data_size < packet_size) {
         return Packet{
             PKT_INCOMPLETE,
@@ -243,7 +234,7 @@ Packet decodeTimestampPacket(const std::vector<uint8_t> &trace_data, const size_
     return packet;
 }
 
-Packet decodeTraceOnPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
+Packet Decoder::decodeTraceOnPacket()
 {
     const Packet packet = {
         ETM4_PKT_I_TRACE_ON,
@@ -255,10 +246,10 @@ Packet decodeTraceOnPacket(const std::vector<uint8_t> &trace_data, const size_t 
     return packet;
 }
 
-Packet decodeContextPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
+Packet Decoder::decodeContextPacket()
 {
     // This bit indicates if the packet has a payload or not.
-    const bool has_payload = (trace_data[offset] & 0x1) ? true : false;
+    const bool has_payload = (this->trace_data[this->trace_data_offset] & 0x1) ? true : false;
 
     if (not has_payload) {
         return Packet {
@@ -272,7 +263,7 @@ Packet decodeContextPacket(const std::vector<uint8_t> &trace_data, const size_t 
 
     // A payload is present in the packet. The payload consists of at least an information byte.
     // However, there is no 1-byte information byte.
-    const size_t rest_data_size = trace_data.size() - offset;
+    const size_t rest_data_size = this->trace_data.size() - this->trace_data_offset;
     if (rest_data_size < 2) {
         return Packet{
             PKT_INCOMPLETE,
@@ -284,9 +275,9 @@ Packet decodeContextPacket(const std::vector<uint8_t> &trace_data, const size_t 
     }
 
     // Indicates whether the Virtual context identifier section is present in the packet.
-    const bool has_virtual_context = (trace_data[offset + 1] & 0b01000000) ? true : false;
+    const bool has_virtual_context = (this->trace_data[this->trace_data_offset + 1] & 0b01000000) ? true : false;
     // Indicates whether the Context ID section is present in the packet.
-    const bool has_context_id      = (trace_data[offset + 1] & 0b10000000) ? true : false;
+    const bool has_context_id      = (this->trace_data[this->trace_data_offset + 1] & 0b10000000) ? true : false;
 
     const size_t packet_size = (has_virtual_context and has_context_id) ? 10 :
                                (has_virtual_context or  has_context_id) ?  6 : 2;
@@ -312,9 +303,9 @@ Packet decodeContextPacket(const std::vector<uint8_t> &trace_data, const size_t 
     return packet;
 }
 
-Packet decodeExceptionPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
+Packet Decoder::decodeExceptionPacket()
 {
-    const size_t rest_data_size = trace_data.size() - offset;
+    const size_t rest_data_size = this->trace_data.size() - this->trace_data_offset;
 
     if (rest_data_size < 2) {
         return Packet{
@@ -328,7 +319,7 @@ Packet decodeExceptionPacket(const std::vector<uint8_t> &trace_data, const size_
 
     // If c is set, then a second exception information byte follows.
     // Otherwise, if c is not set, there are no more exception information bytes in the packet.
-    bool c = (trace_data[offset + 1] & 0b10000000) ? true : false;
+    bool c = (this->trace_data[this->trace_data_offset + 1] & 0b10000000) ? true : false;
     size_t packet_size = c ? 3 : 2;
 
     // Header is correct, but packet size is incomplete.
@@ -352,9 +343,59 @@ Packet decodeExceptionPacket(const std::vector<uint8_t> &trace_data, const size_
     return packet;
 }
 
-Packet decodeAddressLong64ISOPacket(const std::vector<uint8_t> &trace_data, const size_t offset)
+Packet Decoder::decodeAddressShortIS0Packet()
 {
-    const size_t rest_data_size = trace_data.size() - offset;
+    const size_t rest_data_size = this->trace_data.size() - this->trace_data_offset;
+
+    if (rest_data_size < 2) {
+        return Packet{
+            PKT_INCOMPLETE,
+            rest_data_size,
+            0,
+            0,
+            0
+        };
+    }
+
+
+    uint64_t address = this->address_reg;
+    address = address & ~0x1FF;
+    address = address | ((this->trace_data[this->trace_data_offset + 1] & 0x7F) << 2);
+
+    bool c = (this->trace_data[this->trace_data_offset + 1] & 0b10000000) ? true : false;
+    size_t packet_size = c ? 3 : 2;
+
+    // Header is correct, but packet size is incomplete.
+    if (rest_data_size < packet_size) {
+        return Packet{
+            PKT_INCOMPLETE,
+            rest_data_size,
+            0,
+            0,
+            0
+        };
+    }
+
+    if (c) {
+        address = address & ~0x1FE00;
+        address = address | (this->trace_data[this->trace_data_offset + 2] << 9);
+    }
+
+    this->address_reg = address;
+
+    const Packet packet = {
+        ETM4_PKT_I_ADDR_S_IS0,
+        packet_size,
+        0,
+        0,
+        address,
+    };
+    return packet;
+}
+
+Packet Decoder::decodeAddressLong64IS0Packet()
+{
+    const size_t rest_data_size = this->trace_data.size() - this->trace_data_offset;
     // Header is correct, but packet size is incomplete.
     if (rest_data_size < 9) {
         return Packet{
@@ -366,15 +407,17 @@ Packet decodeAddressLong64ISOPacket(const std::vector<uint8_t> &trace_data, cons
         };
     }
 
-    // trace_data[offset] is header
-    const uint64_t address = ((uint64_t)(trace_data[offset + 1] & 0x7F)) << 2 |
-                             ((uint64_t)(trace_data[offset + 2] & 0x7F)) << 9 |
-                             ((uint64_t)trace_data[offset + 3]) << 16 |
-                             ((uint64_t)trace_data[offset + 4]) << 24 |
-                             ((uint64_t)trace_data[offset + 5]) << 32 |
-                             ((uint64_t)trace_data[offset + 6]) << 40 |
-                             ((uint64_t)trace_data[offset + 7]) << 48 |
-                             ((uint64_t)trace_data[offset + 8]) << 56;
+    // trace_data[this->trace_data_offset] is header
+    const uint64_t address = ((uint64_t)(this->trace_data[this->trace_data_offset + 1] & 0x7F)) << 2 |
+                             ((uint64_t)(this->trace_data[this->trace_data_offset + 2] & 0x7F)) << 9 |
+                             ((uint64_t)this->trace_data[this->trace_data_offset + 3]) << 16 |
+                             ((uint64_t)this->trace_data[this->trace_data_offset + 4]) << 24 |
+                             ((uint64_t)this->trace_data[this->trace_data_offset + 5]) << 32 |
+                             ((uint64_t)this->trace_data[this->trace_data_offset + 6]) << 40 |
+                             ((uint64_t)this->trace_data[this->trace_data_offset + 7]) << 48 |
+                             ((uint64_t)this->trace_data[this->trace_data_offset + 8]) << 56;
+
+    this->address_reg = address;
 
     Packet packet = {
         ETM4_PKT_I_ADDR_L_64IS0,
@@ -386,9 +429,63 @@ Packet decodeAddressLong64ISOPacket(const std::vector<uint8_t> &trace_data, cons
     return packet;
 }
 
-Packet decodeAtomF1Packet(const std::vector<uint8_t> &trace_data, const size_t offset)
+Packet Decoder::decodeAddressLong64IS0WithContextPacket()
 {
-    const uint8_t data = trace_data[offset];
+    const size_t rest_data_size = this->trace_data.size() - this->trace_data_offset;
+    // Header is correct, but packet size is incomplete.
+    if (rest_data_size < 10) {
+        return Packet{
+            PKT_INCOMPLETE,
+            rest_data_size,
+            0,
+            0,
+            0
+        };
+    }
+
+    const uint64_t address = ((uint64_t)(this->trace_data[this->trace_data_offset + 1] & 0x7F)) << 2 |
+                             ((uint64_t)(this->trace_data[this->trace_data_offset + 2] & 0x7F)) << 9 |
+                             ((uint64_t)this->trace_data[this->trace_data_offset + 3]) << 16 |
+                             ((uint64_t)this->trace_data[this->trace_data_offset + 4]) << 24 |
+                             ((uint64_t)this->trace_data[this->trace_data_offset + 5]) << 32 |
+                             ((uint64_t)this->trace_data[this->trace_data_offset + 6]) << 40 |
+                             ((uint64_t)this->trace_data[this->trace_data_offset + 7]) << 48 |
+                             ((uint64_t)this->trace_data[this->trace_data_offset + 8]) << 56;
+
+    // Indicates whether the Virtual context identifier section is present in the packet.
+    const bool has_virtual_context = (this->trace_data[this->trace_data_offset + 9] & 0b01000000) ? true : false;
+    // Indicates whether the Context ID section is present in the packet.
+    const bool has_context_id      = (this->trace_data[this->trace_data_offset + 9] & 0b10000000) ? true : false;
+
+    const size_t context_packet_size = (has_virtual_context and has_context_id) ? 9 :
+                                       (has_virtual_context or  has_context_id) ? 5 : 1;
+
+    // There is not enough payload following the information byte.
+    if (rest_data_size < 9 + context_packet_size) {
+        return Packet{
+            PKT_INCOMPLETE,
+            rest_data_size,
+            0,
+            0,
+            0
+        };
+    }
+
+    address_reg = address;
+
+    const Packet packet = {
+        ETM4_PKT_I_ADDR_CTXT_L_64IS0,
+        9 + context_packet_size,
+        0,
+        0,
+        address
+    };
+    return packet;
+}
+
+Packet Decoder::decodeAtomF1Packet()
+{
+    const uint8_t data = this->trace_data[this->trace_data_offset];
 
     const uint32_t en_bits     = data & 0b1; // 1x (E or N)
     const size_t   en_bits_len = 1;
@@ -403,9 +500,9 @@ Packet decodeAtomF1Packet(const std::vector<uint8_t> &trace_data, const size_t o
     return packet;
 }
 
-Packet decodeAtomF2Packet(const std::vector<uint8_t> &trace_data, const size_t offset)
+Packet Decoder::decodeAtomF2Packet()
 {
-    const uint8_t data = trace_data[offset];
+    const uint8_t data = this->trace_data[this->trace_data_offset];
 
     const uint32_t en_bits     = data & 0b11; // 2x (E or N)
     const size_t   en_bits_len = 2;
@@ -420,9 +517,9 @@ Packet decodeAtomF2Packet(const std::vector<uint8_t> &trace_data, const size_t o
     return packet;
 }
 
-Packet decodeAtomF3Packet(const std::vector<uint8_t> &trace_data, const size_t offset)
+Packet Decoder::decodeAtomF3Packet()
 {
-    const uint8_t data = trace_data[offset];
+    const uint8_t data = this->trace_data[this->trace_data_offset];
 
     const uint32_t en_bits     = data & 0b111; // 3x (E or N)
     const size_t   en_bits_len = 3;
@@ -437,9 +534,9 @@ Packet decodeAtomF3Packet(const std::vector<uint8_t> &trace_data, const size_t o
     return packet;
 }
 
-Packet decodeAtomF4Packet(const std::vector<uint8_t> &trace_data, const size_t offset)
+Packet Decoder::decodeAtomF4Packet()
 {
-    const uint8_t data = trace_data[offset];
+    const uint8_t data = this->trace_data[this->trace_data_offset];
 
     static const uint32_t f4_patterns[] = {
         0b1110, // EEEN
@@ -461,9 +558,9 @@ Packet decodeAtomF4Packet(const std::vector<uint8_t> &trace_data, const size_t o
     return packet;
 }
 
-Packet decodeAtomF5Packet(const std::vector<uint8_t> &trace_data, const size_t offset)
+Packet Decoder::decodeAtomF5Packet()
 {
-    const uint8_t data = trace_data[offset];
+    const uint8_t data = this->trace_data[this->trace_data_offset];
     const uint8_t pattern_idx = ((data & 0b00100000) >> 3) | (data & 0b11);
 
     uint32_t en_bits     = 0;
@@ -513,9 +610,9 @@ Packet decodeAtomF5Packet(const std::vector<uint8_t> &trace_data, const size_t o
     return packet;
 }
 
-Packet decodeAtomF6Packet(const std::vector<uint8_t> &trace_data, const size_t offset)
+Packet Decoder::decodeAtomF6Packet()
 {
-    const uint8_t data = trace_data[offset];
+    const uint8_t data = this->trace_data[trace_data_offset];
 
     size_t e_cnt = (data & 0b11111) + 3;  // count of E's
     uint32_t en_bits = ((uint32_t)0x1 << e_cnt) - 1; // set pattern to string of E's
@@ -570,9 +667,19 @@ std::string Packet::toString() const
             stream << "ETM4_PKT_I_EXCEPT";
             break;
 
+        case ETM4_PKT_I_ADDR_S_IS0:
+            stream << "ETM4_PKT_I_ADDR_S_IS0 Addr="
+                   << std::hex << "0x" << this->addr;
+            break;
+
         case ETM4_PKT_I_ADDR_L_64IS0:
             stream << "ETM4_PKT_I_ADDR_L_64IS0 Addr="
-                   << std::hex << this->addr;
+                   << std::hex << "0x" << this->addr;
+            break;
+
+        case ETM4_PKT_I_ADDR_CTXT_L_64IS0:
+            stream << "ETM4_PKT_I_ADDR_CTXT_L_64IS0 Addr="
+                   << std::hex << "0x" << this->addr;
             break;
 
         case ETM4_PKT_I_ATOM_F1:
