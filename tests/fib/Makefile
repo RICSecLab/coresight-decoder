@@ -30,7 +30,7 @@ EXECUTION_TIMES_DATA_CACHE_MODE := execution_times_cache_mode.dat
 
 test: $(PROGRAM) clean-test-output-files
 	./test.sh
-	./test_lib 1> /dev/null
+	./test_lib
 
 $(PROGRAM): $(OBJS) $(LIBCSDEC)
 	$(CXX) -o $@ $^ $(LIBCSDEC) $(CXXFLAGS)

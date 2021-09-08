@@ -177,21 +177,18 @@ void print_results(const std::vector<double> &data) {
 
 int main(int argc, char const *argv[])
 {
-    if (argc < 5) {
-        std::cerr << "Usage: " << argv[0] << "[tracee_path] [output filename] [LOOP CNT]"
+    if (argc < 4) {
+        std::cerr << "Usage: " << argv[0] << " [Output Filename] [LOOP CNT] "
                   << "[trace out dir1] [trace out dir2] .. " << std::endl;
         std::exit(EXIT_FAILURE);
     }
-
-    const int binary_file_num = 1;
-    const char* binary_file_path[] = { argv[1] };
 
     const int bitmap_size = 0x10000;
     unsigned char* local_bitmap  = (unsigned char*)malloc(bitmap_size);
 
     libcsdec_t libcsdec; {
         if (cov == Cov::Edge) {
-            libcsdec = libcsdec_init_edge(binary_file_num, binary_file_path,local_bitmap, bitmap_size);
+            libcsdec = libcsdec_init_edge(local_bitmap, bitmap_size);
         } else if (cov == Cov::Path) {
             libcsdec = libcsdec_init_path(local_bitmap, bitmap_size);
         } else {
@@ -208,15 +205,13 @@ int main(int argc, char const *argv[])
     memset(global_bitmap, 0, bitmap_size);
 
     std::vector<std::string> trace_out_dirs;
-    for (int i = 4; i < argc; i++) {
+    for (int i = 3; i < argc; i++) {
         trace_out_dirs.emplace_back(argv[i]);
     }
 
     std::vector<double> execution_times;
-    for (int time = 0; time < atoi(argv[3]); ++time) {
+    for (int time = 0; time < atoi(argv[2]); ++time) {
         for (std::size_t i = 0; i < trace_out_dirs.size(); i++) {
-            // Here, it dependes on the PUT.
-            const std::string trace_out_dir = argv[1];
             const std::string decoder_args_path = trace_out_dirs[i] + "/decoderargs.txt";
 
             std::optional<double> execution_time = run_decoder(libcsdec, decoder_args_path,
@@ -227,7 +222,7 @@ int main(int argc, char const *argv[])
         }
     }
 
-    save_exeuction_times(execution_times, argv[3]);
+    save_exeuction_times(execution_times, argv[1]);
     print_results(execution_times);
     return 0;
 }

@@ -6,14 +6,11 @@ Experimental CoreSight Decoder
 ### AFL-like
 AFLと同じbitmapの計算方法を用いる。バイナリファイルとトレースデータからエッジカバレッジを復元し、その情報からbitmapを計算する。そのため、バイナリファイルが必要である。
 ```c
-const int binary_file_num = 1;
-const char* binary_file_path[] = {"fib"};
 const int bitmap_size = 0x1000;
 unsigned char* bitmap = (unsigned char*)malloc(bitmap_size);
 
 // 永続的に使われるデータを初期化する。
-libcsdec_t libcsdec = libcsdec_init(
-    binary_file_num, binary_file_path, bitmap, bitmap_size);
+libcsdec_t libcsdec = libcsdec_init(bitmap, bitmap_size);
 
 const char trace_id = 0x10;
 const int memory_map_num = 3;
@@ -86,15 +83,12 @@ if (libcsdec_finish_ptrix_process(libcsdec) != LIBCEDEC_SUCCESS) {
 #### libcsdec_init()
 ```c
 libcsdec_t libcsdec_init(
-    int binary_file_num, const char *binary_file_path[],
     void *bitmap_addr, int bitmap_size);
 ```
 
 永続的時利用するオブジェクトを初期化し、そのオブジェクトのポインタを返す。
 
 * 引数:
-    * `binary_file_num`: トレースを行うバイナリファイルの数
-    * `binary_file_path`: トレースを行うバイナリファイルのパスを示す配列
     * `bitmap_addr`: ビットマップを書き込む先頭アドレス
     * `bitmap_size`: ビットマップのサイズ
 * 戻り値:

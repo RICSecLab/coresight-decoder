@@ -20,14 +20,12 @@ int main(int argc, char const *argv[])
     checkCapstoneVersion();
 
     if (argc < 7) {
-        std::cerr << "Usage: " << argv[0] << "[trace_data_filename] [trace_id] [binary_file_num] "
+        std::cerr << "Usage: " << argv[0] << " [trace_data_filename] [trace_id] [binary_file_num] "
                   << "[binary_data1_filename] [binary_data1_start_address] [binary_data1_end_address] ... "
                   << "[binary_dataN_filename] [binary_dataN_start_address] [binary_dataN_end_address] [OPTIONS]" << std::endl
                   << "OPTIONS:" << std::endl
-                  << "\t--trace-binary-filename=name : Specifies the name of the binary file to trace." << std::endl
-                  << "\t                               This option may be used multiple times to specify multiple binary files." << std::endl
-                  << "\t--bitmap-size=size           : Specify the bitmap size in hexadecimal. The default size is 0x10000." << std::endl
-                  << "\t--bitmap-filename=name       : Specify the file name to save the bitmap. The default name is edge_coverage_bitmap.out" << std::endl
+                  << "\t--bitmap-size=size     : Specify the bitmap size in hexadecimal. The default size is 0x10000." << std::endl
+                  << "\t--bitmap-filename=name : Specify the file name to save the bitmap. The default name is edge_coverage_bitmap.out" << std::endl
                   << std::endl;
         std::exit(1);
     }
@@ -56,9 +54,7 @@ int main(int argc, char const *argv[])
     for (int i = binary_file_num * 3 + 4; i < argc; ++i) {
         size_t size;
         char buf[PATH_MAX];
-        if (sscanf(argv[i], "--trace-binary-filename=%s", buf)) {
-            trace_binary_filenames.emplace_back(std::string(buf));
-        } else if (sscanf(argv[i], "--bitmap-size=%lx", &size) == 1) {
+        if (sscanf(argv[i], "--bitmap-size=%lx", &size) == 1) {
             // TODO: Check if it is an invalid size
             bitmap_size = size;
         } else if (sscanf(argv[i], "--bitmap-filename=%s", buf) == 1) {
@@ -70,8 +66,9 @@ int main(int argc, char const *argv[])
     }
 
     BinaryFiles binary_files; {
-        for (const std::string &filename : trace_binary_filenames) {
-            binary_files.emplace(filename);
+        for (int i = 0; i < binary_file_num; ++i) {
+            const std::string path = argv[4 + i * 3];
+            binary_files.emplace(path);
         }
     }
 
@@ -95,7 +92,6 @@ int main(int argc, char const *argv[])
     std::vector<uint8_t> bitmap(bitmap_size);
 
     Process process {
-        std::move(binary_files),
         Bitmap(bitmap.data(), bitmap_size),
         Cache()
     };
