@@ -58,8 +58,6 @@ struct MemoryMap {
 
 using MemoryMaps = std::vector<MemoryMap>;
 
-bool checkTraceRange(const MemoryMaps &memory_map, const Location &location);
-
 
 struct Location {
     addr_t offset;

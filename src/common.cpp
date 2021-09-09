@@ -63,8 +63,8 @@ std::optional<file_index_t> getMemoryMapIndex(
             return i;
         }
     }
-    std::cerr << "Failed to find any binary data that matched the address: "
-              << std::hex << address << std::endl;
+
+    DEBUG("Jumped to an address outside the trace area: 0x%lx\n", address);
     return std::nullopt;
 }
 
@@ -84,6 +84,7 @@ bool Location::operator==(const Location &right) const {
 std::optional<Location> getLocation(const std::vector<MemoryMap> &memory_map, const addr_t address)
 {
     // 指定されたアドレスがメモリマップ上に存在するから調べる。
+    // ない場合、その領域はトレースする必要がない。
     std::optional<file_index_t> optional = getMemoryMapIndex(memory_map, address);
     if (not optional.has_value()) {
         return std::nullopt;

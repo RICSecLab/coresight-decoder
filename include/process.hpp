@@ -16,17 +16,11 @@ enum class ProcessResultType {
     PROCESS_ERROR_PAGE_FAULT,
 };
 
-enum class TraceStateType {
-    TRACE_ON,
-    TRACE_OUT_OF_RANGE,
-    TRACE_RESTART,
-};
-
 
 // デコード処理に永続的に使われるデータ
 struct ProcessData {
     // トレースする領域のバイナリファイルを保存
-    const BinaryFiles binary_files;
+    BinaryFiles binary_files;
 
     // エッジカバレッジの計算結果を書き出すための
     // bitmapのアドレスとサイズ
@@ -43,8 +37,8 @@ struct ProcessData {
     ProcessData(const ProcessData&) = delete;
     ProcessData& operator=(const ProcessData&) = delete;
 
-    ProcessData(BinaryFiles &&binary_files, const Bitmap &bitmap, Cache &&cache)
-        : binary_files(std::move(binary_files)), bitmap(bitmap), cache(std::move(cache))
+    ProcessData(const Bitmap &bitmap, Cache &&cache)
+        : bitmap(bitmap), cache(std::move(cache))
     {
         csh handle;
         disassembleInit(&handle);
@@ -59,9 +53,7 @@ struct ProcessData {
 
 
 struct ProcessState {
-    TraceStateType trace_state;
-
-    Location prev_location;
+    std::optional<Location> prev_location;
     bool has_pending_address_packet;
 
     MemoryMaps memory_maps;
@@ -73,8 +65,7 @@ struct ProcessState {
     ProcessState() = default;
 
     void reset(MemoryMaps &&memory_maps) {
-        this->trace_state = TraceStateType::TRACE_ON;
-        this->prev_location = Location();
+        this->prev_location = std::nullopt;
         this->has_pending_address_packet = false;
         this->memory_maps = std::move(memory_maps);
     }
@@ -88,8 +79,8 @@ struct Process {
     Deformatter deformatter;
     Decoder decoder;
 
-    Process(BinaryFiles &&binary_files, const Bitmap &bitmap, Cache &&cache)
-        : data(ProcessData(std::move(binary_files), bitmap, std::move(cache))) {}
+    Process(const Bitmap &bitmap, Cache &&cache)
+        : data(bitmap, std::move(cache)) {}
 
     void reset(MemoryMaps &&memory_maps, std::uint8_t target_trace_id);
     ProcessResultType final();

@@ -49,14 +49,9 @@ int check_bitmaps(unsigned char* global_bitmap, unsigned char* local_bitmap, int
 
 
 void test_edge(unsigned char *global_bitmap, const int bitmap_size) {
-    const int binary_file_num = 1;
-    const char* binary_file_path[] = {
-        "fib",
-    };
-
     unsigned char* local_bitmap = (unsigned char*)malloc(bitmap_size);
 
-    libcsdec_t libcsdec = libcsdec_init_edge(binary_file_num, binary_file_path, local_bitmap, bitmap_size);
+    libcsdec_t libcsdec = libcsdec_init_edge(local_bitmap, bitmap_size);
     if (libcsdec == NULL) {
         printf("Failed to initialize libcsdec\n");
         exit(1);
@@ -197,14 +192,9 @@ void test_edge(unsigned char *global_bitmap, const int bitmap_size) {
 
 
 void test_edge_sequence(unsigned char *global_bitmap, const int bitmap_size) {
-    const int binary_file_num = 1;
-    const char* binary_file_path[] = {
-        "fib",
-    };
-
     unsigned char* local_bitmap = (unsigned char*)malloc(bitmap_size);
 
-    libcsdec_t libcsdec = libcsdec_init_edge(binary_file_num, binary_file_path, local_bitmap, bitmap_size);
+    libcsdec_t libcsdec = libcsdec_init_edge(local_bitmap, bitmap_size);
     if (libcsdec == NULL) {
         printf("Failed to initialize libcsdec\n");
         exit(1);
@@ -702,5 +692,6 @@ int main(int argc, char const *argv[])
         assert(diff_cnt == 0);
     }
 
+    printf("PASSED library test.\n");
     return 0;
 }

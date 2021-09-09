@@ -21,25 +21,11 @@
 libcsdec_result_t covert_result_type(ProcessResultType result);
 
 
-libcsdec_t libcsdec_init_edge(
-    const int binary_file_num, const char *binary_file_path[],
-    void *bitmap_addr, const int bitmap_size)
+libcsdec_t libcsdec_init_edge(void *bitmap_addr, const int bitmap_size)
 {
-    if (binary_file_num <= 0) {
-        std::cerr << "Specify 1 or more for the number of binary files" << std::endl;
-        return nullptr;
-    }
-
     checkCapstoneVersion();
 
-    BinaryFiles binary_files; {
-        for (int i = 0; i < binary_file_num; i++) {
-            binary_files.emplace(binary_file_path[i]);
-        }
-    }
-
     std::unique_ptr<Process> process = std::make_unique<Process>(
-        std::move(binary_files),
         Bitmap(
             reinterpret_cast<std::uint8_t*>(bitmap_addr),
             static_cast<std::size_t>(bitmap_size)
@@ -66,10 +52,15 @@ libcsdec_result_t libcsdec_reset_edge(
     // Cast
     Process *process = reinterpret_cast<Process*>(libcsdec);
 
-    // Read binary data and entry point
     MemoryMaps memory_maps; {
         for (int i = 0; i < memory_map_num; i++) {
             const std::string path = std::string(libcsdec_memory_map[i].path);
+
+            // If this binary file has not been loaded yet, load it.
+            if (process->data.binary_files.find(path) == process->data.binary_files.end()) {
+                process->data.binary_files.emplace(path);
+            }
+
             memory_maps.emplace_back(MemoryMap(
                 process->data.binary_files, path,
                 libcsdec_memory_map[i].start, libcsdec_memory_map[i].end
@@ -136,7 +127,6 @@ libcsdec_result_t libcsdec_reset_path(
     // Cast
     PTrixProcess *process = reinterpret_cast<PTrixProcess*>(libcsdec);
 
-    // Read binary data and entry point
     MemoryMaps memory_maps; {
         for (int i = 0; i < memory_map_num; i++) {
             const std::string path = std::string(libcsdec_memory_map[i].path);

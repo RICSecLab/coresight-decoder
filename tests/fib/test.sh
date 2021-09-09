@@ -9,7 +9,6 @@ OUTPUT_FILE_SUFFIX="_edge_coverage.out"
 OUTPUT_BITMAP_FILE_SUFFIX="_bitmap.out"
 
 
-# Calculate edge coverage and output to a file
 run () {
     target="$1" # Trace data for calculating edge coverage
     output_file=$target$OUTPUT_FILE_SUFFIX
@@ -17,21 +16,6 @@ run () {
 
     $PROGRAM $(cat $target/decoderargs.txt) --bitmap-size=0x1000 \
                                             --bitmap-filename=$bitmap_file \
-                                            --trace-binary-filename=fib \
-                                            > $output_file
-}
-
-
-run_full () {
-    target="$1" # Trace data for calculating edge coverage
-    output_file=$target$OUTPUT_FILE_SUFFIX
-    bitmap_file=$target$OUTPUT_BITMAP_FILE_SUFFIX
-
-    $PROGRAM $(cat $target/decoderargs.txt) --bitmap-size=0x1000 \
-                                            --bitmap-filename=$bitmap_file \
-                                            --trace-binary-filename=fib \
-                                            --trace-binary-filename=ld-2.31.so \
-                                            --trace-binary-filename=libc-2.31.so \
                                             > $output_file
 }
 
@@ -99,15 +83,3 @@ assert
 
 # Edge coverage matches for multiple trace data for the fib program
 echo "PASSED fib test"
-
-
-# Calculate edge coverage for all trace data with full trace
-run_full trace1
-run_full trace2
-run_full trace3
-run_full trace4
-
-assert
-
-# Edge coverage matches for multiple trace data for the fib program
-echo "PASSED fib test with full trace"

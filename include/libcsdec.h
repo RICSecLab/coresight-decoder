@@ -24,7 +24,6 @@ typedef enum libcsdec_result {
 } libcsdec_result_t;
 
 libcsdec_t libcsdec_init_edge(
-    int binary_file_num, const char *binary_file_path[],
     void *bitmap_addr, int bitmap_size);
 
 libcsdec_result_t libcsdec_reset_edge(

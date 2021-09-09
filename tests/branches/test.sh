@@ -17,7 +17,6 @@ run () {
 
     $PROGRAM $(cat $target/decoderargs.txt) --bitmap-size=0x1000 \
                                             --bitmap-filename=$bitmap_file \
-                                            --trace-binary-filename=branches \
                                             > $output_file
     if [ $? -ne 0 ]; then
         echo "Failed to run decoder."

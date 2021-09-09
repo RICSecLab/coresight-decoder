@@ -29,7 +29,6 @@ run_decoder () {
 
     $DECODER $(cat $trace_out_dir/decoderargs.txt) --bitmap-size=0x10000 \
                                                    --bitmap-filename=$bitmap_file \
-                                                   --trace-binary-filename=$TRACEE \
                                                    > $edge_coverage_file
 
     err=$?
