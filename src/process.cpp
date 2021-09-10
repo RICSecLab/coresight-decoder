@@ -392,10 +392,12 @@ ProcessResultType PathProcess::run(
                     case ETM4_PKT_I_ATOM_F4:
                     case ETM4_PKT_I_ATOM_F5:
                     case ETM4_PKT_I_ATOM_F6: {
-                        if (ctx_en_bits_len < MAX_ATOM_LEN) {
-                            this->ctx_en_bits |= std::bitset<MAX_ATOM_LEN>(packet.en_bits) << ctx_en_bits_len;
-                            this->ctx_en_bits_len += packet.en_bits_len;
+                        // Convert EN bits to binary string
+                        std::size_t size = std::min(packet.en_bits_len, MAX_ADDRESS_LEN - this->ctx_en_bits_len);
+                        for (std::size_t i = 0; i < size; ++i) {
+                            this->ctx_en_bits += (packet.en_bits & (1 << i)) ? '1' : '0';
                         }
+                        this->ctx_en_bits_len += size;
                         break;
                     }
 
@@ -412,12 +414,14 @@ ProcessResultType PathProcess::run(
 
                         // ATOMのEN列でhashを更新
                         if (this->ctx_en_bits_len != 0) {
-                            this->ctx_hash ^= std::hash<std::bitset<MAX_ATOM_LEN>>()(ctx_en_bits);
-                            this->ctx_en_bits = 0;
+                            DEBUG("Update hash by EN bits: %s\n", this->ctx_en_bits.c_str());
+                            this->ctx_hash ^= std::hash<std::string>()(ctx_en_bits);
+                            this->ctx_en_bits = "";
                             this->ctx_en_bits_len = 0;
                         }
 
                         // Addressでhashを更新
+                        DEBUG("Update hash by Address: (%ld, 0x%lx)\n", target_location.index, target_location.offset);
                         this->ctx_hash ^= std::hash<Location>()(target_location);
                         this->ctx_address_cnt++;
 
@@ -495,7 +499,7 @@ void PathProcess::reset(MemoryMaps &&memory_maps, std::uint8_t target_trace_id)
     this->decoder.reset();
     this->memory_maps = std::move(memory_maps);
 
-    this->ctx_en_bits = 0;
+    this->ctx_en_bits = "";
     this->ctx_en_bits_len = 0;
     this->ctx_address_cnt = 0;
     this->ctx_hash = 0;
