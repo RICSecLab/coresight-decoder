@@ -385,7 +385,7 @@ ProcessResultType PTrixProcess::run(
         switch (this->decoder.state) {
             case DecodeState::START:
             case DecodeState::TRACE: {
-                switch (packet.type)
+                switch (packet.type) {
                     case ETM4_PKT_I_ATOM_F1:
                     case ETM4_PKT_I_ATOM_F2:
                     case ETM4_PKT_I_ATOM_F3:
@@ -393,10 +393,11 @@ ProcessResultType PTrixProcess::run(
                     case ETM4_PKT_I_ATOM_F5:
                     case ETM4_PKT_I_ATOM_F6: {
                         if (ctx_en_bits_len < MAX_ATOM_LEN) {
-                            ctx_en_bits |= std::bitset<MAX_ATOM_LEN>(packet.en_bits) << ctx_en_bits_len;
-                            ctx_en_bits_len += packet.en_bits_len;
+                            this->ctx_en_bits |= std::bitset<MAX_ATOM_LEN>(packet.en_bits) << ctx_en_bits_len;
+                            this->ctx_en_bits_len += packet.en_bits_len;
                         }
                         break;
+                    }
 
                     case ETM4_PKT_I_ADDR_S_IS0:
                     case ETM4_PKT_I_ADDR_L_64IS0:
@@ -410,24 +411,24 @@ ProcessResultType PTrixProcess::run(
                         const Location target_location = optional_target_location.value();
 
                         // ATOMのEN列でhashを更新
-                        if (ctx_en_bits_len != 0) {
-                            ctx_hash ^= std::hash<std::bitset<MAX_ATOM_LEN>>()(ctx_en_bits);
-                            ctx_en_bits = 0;
-                            ctx_en_bits_len = 0;
+                        if (this->ctx_en_bits_len != 0) {
+                            this->ctx_hash ^= std::hash<std::bitset<MAX_ATOM_LEN>>()(ctx_en_bits);
+                            this->ctx_en_bits = 0;
+                            this->ctx_en_bits_len = 0;
                         }
 
                         // Addressでhashを更新
-                        ctx_hash ^= std::hash<Location>()(target_location);
-                        ctx_address_cnt++;
+                        this->ctx_hash ^= std::hash<Location>()(target_location);
+                        this->ctx_address_cnt++;
 
-                        if (ctx_address_cnt >= MAX_ADDRESS_LEN) {
+                        if (this->ctx_address_cnt >= MAX_ADDRESS_LEN) {
                             // bitmapのindexを計算する
-                            std::size_t index = ctx_hash & (this->bitmap.size - 1);
+                            std::size_t index = this->ctx_hash & (this->bitmap.size - 1);
                             // bitmapを更新する
                             this->bitmap.data[index]++;
 
-                            ctx_address_cnt = 0;
-                            ctx_hash = 0;
+                            this->ctx_address_cnt = 0;
+                            this->ctx_hash = 0;
                         }
                         break;
                     }
@@ -494,10 +495,10 @@ void PTrixProcess::reset(MemoryMaps &&memory_maps, std::uint8_t target_trace_id)
     this->decoder.reset();
     this->memory_maps = std::move(memory_maps);
 
-    ctx_en_bits = 0;
-    ctx_en_bits_len = 0;
-    ctx_address_cnt = 0;
-    ctx_hash = 0;
+    this->ctx_en_bits = 0;
+    this->ctx_en_bits_len = 0;
+    this->ctx_address_cnt = 0;
+    this->ctx_hash = 0;
 }
 
 ProcessResultType PTrixProcess::final()
