@@ -18,7 +18,6 @@ PROGRAM := test_lib
 CACHE_MODE := 1
 NON_CACHE_MODE := 0
 PERFORMANCE_TEST_DIR := ../performance
-TRACEE := fib
 TRACE_DATA_DIR1 := $(realpath trace1)
 TRACE_DATA_DIR2 := $(realpath trace2)
 TRACE_DATA_DIR3 := $(realpath trace3)
@@ -46,19 +45,19 @@ run-decoder-with-non-cache-mode:
 	make -C ../../ clean && make -C ../../ CACHE_MODE=$(NON_CACHE_MODE)
 	make -C $(PERFORMANCE_TEST_DIR)
 	# Execute decoder with non-cache mode
-	$(PERFORMANCE_TEST_DIR)/test $(TRACEE) $(EXECUTION_TIMES_DATA_NON_CACHE_MODE) \
+	$(PERFORMANCE_TEST_DIR)/test $(EXECUTION_TIMES_DATA_NON_CACHE_MODE) \
 		$(LOOP_CNT) $(TRACE_DATA_DIR1)
 
 run-decoder-with-cache-mode:
 	make -C ../../ clean && make -C ../../ CACHE_MODE=$(CACHE_MODE)
 	make -C $(PERFORMANCE_TEST_DIR)
 	# Execute decoder with cache mode
-	$(PERFORMANCE_TEST_DIR)/test $(TRACEE) $(EXECUTION_TIMES_DATA_CACHE_MODE) \
+	$(PERFORMANCE_TEST_DIR)/test $(EXECUTION_TIMES_DATA_CACHE_MODE) \
 		$(LOOP_CNT) $(TRACE_DATA_DIR1)
 
 run-perf:
 	perf record --call-graph dwarf -- \
-		$(PERFORMANCE_TEST_DIR)/test $(TRACEE) $(EXECUTION_TIMES_DATA_CACHE_MODE) \
+		$(PERFORMANCE_TEST_DIR)/test $(EXECUTION_TIMES_DATA_CACHE_MODE) \
 		$(LOOP_CNT) $(TRACE_DATA_DIR1)
 
 clean: clean-test-output-files
