@@ -94,7 +94,7 @@ private:
 };
 
 
-struct PTrixProcess {
+struct PathProcess {
     Deformatter deformatter;
     Decoder decoder;
 
@@ -106,7 +106,7 @@ struct PTrixProcess {
     std::size_t ctx_address_cnt;
     std::uint64_t ctx_hash;
 
-    PTrixProcess(const Bitmap &bitmap)
+    PathProcess(const Bitmap &bitmap)
         : bitmap(bitmap) {}
 
     void reset(MemoryMaps &&memory_maps, std::uint8_t target_trace_id);

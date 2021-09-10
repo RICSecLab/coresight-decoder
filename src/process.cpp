@@ -363,7 +363,7 @@ BranchInsn Process::processNextBranchInsn(const Location &base_location)
 }
 
 
-ProcessResultType PTrixProcess::run(
+ProcessResultType PathProcess::run(
     const std::uint8_t* trace_data_addr, const std::size_t trace_data_size)
 {
     this->deformatter.deformatTraceData(trace_data_addr, trace_data_size, decoder.trace_data);
@@ -488,7 +488,7 @@ ProcessResultType PTrixProcess::run(
     return ProcessResultType::PROCESS_SUCCESS;
 }
 
-void PTrixProcess::reset(MemoryMaps &&memory_maps, std::uint8_t target_trace_id)
+void PathProcess::reset(MemoryMaps &&memory_maps, std::uint8_t target_trace_id)
 {
     this->bitmap.reset();
     this->deformatter.reset(target_trace_id);
@@ -501,7 +501,7 @@ void PTrixProcess::reset(MemoryMaps &&memory_maps, std::uint8_t target_trace_id)
     this->ctx_hash = 0;
 }
 
-ProcessResultType PTrixProcess::final()
+ProcessResultType PathProcess::final()
 {
     return ProcessResultType::PROCESS_SUCCESS;
 }

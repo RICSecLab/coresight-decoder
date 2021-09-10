@@ -101,7 +101,7 @@ libcsdec_result_t libcsdec_finish_edge(const libcsdec_t libcsdec)
 libcsdec_t libcsdec_init_path(
     void *bitmap_addr, const int bitmap_size)
 {
-    std::unique_ptr<PTrixProcess> process = std::make_unique<PTrixProcess>(
+    std::unique_ptr<PathProcess> process = std::make_unique<PathProcess>(
         Bitmap(
             reinterpret_cast<std::uint8_t*>(bitmap_addr),
             static_cast<std::size_t>(bitmap_size)
@@ -110,7 +110,7 @@ libcsdec_t libcsdec_init_path(
 
     // Release ownership and pass it to the C API side.
     // Therefore, do not free it here.
-    return reinterpret_cast<PTrixProcess*>(process.release());
+    return reinterpret_cast<PathProcess*>(process.release());
 }
 
 
@@ -125,7 +125,7 @@ libcsdec_result_t libcsdec_reset_path(
     }
 
     // Cast
-    PTrixProcess *process = reinterpret_cast<PTrixProcess*>(libcsdec);
+    PathProcess *process = reinterpret_cast<PathProcess*>(libcsdec);
 
     MemoryMaps memory_maps; {
         for (int i = 0; i < memory_map_num; i++) {
@@ -146,7 +146,7 @@ libcsdec_result_t libcsdec_run_path(
     const void *trace_data_addr, const std::size_t trace_data_size)
 {
     // Cast
-    PTrixProcess *process = reinterpret_cast<PTrixProcess*>(libcsdec);
+    PathProcess *process = reinterpret_cast<PathProcess*>(libcsdec);
 
     ProcessResultType result = process->run(
         reinterpret_cast<const std::uint8_t*>(trace_data_addr), trace_data_size);
@@ -157,7 +157,7 @@ libcsdec_result_t libcsdec_run_path(
 libcsdec_result_t libcsdec_finish_path(const libcsdec_t libcsdec)
 {
     // Cast
-    PTrixProcess *process = reinterpret_cast<PTrixProcess*>(libcsdec);
+    PathProcess *process = reinterpret_cast<PathProcess*>(libcsdec);
 
     ProcessResultType result = process->final();
     return covert_result_type(result);
