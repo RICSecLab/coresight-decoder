@@ -470,7 +470,9 @@ ProcessResultType PTrixProcess::run(
             }
 
             case DecodeState::WAIT_ADDR_AFTER_TRACE_ON: {
-                if (packet.type == ETM4_PKT_I_ADDR_L_64IS0) {
+                if (packet.type == ETM4_PKT_I_ADDR_S_IS0 ||
+                    packet.type == ETM4_PKT_I_ADDR_L_64IS0 ||
+                    packet.type == ETM4_PKT_I_ADDR_CTXT_L_64IS0) {
                     this->decoder.state = DecodeState::TRACE;
                 }
                 break;
