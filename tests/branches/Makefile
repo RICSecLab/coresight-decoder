@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2021 Ricerca Security, Inc. All rights reserved.
+
 # For performance test
 CACHE_MODE := 1
 NON_CACHE_MODE := 0
