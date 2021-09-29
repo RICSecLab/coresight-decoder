@@ -10,7 +10,7 @@ INC_DIR := include
 # capstone library name (without prefix 'lib' and suffix '.so')
 LIBCAPSTONE := capstone
 
-CXX := g++
+CXX ?= g++
 CXXFLAGS := -std=c++17 -Wall
 CXXFLAGS += -I$(INC_DIR)
 CXXFLAGS += -l$(LIBCAPSTONE)
