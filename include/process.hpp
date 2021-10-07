@@ -23,7 +23,7 @@ enum class ProcessResultType {
 // デコード処理に永続的に使われるデータ
 struct ProcessData {
     // トレースする領域のバイナリファイルを保存
-    BinaryFiles binary_files;
+    std::vector<MemoryImage> memory_images;
 
     // エッジカバレッジの計算結果を書き出すための
     // bitmapのアドレスとサイズ
@@ -40,8 +40,9 @@ struct ProcessData {
     ProcessData(const ProcessData&) = delete;
     ProcessData& operator=(const ProcessData&) = delete;
 
-    ProcessData(const Bitmap &bitmap, Cache &&cache)
-        : bitmap(bitmap), cache(std::move(cache))
+    ProcessData(std::vector<MemoryImage> &&memory_images,
+        const Bitmap &bitmap, Cache &&cache)
+        : memory_images(std::move(memory_images)), bitmap(bitmap), cache(std::move(cache))
     {
         csh handle;
         disassembleInit(&handle);
@@ -59,7 +60,7 @@ struct ProcessState {
     std::optional<Location> prev_location;
     bool has_pending_address_packet;
 
-    MemoryMaps memory_maps;
+    std::vector<MemoryMap> memory_maps;
 
     // Disable copy constructor.
     ProcessState(const ProcessState&) = delete;
@@ -67,7 +68,7 @@ struct ProcessState {
 
     ProcessState() = default;
 
-    void reset(MemoryMaps &&memory_maps) {
+    void reset(std::vector<MemoryMap> &&memory_maps) {
         this->prev_location = std::nullopt;
         this->has_pending_address_packet = false;
         this->memory_maps = std::move(memory_maps);
@@ -82,10 +83,10 @@ struct Process {
     Deformatter deformatter;
     Decoder decoder;
 
-    Process(const Bitmap &bitmap, Cache &&cache)
-        : data(bitmap, std::move(cache)) {}
+    Process(std::vector<MemoryImage> &&memory_images, const Bitmap &bitmap, Cache &&cache)
+        : data(std::move(memory_images), bitmap, std::move(cache)) {}
 
-    void reset(MemoryMaps &&memory_maps, std::uint8_t target_trace_id);
+    void reset(std::vector<MemoryMap> &&memory_maps, std::uint8_t target_trace_id);
     ProcessResultType final();
     ProcessResultType run(const std::uint8_t* trace_data_addr, std::size_t trace_data_size);
 
@@ -101,18 +102,20 @@ struct PathProcess {
     Deformatter deformatter;
     Decoder decoder;
 
+    std::vector<MemoryImage> memory_images;
+    std::vector<MemoryMap> memory_maps;
+
     Bitmap bitmap;
-    MemoryMaps memory_maps;
 
     std::string ctx_en_bits;
     std::size_t ctx_en_bits_len;
     std::size_t ctx_address_cnt;
     std::uint64_t ctx_hash;
 
-    PathProcess(const Bitmap &bitmap)
-        : bitmap(bitmap) {}
+    PathProcess(std::vector<MemoryImage> &&memory_images, const Bitmap &bitmap)
+        : memory_images(std::move(memory_images)), bitmap(bitmap) {}
 
-    void reset(MemoryMaps &&memory_maps, std::uint8_t target_trace_id);
+    void reset(std::vector<MemoryMap> &&memory_maps, std::uint8_t target_trace_id);
     ProcessResultType final();
     ProcessResultType run(
         const std::uint8_t* trace_data_addr, const size_t trace_data_size);

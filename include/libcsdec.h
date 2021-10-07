@@ -12,10 +12,15 @@ extern "C" {
 
 typedef void* libcsdec_t;
 
+struct libcsdec_memory_image {
+    void* data;
+    size_t id;
+};
+
 struct libcsdec_memory_map {
     unsigned long start;
     unsigned long end;
-    char path[PATH_MAX];
+    size_t id;
 };
 
 typedef enum libcsdec_result {
@@ -27,7 +32,8 @@ typedef enum libcsdec_result {
 } libcsdec_result_t;
 
 libcsdec_t libcsdec_init_edge(
-    void *bitmap_addr, int bitmap_size);
+    void *bitmap_addr, int bitmap_size,
+    int memory_image_num, libcsdec_memory_image libcsdec_memory_image[]);
 
 libcsdec_result_t libcsdec_reset_edge(
     const libcsdec_t libcsdec,
@@ -42,7 +48,8 @@ libcsdec_result_t libcsdec_finish_edge(const libcsdec_t libcsdec);
 
 
 libcsdec_t libcsdec_init_path(
-    void *bitmap_addr, int bitmap_size);
+    void *bitmap_addr, int bitmap_size,
+    int memory_image_num, libcsdec_memory_image libcsdec_memory_image[]);
 
 libcsdec_result_t libcsdec_reset_path(
     const libcsdec_t libcsdec,

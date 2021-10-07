@@ -24,11 +24,27 @@
 libcsdec_result_t covert_result_type(ProcessResultType result);
 
 
-libcsdec_t libcsdec_init_edge(void *bitmap_addr, const int bitmap_size)
+libcsdec_t libcsdec_init_edge(void *bitmap_addr, const int bitmap_size,
+    int memory_image_num, libcsdec_memory_image libcsdec_memory_image[])
 {
     checkCapstoneVersion();
 
+    std::vector<MemoryImage> memory_images; {
+        for (int i = 0; i < memory_image_num; ++i) {
+            assert(memory_images[i].id == std::size_t(i));
+
+            std::vector<std::uint8_t> data(
+                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[i].data) + 0,
+                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[i].data) + memory_image_num
+            );
+            memory_images.emplace_back(
+                MemoryImage(std::move(data), memory_images[i].id)
+            );
+        }
+    }
+
     std::unique_ptr<Process> process = std::make_unique<Process>(
+        std::move(memory_images),
         Bitmap(
             reinterpret_cast<std::uint8_t*>(bitmap_addr),
             static_cast<std::size_t>(bitmap_size)
@@ -55,19 +71,14 @@ libcsdec_result_t libcsdec_reset_edge(
     // Cast
     Process *process = reinterpret_cast<Process*>(libcsdec);
 
-    MemoryMaps memory_maps; {
+    std::vector<MemoryMap> memory_maps; {
         for (int i = 0; i < memory_map_num; i++) {
-            const std::string path = std::string(libcsdec_memory_map[i].path);
-
-            // If this binary file has not been loaded yet, load it.
-            if (process->data.binary_files.find(path) == process->data.binary_files.end()) {
-                process->data.binary_files.emplace(path);
-            }
-
-            memory_maps.emplace_back(MemoryMap(
-                process->data.binary_files, path,
-                libcsdec_memory_map[i].start, libcsdec_memory_map[i].end
-            ));
+            memory_maps.emplace_back(
+                MemoryMap (
+                    libcsdec_memory_map[i].start, libcsdec_memory_map[i].end,
+                    libcsdec_memory_map[i].id
+                )
+            );
         }
     }
 
@@ -102,9 +113,27 @@ libcsdec_result_t libcsdec_finish_edge(const libcsdec_t libcsdec)
 
 
 libcsdec_t libcsdec_init_path(
-    void *bitmap_addr, const int bitmap_size)
+    void *bitmap_addr, const int bitmap_size,
+    int memory_image_num, libcsdec_memory_image libcsdec_memory_image[])
 {
+    checkCapstoneVersion();
+
+    std::vector<MemoryImage> memory_images; {
+        for (int i = 0; i < memory_image_num; ++i) {
+            assert(memory_images[i].id == std::size_t(i));
+
+            std::vector<std::uint8_t> data(
+                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[i].data) + 0,
+                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[i].data) + memory_image_num
+            );
+            memory_images.emplace_back(
+                MemoryImage(std::move(data), memory_images[i].id)
+            );
+        }
+    }
+
     std::unique_ptr<PathProcess> process = std::make_unique<PathProcess>(
+        std::move(memory_images),
         Bitmap(
             reinterpret_cast<std::uint8_t*>(bitmap_addr),
             static_cast<std::size_t>(bitmap_size)
@@ -130,12 +159,14 @@ libcsdec_result_t libcsdec_reset_path(
     // Cast
     PathProcess *process = reinterpret_cast<PathProcess*>(libcsdec);
 
-    MemoryMaps memory_maps; {
+    std::vector<MemoryMap> memory_maps; {
         for (int i = 0; i < memory_map_num; i++) {
-            const std::string path = std::string(libcsdec_memory_map[i].path);
-            memory_maps.emplace_back(MemoryMap(
-                libcsdec_memory_map[i].start, libcsdec_memory_map[i].end
-            ));
+            memory_maps.emplace_back(
+                MemoryMap (
+                    libcsdec_memory_map[i].start, libcsdec_memory_map[i].end,
+                    libcsdec_memory_map[i].id
+                )
+            );
         }
     }
 

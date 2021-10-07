@@ -16,7 +16,7 @@
 #include "trace.hpp"
 
 
-void Process::reset(MemoryMaps &&memory_maps, const std::uint8_t target_trace_id)
+void Process::reset(std::vector<MemoryMap> &&memory_maps, const std::uint8_t target_trace_id)
 {
     this->data.bitmap.reset();
     this->deformatter.reset(target_trace_id);
@@ -286,8 +286,8 @@ AtomTrace Process::processAtomPacket(const Packet &atom_packet)
             // TODO: この時のaddress packetは長さが1なので、トレースデータに保存する必要なし
         } else {
             const addr_t next_offset = (is_taken) ? insn.taken_offset : insn.not_taken_offset;
-            const addr_t next_index = insn.index;
-            const Location next_location = Location(next_offset, next_index);
+            const addr_t next_id = insn.id;
+            const Location next_location = Location(next_offset, next_id);
 
             // Add branch destination address by direct branch
             trace.addLocation(next_location);
@@ -343,7 +343,7 @@ BranchInsn Process::processNextBranchInsn(const Location &base_location)
     BranchInsn insn; {
         #if defined(CACHE_MODE)
             // BranchInsnのキャッシュにアクセスするためのキーを作成する。
-            const Location insn_key(base_location.offset, base_location.index);
+            const Location insn_key(base_location.offset, base_location.id);
 
             // Cacheにアクセスして、既にディスアセンブルした命令か調べる。
             // 同じバイナリファイル&オフセットに対するこの処理は、キャッシュ化することができる。
@@ -353,13 +353,13 @@ BranchInsn Process::processNextBranchInsn(const Location &base_location)
                 insn = this->data.cache.getBranchInsnCache(insn_key);
             } else {
                 // 命令列をディスアセンブルし、分岐命令を探す。
-                insn = getNextBranchInsn(this->data.handle, base_location, this->state.memory_maps);
+                insn = getNextBranchInsn(this->data.handle, base_location, this->data.memory_images);
                 // Cacheに分岐命令をディスアセンブルした結果を格納する。
                 this->data.cache.addBranchInsnCache(std::move(insn_key), insn);
             }
         #else
             // 命令列をディスアセンブルし、分岐命令を探す。
-            insn = getNextBranchInsn(this->data.handle, base_location, this->state.memory_maps);
+            insn = getNextBranchInsn(this->data.handle, base_location, this->data.memory_images);
         #endif
     }
     return insn;
@@ -424,7 +424,7 @@ ProcessResultType PathProcess::run(
                         }
 
                         // Addressでhashを更新
-                        DEBUG("Update hash by Address: (%ld, 0x%lx)\n", target_location.index, target_location.offset);
+                        DEBUG("Update hash by Address: (%ld, 0x%lx)\n", target_location.id, target_location.offset);
                         this->ctx_hash ^= std::hash<Location>()(target_location);
                         this->ctx_address_cnt++;
 
@@ -495,7 +495,7 @@ ProcessResultType PathProcess::run(
     return ProcessResultType::PROCESS_SUCCESS;
 }
 
-void PathProcess::reset(MemoryMaps &&memory_maps, std::uint8_t target_trace_id)
+void PathProcess::reset(std::vector<MemoryMap> &&memory_maps, std::uint8_t target_trace_id)
 {
     this->bitmap.reset();
     this->deformatter.reset(target_trace_id);

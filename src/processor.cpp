@@ -68,36 +68,39 @@ int main(int argc, char const *argv[])
         }
     }
 
-    BinaryFiles binary_files; {
-        for (int i = 0; i < binary_file_num; ++i) {
-            const std::string path = argv[4 + i * 3];
-            binary_files.emplace(path);
+    std::vector<MemoryImage> memory_images; {
+        for (int id = 0; id < binary_file_num; ++id) {
+            // TODO:
+            const std::string path = argv[4 + id * 3];
+            std::vector<uint8_t> data = readBinaryFile(path);
+
+            // TODO: push_back
+            memory_images.push_back(
+                MemoryImage(std::move(data), (size_t)id)
+            );
         }
     }
 
-    MemoryMaps memory_maps; {
-        for (int i = 0; i < binary_file_num; i++) {
-            // Read binary data
-            const std::string path = argv[4 + i * 3];
-
+    std::vector<MemoryMap> memory_maps; {
+        for (int id = 0; id < binary_file_num; id++) {
             // Read start/end address
-            const std::uint64_t start_address = std::stol(argv[4 + i * 3 + 1], nullptr, 16);
-            const std::uint64_t end_address   = std::stol(argv[4 + i * 3 + 2], nullptr, 16);
+            const std::uint64_t start_address = std::stol(argv[4 + id * 3 + 1], nullptr, 16);
+            const std::uint64_t end_address   = std::stol(argv[4 + id * 3 + 2], nullptr, 16);
 
-            memory_maps.emplace_back(MemoryMap(
-                binary_files, path,
-                start_address, end_address
-            ));
+            memory_maps.emplace_back(
+                MemoryMap(start_address, end_address, id)
+            );
         }
     }
 
     // Create bitmap area
     std::vector<uint8_t> bitmap(bitmap_size);
 
-    Process process {
+    Process process(
+        std::move(memory_images),
         Bitmap(bitmap.data(), bitmap_size),
         Cache()
-    };
+    );
 
     // Read trace data
     const std::vector<uint8_t> trace_data = readBinaryFile(trace_data_filename);
