@@ -23,10 +23,6 @@ struct MemoryImage {
     const binary_data_t data;
     const image_id_t id;
 
-    // Disable copy constructor.
-    // MemoryImage(const MemoryImage&) = delete;
-    // MemoryImage& operator=(const MemoryImage&) = delete;
-
     MemoryImage(std::uint8_t* data, std::size_t data_size, image_id_t id);
     MemoryImage(binary_data_t &&data, image_id_t id);
 };
