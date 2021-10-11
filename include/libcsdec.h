@@ -14,13 +14,11 @@ typedef void* libcsdec_t;
 
 struct libcsdec_memory_image {
     void* data;
-    size_t id;
 };
 
 struct libcsdec_memory_map {
     unsigned long start;
     unsigned long end;
-    size_t id;
 };
 
 typedef enum libcsdec_result {

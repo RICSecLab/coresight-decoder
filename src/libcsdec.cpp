@@ -72,11 +72,12 @@ libcsdec_result_t libcsdec_reset_edge(
     Process *process = reinterpret_cast<Process*>(libcsdec);
 
     std::vector<MemoryMap> memory_maps; {
-        for (int i = 0; i < memory_map_num; i++) {
+        for (int id = 0; id < memory_map_num; id++) {
             memory_maps.emplace_back(
                 MemoryMap (
-                    libcsdec_memory_map[i].start, libcsdec_memory_map[i].end,
-                    libcsdec_memory_map[i].id
+                    libcsdec_memory_map[id].start,
+                    libcsdec_memory_map[id].end,
+                    id
                 )
             );
         }
@@ -160,11 +161,12 @@ libcsdec_result_t libcsdec_reset_path(
     PathProcess *process = reinterpret_cast<PathProcess*>(libcsdec);
 
     std::vector<MemoryMap> memory_maps; {
-        for (int i = 0; i < memory_map_num; i++) {
+        for (int id = 0; id < memory_map_num; id++) {
             memory_maps.emplace_back(
                 MemoryMap (
-                    libcsdec_memory_map[i].start, libcsdec_memory_map[i].end,
-                    libcsdec_memory_map[i].id
+                    libcsdec_memory_map[id].start,
+                    libcsdec_memory_map[id].end,
+                    id
                 )
             );
         }
