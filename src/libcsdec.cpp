@@ -1,3 +1,6 @@
+/** @file
+    libcsdec C wrapper library implementation.
+**/
 /* SPDX-License-Identifier: Apache-2.0 */
 /* Copyright 2021 Ricerca Security, Inc. All rights reserved. */
 
@@ -24,6 +27,14 @@
 libcsdec_result_t covert_result_type(ProcessResultType result);
 
 
+/**
+    Initializes persistent objects for edge coverage mode and returns the pointer.
+
+    @param  bitmap_addr                             The bitmap address.
+    @param  bitmap_size                             The size of the bitmap.
+
+    @return                                         The pointer to the object used by libcsdec.
+**/
 libcsdec_t libcsdec_init_edge(void *bitmap_addr, const int bitmap_size)
 {
     checkCapstoneVersion();
@@ -42,6 +53,17 @@ libcsdec_t libcsdec_init_edge(void *bitmap_addr, const int bitmap_size)
 }
 
 
+/**
+    Resets the deocder to the initial state for edge coverage mode. This function should be called before starting a new decode session.
+
+    @param  libcsdec                                The decoding session context.
+    @param  trace_id                                The trace ID.
+    @param  memory_map_num                          The number of the memory map entries.
+    @param  libcsdec_memory_map                     The array of all traced memory map infomation.
+
+    @retval LIBCSDEC_SUCCESS                        Reset succeeded.
+    @retval LIBCSDEC_ERROR                          Reset failed. Invalid memory map.
+**/
 libcsdec_result_t libcsdec_reset_edge(
     const libcsdec_t libcsdec,
     const char trace_id, const int memory_map_num,
@@ -76,6 +98,18 @@ libcsdec_result_t libcsdec_reset_edge(
 }
 
 
+/**
+    Decodes given trace data and generates the edge coverage bitmap. The trace data can be fragment as the deocder can process afterwards using the subsequent trace data.
+
+    @param  libcsdec                                The decoding session context.
+    @param  trace_data_addr                         The trace data address.
+    @param  trace_data_size                         The size of the trace data.
+
+    @retval LIBCSDEC_SUCCESS                        Decode succeeded.
+    @retval LIBCSDEC_ERROR                          Decode failed.
+    @retval LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE    Decode failed due to the trace data is incomplete.
+    @retval LIBCSDEC_ERROR_PAGE_FAULT               Decode failed due to the address does not exist in the memory map.
+**/
 libcsdec_result_t libcsdec_run_edge(
     const libcsdec_t libcsdec,
     const void *trace_data_addr, const std::size_t trace_data_size)
@@ -89,6 +123,15 @@ libcsdec_result_t libcsdec_run_edge(
 }
 
 
+/**
+    Finalizes the deocding session for the edge coverage mode. This function should be called after the end of each decoding session. It checks if the decoder is not in invalid state.
+
+    @param  libcsdec                                The decoding session context.
+
+    @retval LIBCSDEC_SUCCESS                        Finalize succeeded.
+    @retval LIBCSDEC_ERROR                          Finalize failed.
+    @retval LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE    Finalize failed due to the trace data is incomplete.
+**/
 libcsdec_result_t libcsdec_finish_edge(const libcsdec_t libcsdec)
 {
     // Cast
@@ -101,6 +144,14 @@ libcsdec_result_t libcsdec_finish_edge(const libcsdec_t libcsdec)
 
 
 
+/**
+    Initializes persistent objects for path coverage mode and returns the pointer.
+
+    @param  bitmap_addr                             The bitmap address.
+    @param  bitmap_size                             The size of the bitmap.
+
+    @return                                         The pointer to the object used by libcsdec.
+**/
 libcsdec_t libcsdec_init_path(
     void *bitmap_addr, const int bitmap_size)
 {
@@ -117,6 +168,17 @@ libcsdec_t libcsdec_init_path(
 }
 
 
+/**
+    Resets the deocder to the initial state for path coverage mode. This function should be called before starting a new decode session.
+
+    @param  libcsdec                                The decoding session context.
+    @param  trace_id                                The trace ID.
+    @param  memory_map_num                          The number of the memory map entries.
+    @param  libcsdec_memory_map                     The array of all traced memory map infomation.
+
+    @retval LIBCSDEC_SUCCESS                        Reset succeeded.
+    @retval LIBCSDEC_ERROR                          Reset failed. Invalid memory map.
+**/
 libcsdec_result_t libcsdec_reset_path(
     const libcsdec_t libcsdec,
     const char trace_id, const int memory_map_num,
@@ -144,6 +206,18 @@ libcsdec_result_t libcsdec_reset_path(
 }
 
 
+/**
+    Decodes given trace data and generates the path coverage bitmap. The trace data can be fragment as the deocder can process afterwards using the subsequent trace data.
+
+    @param  libcsdec                                The decoding session context.
+    @param  trace_data_addr                         The trace data address.
+    @param  trace_data_size                         The size of the trace data.
+
+    @retval LIBCSDEC_SUCCESS                        Decode succeeded.
+    @retval LIBCSDEC_ERROR                          Decode failed.
+    @retval LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE    Decode failed due to the trace data is incomplete.
+    @retval LIBCSDEC_ERROR_PAGE_FAULT               Decode failed due to the address does not exist in the memory map.
+**/
 libcsdec_result_t libcsdec_run_path(
     const libcsdec_t libcsdec,
     const void *trace_data_addr, const std::size_t trace_data_size)
@@ -157,6 +231,15 @@ libcsdec_result_t libcsdec_run_path(
 }
 
 
+/**
+    Finalizes the deocding session for the path coverage mode. This function should be called after the end of each decoding session. It checks if the decoder is not in invalid state.
+
+    @param  libcsdec                                The decoding session context.
+
+    @retval LIBCSDEC_SUCCESS                        Finalize succeeded.
+    @retval LIBCSDEC_ERROR                          Finalize failed.
+    @retval LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE    Finalize failed due to the trace data is incomplete.
+**/
 libcsdec_result_t libcsdec_finish_path(const libcsdec_t libcsdec)
 {
     // Cast
