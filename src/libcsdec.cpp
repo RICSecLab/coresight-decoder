@@ -112,7 +112,7 @@ libcsdec_result_t libcsdec_reset_edge(
 **/
 libcsdec_result_t libcsdec_run_edge(
     const libcsdec_t libcsdec,
-    const void *trace_data_addr, const std::size_t trace_data_size)
+    const void *trace_data_addr, const size_t trace_data_size)
 {
     // Cast
     Process *process = reinterpret_cast<Process*>(libcsdec);
@@ -220,7 +220,7 @@ libcsdec_result_t libcsdec_reset_path(
 **/
 libcsdec_result_t libcsdec_run_path(
     const libcsdec_t libcsdec,
-    const void *trace_data_addr, const std::size_t trace_data_size)
+    const void *trace_data_addr, const size_t trace_data_size)
 {
     // Cast
     PathProcess *process = reinterpret_cast<PathProcess*>(libcsdec);
