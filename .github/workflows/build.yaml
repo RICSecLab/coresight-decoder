@@ -1,0 +1,28 @@
+name: coresight-decoder Test
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    env:
+      CC: gcc
+      CXX: g++
+      CAPSTONE_ARCHS: "aarch64"
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential git make wget g++
+      - name: Install Capstone
+        run: |
+          wget https://github.com/aquynh/capstone/archive/4.0.2.tar.gz
+          tar xf 4.0.2.tar.gz
+          cd capstone-4.0.2
+          sudo ./make.sh install
+      - name: Checkout coresight-decoder
+        uses: actions/checkout@v2
+      - name: Build coresight-decoder
+        run: make
+      - name: Test coresight-decoder
+        run: make test

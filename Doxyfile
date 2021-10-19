@@ -1,0 +1,10 @@
+# Doxyfile 1.9.2
+
+DOXYFILE_ENCODING      = UTF-8
+PROJECT_NAME           = "coresight-decoder"
+OUTPUT_LANGUAGE        = English
+INPUT                  = include/libcsdec.h src/libcsdec.cpp
+INPUT_ENCODING         = UTF-8
+GENERATE_LATEX         = NO
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html

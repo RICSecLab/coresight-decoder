@@ -1,3 +1,6 @@
+/** @file
+    libcsdec C wrapper library header.
+**/
 /* SPDX-License-Identifier: Apache-2.0 */
 /* Copyright 2021 Ricerca Security, Inc. All rights reserved. */
 
@@ -10,6 +13,9 @@ extern "C" {
 #include <stdbool.h>
 #include <limits.h>
 
+/**
+    Represents the libcsdec decoder context.
+**/
 typedef void* libcsdec_t;
 
 struct libcsdec_memory_image {
@@ -17,17 +23,24 @@ struct libcsdec_memory_image {
     size_t size;
 };
 
+/**
+    Represents an executable memory mapped region.
+**/
 struct libcsdec_memory_map {
-    unsigned long start;
-    unsigned long end;
+    unsigned long start;    /**< Start address of the memory map. */
+    unsigned long end;      /**< End address of the memory map. */
+    char path[PATH_MAX];    /**< Path to the executable. */
 };
 
+/**
+    Defines libcsdec specific return code.
+**/
 typedef enum libcsdec_result {
-    LIBCSDEC_SUCCESS,
-    LIBCSDEC_ERROR,
-    LIBCSDEC_ERROR_OVERFLOW_PACKET,
-    LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE,
-    LIBCSDEC_ERROR_PAGE_FAULT
+    LIBCSDEC_SUCCESS,                       /**< Suceeded. */
+    LIBCSDEC_ERROR,                         /**< Failed. */
+    LIBCSDEC_ERROR_OVERFLOW_PACKET,         /**< Failed due to the overflow packet exists. */
+    LIBCSDEC_ERROR_TRACE_DATA_INCOMPLETE,   /**< Failed due to the trace data is incomplete. */
+    LIBCSDEC_ERROR_PAGE_FAULT               /**< Failed due to the invalid address. */
 } libcsdec_result_t;
 
 libcsdec_t libcsdec_init_edge(
