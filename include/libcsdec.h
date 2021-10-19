@@ -14,6 +14,7 @@ typedef void* libcsdec_t;
 
 struct libcsdec_memory_image {
     void* data;
+    size_t size;
 };
 
 struct libcsdec_memory_map {

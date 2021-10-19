@@ -30,15 +30,13 @@ libcsdec_t libcsdec_init_edge(void *bitmap_addr, const int bitmap_size,
     checkCapstoneVersion();
 
     std::vector<MemoryImage> memory_images; {
-        for (int i = 0; i < memory_image_num; ++i) {
-            assert(memory_images[i].id == std::size_t(i));
-
+        for (int id = 0; id < memory_image_num; ++id) {
             std::vector<std::uint8_t> data(
-                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[i].data) + 0,
-                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[i].data) + memory_image_num
+                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[id].data) + 0,
+                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[id].data) + libcsdec_memory_image[id].size
             );
             memory_images.emplace_back(
-                MemoryImage(std::move(data), memory_images[i].id)
+                MemoryImage(std::move(data), id)
             );
         }
     }
@@ -120,15 +118,13 @@ libcsdec_t libcsdec_init_path(
     checkCapstoneVersion();
 
     std::vector<MemoryImage> memory_images; {
-        for (int i = 0; i < memory_image_num; ++i) {
-            assert(memory_images[i].id == std::size_t(i));
-
+        for (int id = 0; id < memory_image_num; ++id) {
             std::vector<std::uint8_t> data(
-                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[i].data) + 0,
-                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[i].data) + memory_image_num
+                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[id].data) + 0,
+                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[id].data) + libcsdec_memory_image[id].size
             );
             memory_images.emplace_back(
-                MemoryImage(std::move(data), memory_images[i].id)
+                MemoryImage(std::move(data), id)
             );
         }
     }
