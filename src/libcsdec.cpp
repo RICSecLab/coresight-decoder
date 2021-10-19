@@ -31,6 +31,8 @@ libcsdec_result_t covert_result_type(ProcessResultType result);
 
     @param  bitmap_addr                             The bitmap address.
     @param  bitmap_size                             The size of the bitmap.
+    @param  memory_image_num                        The number of the memory image entries.
+    @param  libcsdec_memory_image                   The array of all traced memory image data.
 
     @return                                         The pointer to the object used by libcsdec.
 **/

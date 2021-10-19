@@ -18,9 +18,12 @@ extern "C" {
 **/
 typedef void* libcsdec_t;
 
+/**
+    Represents an executable memory image.
+**/
 struct libcsdec_memory_image {
-    void* data;
-    size_t size;
+    void* data;     /**< Binary data of the memory image. */
+    size_t size;    /**< Size of the memory image. */
 };
 
 /**
