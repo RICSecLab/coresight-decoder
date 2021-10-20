@@ -78,6 +78,9 @@ fib-test:
 branches-test:
 	make -C $(BRANCHES_TEST) test
 
+format:
+	clang-format -i src/*.cpp include/*.hpp include/*.h tests/*.cpp
+
 clean:
 	rm -rf $(OBJS) $(TARGET) $(LIBTARGET)
 
@@ -85,4 +88,4 @@ dist-clean: clean
 	make -C $(FIB_TEST) clean
 	make -C $(BRANCHES_TEST) clean
 
-.PHONY: all debug test fib-test branches-test clean dist-clean
+.PHONY: all debug test fib-test branches-test format clean dist-clean
