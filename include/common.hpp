@@ -15,67 +15,36 @@
 #include <optional>
 
 using addr_t = std::uint64_t;
-using file_index_t = std::size_t;
+using image_id_t = std::size_t;
 using binary_data_t = std::vector<std::uint8_t>;
 
-struct Location;
 
-
-struct BinaryFile {
-    const std::string path;
+struct MemoryImage {
     const binary_data_t data;
+    const image_id_t id;
 
-    // Disable copy constructor.
-    BinaryFile(const BinaryFile&) = delete;
-    BinaryFile& operator=(const BinaryFile&) = delete;
-
-    BinaryFile(const std::string &path);
+    MemoryImage(std::uint8_t* data, std::size_t data_size, image_id_t id);
+    MemoryImage(binary_data_t &&data, image_id_t id);
 };
-
-// Transparent comparison for BinaryFile.
-bool operator<(const BinaryFile& lhs, const std::string& rhs);
-bool operator<(const std::string& lhs, const BinaryFile& rhs);
-bool operator<(const BinaryFile& lhs, const BinaryFile& rhs);
-
-// Cache for binary files in the area to be traced.
-using BinaryFiles = std::set<BinaryFile, std::less<>>;
-
-// Find a BinaryFile with a matching file path in BinaryFiles.
-// If not found, return nullptr.
-const BinaryFile* getBinaryFilePtr(const BinaryFiles &binary_files, const std::string &path);
-
 
 struct MemoryMap {
-    const BinaryFile *binary_file;
     const addr_t start_address;
     const addr_t end_address;
+    const image_id_t id;
 
-    MemoryMap(const BinaryFiles &binary_files, const std::string &path,
-        addr_t start_address, addr_t end_address);
-
-    MemoryMap(addr_t start_address, addr_t end_address);
-
-    const std::string getBinaryPath() const;
-    const binary_data_t& getBinaryData() const;
+    MemoryMap(addr_t start_address, addr_t end_address, image_id_t id);
 };
-
-using MemoryMaps = std::vector<MemoryMap>;
-
 
 struct Location {
     addr_t offset;
-    file_index_t index;
+    image_id_t id;
 
     Location() = default;
-    Location(addr_t offset, file_index_t index);
+    Location(addr_t offset, image_id_t id);
 
     bool operator==(const Location &right) const;
 };
 
-// メモリマップを用いて、仮想アドレス（address）から、
-// Location（メモリマップ上のファイルの番号と、そのファイル上のオフセット）を計算する。
-std::optional<Location> getLocation(
-    const std::vector<MemoryMap> &memory_map, addr_t address);
 
 namespace std {
     template <>
@@ -83,3 +52,12 @@ namespace std {
         std::size_t operator()(const Location &key) const;
     };
 }
+
+
+std::optional<image_id_t> getImageId(
+    const std::vector<MemoryMap> &memory_map, const addr_t address);
+
+// Calculate the Location (the number of the memory image and the offset on that image)
+// from the address.
+std::optional<Location> getLocation(
+    const std::vector<MemoryMap> &memory_map, addr_t address);

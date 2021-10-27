@@ -26,20 +26,36 @@
 
 libcsdec_result_t covert_result_type(ProcessResultType result);
 
-
 /**
     Initializes persistent objects for edge coverage mode and returns the pointer.
 
     @param  bitmap_addr                             The bitmap address.
     @param  bitmap_size                             The size of the bitmap.
+    @param  memory_image_num                        The number of the memory image entries.
+    @param  libcsdec_memory_image                   The array of all traced memory image data.
 
     @return                                         The pointer to the object used by libcsdec.
 **/
-libcsdec_t libcsdec_init_edge(void *bitmap_addr, const int bitmap_size)
+libcsdec_t libcsdec_init_edge(void *bitmap_addr, const int bitmap_size,
+    int memory_image_num,
+    const struct libcsdec_memory_image libcsdec_memory_image[])
 {
     checkCapstoneVersion();
 
+    std::vector<MemoryImage> memory_images; {
+        for (int id = 0; id < memory_image_num; ++id) {
+            std::vector<std::uint8_t> data(
+                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[id].data) + 0,
+                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[id].data) + libcsdec_memory_image[id].size
+            );
+            memory_images.emplace_back(
+                MemoryImage(std::move(data), id)
+            );
+        }
+    }
+
     std::unique_ptr<Process> process = std::make_unique<Process>(
+        std::move(memory_images),
         Bitmap(
             reinterpret_cast<std::uint8_t*>(bitmap_addr),
             static_cast<std::size_t>(bitmap_size)
@@ -77,19 +93,15 @@ libcsdec_result_t libcsdec_reset_edge(
     // Cast
     Process *process = reinterpret_cast<Process*>(libcsdec);
 
-    MemoryMaps memory_maps; {
-        for (int i = 0; i < memory_map_num; i++) {
-            const std::string path = std::string(libcsdec_memory_map[i].path);
-
-            // If this binary file has not been loaded yet, load it.
-            if (process->data.binary_files.find(path) == process->data.binary_files.end()) {
-                process->data.binary_files.emplace(path);
-            }
-
-            memory_maps.emplace_back(MemoryMap(
-                process->data.binary_files, path,
-                libcsdec_memory_map[i].start, libcsdec_memory_map[i].end
-            ));
+    std::vector<MemoryMap> memory_maps; {
+        for (int id = 0; id < memory_map_num; id++) {
+            memory_maps.emplace_back(
+                MemoryMap (
+                    libcsdec_memory_map[id].start,
+                    libcsdec_memory_map[id].end,
+                    id
+                )
+            );
         }
     }
 
@@ -153,9 +165,26 @@ libcsdec_result_t libcsdec_finish_edge(const libcsdec_t libcsdec)
     @return                                         The pointer to the object used by libcsdec.
 **/
 libcsdec_t libcsdec_init_path(
-    void *bitmap_addr, const int bitmap_size)
+    void *bitmap_addr, const int bitmap_size,
+    int memory_image_num,
+    const struct libcsdec_memory_image libcsdec_memory_image[])
 {
+    checkCapstoneVersion();
+
+    std::vector<MemoryImage> memory_images; {
+        for (int id = 0; id < memory_image_num; ++id) {
+            std::vector<std::uint8_t> data(
+                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[id].data) + 0,
+                reinterpret_cast<std::uint8_t*>(libcsdec_memory_image[id].data) + libcsdec_memory_image[id].size
+            );
+            memory_images.emplace_back(
+                MemoryImage(std::move(data), id)
+            );
+        }
+    }
+
     std::unique_ptr<PathProcess> process = std::make_unique<PathProcess>(
+        std::move(memory_images),
         Bitmap(
             reinterpret_cast<std::uint8_t*>(bitmap_addr),
             static_cast<std::size_t>(bitmap_size)
@@ -192,12 +221,15 @@ libcsdec_result_t libcsdec_reset_path(
     // Cast
     PathProcess *process = reinterpret_cast<PathProcess*>(libcsdec);
 
-    MemoryMaps memory_maps; {
-        for (int i = 0; i < memory_map_num; i++) {
-            const std::string path = std::string(libcsdec_memory_map[i].path);
-            memory_maps.emplace_back(MemoryMap(
-                libcsdec_memory_map[i].start, libcsdec_memory_map[i].end
-            ));
+    std::vector<MemoryMap> memory_maps; {
+        for (int id = 0; id < memory_map_num; id++) {
+            memory_maps.emplace_back(
+                MemoryMap (
+                    libcsdec_memory_map[id].start,
+                    libcsdec_memory_map[id].end,
+                    id
+                )
+            );
         }
     }
 

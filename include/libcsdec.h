@@ -19,6 +19,14 @@ extern "C" {
 typedef void* libcsdec_t;
 
 /**
+    Represents an executable memory image.
+**/
+struct libcsdec_memory_image {
+    void* data;     /**< Binary data of the memory image. */
+    size_t size;    /**< Size of the memory image. */
+};
+
+/**
     Represents an executable memory mapped region.
 **/
 struct libcsdec_memory_map {
@@ -39,7 +47,9 @@ typedef enum libcsdec_result {
 } libcsdec_result_t;
 
 libcsdec_t libcsdec_init_edge(
-    void *bitmap_addr, int bitmap_size);
+    void *bitmap_addr, int bitmap_size,
+    int memory_image_num,
+    const struct libcsdec_memory_image libcsdec_memory_image[]);
 
 libcsdec_result_t libcsdec_reset_edge(
     const libcsdec_t libcsdec,
@@ -54,7 +64,9 @@ libcsdec_result_t libcsdec_finish_edge(const libcsdec_t libcsdec);
 
 
 libcsdec_t libcsdec_init_path(
-    void *bitmap_addr, int bitmap_size);
+    void *bitmap_addr, int bitmap_size,
+    int memory_image_num,
+    const struct libcsdec_memory_image libcsdec_memory_image[]);
 
 libcsdec_result_t libcsdec_reset_path(
     const libcsdec_t libcsdec,

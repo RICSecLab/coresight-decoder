@@ -51,10 +51,10 @@ void AtomTrace::printTraceLocations(const std::vector<MemoryMap> &memory_map) co
         const Location next_location = this->locations[i + 1];
 
         std::cout << std::hex << "0x" << prev_location.offset << " ["
-                  << memory_map[prev_location.index].getBinaryPath() << "]";
+                  << memory_map[prev_location.id].id << "]";
         std::cout << " -> ";
         std::cout << std::hex << "0x" << next_location.offset << " ["
-                  << memory_map[next_location.index].getBinaryPath() << "]";
+                  << memory_map[next_location.id].id << "]";
         std::cout << std::endl;
     }
 }
@@ -84,9 +84,9 @@ void AddressTrace::printTraceLocation(const std::vector<MemoryMap> &memory_map) 
     const Location next_location = this->dest_location;
 
     std::cout << std::hex << "0x" << prev_location.offset << " ["
-              << memory_map[prev_location.index].getBinaryPath() << "]";
+              << memory_map[prev_location.id].id << "]";
     std::cout << " -> ";
     std::cout << std::hex << "0x" << next_location.offset << " ["
-              << memory_map[next_location.index].getBinaryPath() << "]";
+              << memory_map[next_location.id].id << "]";
     std::cout << std::endl;
 }

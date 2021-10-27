@@ -8,62 +8,38 @@
 #include "utils.hpp"
 
 
-BinaryFile::BinaryFile(const std::string &path)
-    : path(path), data(std::move(readBinaryFile(path))) {}
+MemoryImage::MemoryImage(std::uint8_t* data, std::size_t data_size, image_id_t id)
+    : data(std::vector<std::uint8_t>(data + 0, data + data_size)), id(id) {}
 
-bool operator<(const BinaryFile& lhs, const std::string& rhs)
-{
-    return lhs.path < rhs;
+MemoryImage::MemoryImage(binary_data_t &&data, image_id_t id)
+    : data(std::move(data)), id(id) {}
+
+MemoryMap::MemoryMap(addr_t start_address, addr_t end_address, image_id_t id)
+    : start_address(start_address), end_address(end_address), id(id) {}
+
+Location::Location(addr_t offset, image_id_t id)
+    : offset(offset), id(id) {}
+
+
+bool Location::operator==(const Location &right) const {
+    return offset == right.offset and id == right.id;
 }
 
-bool operator<(const std::string& lhs, const BinaryFile& rhs)
+std::size_t std::hash<Location>::operator()(const Location &key) const
 {
-    return lhs < rhs.path;
-}
+    const addr_t h1 = std::hash<addr_t>()(key.offset);
+    const std::size_t h2 = std::hash<std::size_t>()(key.id);
 
-bool operator<(const BinaryFile& lhs, const BinaryFile& rhs)
-{
-    return lhs.path < rhs.path;
-}
-
-const BinaryFile* getBinaryFilePtr(const BinaryFiles &binary_files, const std::string &path)
-{
-    const auto itr = binary_files.find(path);
-    if (itr != binary_files.end()) {
-        return &*itr;
-    } else {
-        return nullptr;
-    }
+    return h1 ^ h2;
 }
 
 
-MemoryMap::MemoryMap(const BinaryFiles &binary_files, const std::string &path,
-    addr_t start_address, addr_t end_address)
-    : binary_file(getBinaryFilePtr(binary_files, path)),
-      start_address(start_address), end_address(end_address) {}
-
-MemoryMap::MemoryMap(addr_t start_address, addr_t end_address)
-    : binary_file(nullptr),
-      start_address(start_address), end_address(end_address) {}
-
-const std::string MemoryMap::getBinaryPath() const
+std::optional<image_id_t> getImageId(
+    const std::vector<MemoryMap> &memory_maps, const addr_t address)
 {
-    assert(this->binary_file != nullptr);
-    return this->binary_file->path;
-}
-
-const binary_data_t& MemoryMap::getBinaryData() const
-{
-    assert(this->binary_file != nullptr);
-    return this->binary_file->data;
-}
-
-std::optional<file_index_t> getMemoryMapIndex(
-    const std::vector<MemoryMap> &memory_map, const addr_t address)
-{
-    for (size_t i = 0; i < memory_map.size(); i++) {
-        if (memory_map[i].start_address <= address and address < memory_map[i].end_address) {
-            return i;
+    for (size_t i = 0; i < memory_maps.size(); i++) {
+        if (memory_maps[i].start_address <= address and address < memory_maps[i].end_address) {
+            return memory_maps[i].id;
         }
     }
 
@@ -71,39 +47,16 @@ std::optional<file_index_t> getMemoryMapIndex(
     return std::nullopt;
 }
 
-bool checkTraceRange(const MemoryMaps &memory_map, const Location &location)
+std::optional<Location> getLocation(const std::vector<MemoryMap> &memory_maps, const addr_t address)
 {
-    return memory_map[location.index].binary_file != nullptr;
-}
-
-
-Location::Location(addr_t offset, file_index_t index)
-    : offset(offset), index(index) {}
-
-bool Location::operator==(const Location &right) const {
-    return offset == right.offset and index == right.index;
-}
-
-std::optional<Location> getLocation(const std::vector<MemoryMap> &memory_map, const addr_t address)
-{
-    // 指定されたアドレスがメモリマップ上に存在するから調べる。
-    // ない場合、その領域はトレースする必要がない。
-    std::optional<file_index_t> optional = getMemoryMapIndex(memory_map, address);
+    // Checks if the specified address exists on the memory map.
+    std::optional<image_id_t> optional = getImageId(memory_maps, address);
     if (not optional.has_value()) {
         return std::nullopt;
     }
 
-    const file_index_t index = optional.value();
-    const addr_t offset = address - memory_map[index].start_address;
+    const image_id_t id = optional.value();
+    const addr_t offset = address - memory_maps[id].start_address;
 
-    return Location(offset, index);
-}
-
-
-std::size_t std::hash<Location>::operator()(const Location &key) const
-{
-    const addr_t h1 = std::hash<addr_t>()(key.offset);
-    const std::size_t h2 = std::hash<std::size_t>()(key.index);
-
-    return h1 ^ h2;
+    return Location(offset, id);
 }

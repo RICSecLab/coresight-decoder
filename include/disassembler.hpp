@@ -23,11 +23,11 @@ struct BranchInsn {
     addr_t taken_offset;
     addr_t not_taken_offset;
 
-    size_t index;
+    image_id_t id;
 };
 
 
 void disassembleInit(csh* handle);
 void disassembleDelete(csh* handle);
-BranchInsn getNextBranchInsn(const csh &handle, const Location &location, const std::vector<MemoryMap> &memory_map);
+BranchInsn getNextBranchInsn(const csh &handle, const Location &location, const std::vector<MemoryImage> &memory_images);
 void checkCapstoneVersion();
