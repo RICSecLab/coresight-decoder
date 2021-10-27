@@ -48,7 +48,8 @@ typedef enum libcsdec_result {
 
 libcsdec_t libcsdec_init_edge(
     void *bitmap_addr, int bitmap_size,
-    int memory_image_num, libcsdec_memory_image libcsdec_memory_image[]);
+    int memory_image_num,
+    const struct libcsdec_memory_image libcsdec_memory_image[]);
 
 libcsdec_result_t libcsdec_reset_edge(
     const libcsdec_t libcsdec,
