@@ -396,7 +396,7 @@ ProcessResultType PathProcess::run(
                     case ETM4_PKT_I_ATOM_F5:
                     case ETM4_PKT_I_ATOM_F6: {
                         // Convert EN bits to binary string
-                        std::size_t size = std::min(packet.en_bits_len, MAX_ADDRESS_LEN - this->ctx_en_bits_len);
+                        std::size_t size = std::min(packet.en_bits_len, MAX_ATOM_LEN - this->ctx_en_bits_len);
                         for (std::size_t i = 0; i < size; ++i) {
                             this->ctx_en_bits += (packet.en_bits & (1 << i)) ? '1' : '0';
                         }
