@@ -29,6 +29,7 @@ int main(int argc, char const *argv[])
                   << "OPTIONS:" << std::endl
                   << "\t--bitmap-size=size     : Specify the bitmap size in hexadecimal. The default size is 0x10000." << std::endl
                   << "\t--bitmap-filename=name : Specify the file name to save the bitmap. The default name is edge_coverage_bitmap.out" << std::endl
+                  << "\t--bitmap-type={edge,path} : Specify the coverage type. The default type is edge." << std::endl
                   << std::endl;
         std::exit(1);
     }
@@ -53,6 +54,7 @@ int main(int argc, char const *argv[])
     // Read options
     uint64_t bitmap_size = BITMAP_SIZE;
     std::string bitmap_filename = BITMAP_FILENAME;
+    std::string bitmap_type = "edge";
     std::vector<std::string> trace_binary_filenames;
     for (int i = binary_file_num * 3 + 4; i < argc; ++i) {
         size_t size;
@@ -62,6 +64,8 @@ int main(int argc, char const *argv[])
             bitmap_size = size;
         } else if (sscanf(argv[i], "--bitmap-filename=%s", buf) == 1) {
             bitmap_filename = std::string(buf);
+        } else if (sscanf(argv[i], "--bitmap-type=%s", buf) == 1) {
+            bitmap_type = std::string(buf);
         } else {
             std::cerr << "Invalid option: " << argv[i] << std::endl;
             std::exit(1);
@@ -96,29 +100,44 @@ int main(int argc, char const *argv[])
     // Create bitmap area
     std::vector<uint8_t> bitmap(bitmap_size);
 
-    Process process(
-        std::move(memory_images),
-        Bitmap(bitmap.data(), bitmap_size),
-        Cache()
-    );
-
     // Read trace data
     const std::vector<uint8_t> trace_data = readBinaryFile(trace_data_filename);
 
-    // Calculate edge coverage from trace data and binary data
-    process.reset(std::move(memory_maps), trace_id);
+    ProcessResultType run_result = ProcessResultType::PROCESS_SUCCESS;
+    ProcessResultType result = ProcessResultType::PROCESS_SUCCESS;
+    if (bitmap_type == "edge") {
+        Process process(
+            std::move(memory_images),
+            Bitmap(bitmap.data(), bitmap_size),
+            Cache()
+        );
+        process.reset(std::move(memory_maps), trace_id);
 
-    ProcessResultType run_result = process.run(
-        trace_data.data(), trace_data.size()
-    );
+        // Calculate edge coverage from trace data and binary data
+        run_result = process.run(trace_data.data(), trace_data.size());
+        result = process.final();
+    } else if (bitmap_type == "path") {
+        PathProcess process(
+            std::move(memory_images),
+            Bitmap(bitmap.data(), bitmap_size)
+        );
+        process.reset(std::move(memory_maps), trace_id);
+
+        // Calculate edge coverage from trace data and binary data
+        run_result = process.run(trace_data.data(), trace_data.size());
+        result = process.final();
+    } else {
+        std::cerr << "Invalid bitmap type: " << bitmap_type << std::endl;
+        std::exit(1);
+    }
+
     if (run_result != ProcessResultType::PROCESS_SUCCESS) {
         std::cerr << "Failed to run process()." << std::endl;
         std::exit(1);
     }
 
-    ProcessResultType result = process.final();
     if (result != ProcessResultType::PROCESS_SUCCESS) {
-        std::cerr << "Failed to run process()." << std::endl;
+        std::cerr << "Failed to run final()." << std::endl;
         std::exit(1);
     }
 
