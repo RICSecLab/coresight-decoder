@@ -8,18 +8,15 @@
 #define BITMAP_SIZE 0x10000
 #define BITMAP_FILENAME "edge_coverage_bitmap.out"
 
+struct Bitmap {
+  std::uint8_t *const data;
+  const std::size_t size;
 
-struct Bitmap
-{
-    // Bitmapを書き込むためのアドレス
-    std::uint8_t* const data;
-    // Bitmapのサイズ
-    const std::size_t size;
+  Bitmap(std::uint8_t *data, std::size_t size);
 
-    Bitmap(uint8_t* data, std::size_t size);
-
-    void reset() const;
+  void reset() const;
 };
 
-std::uint64_t generateBitmapKey(const Location& from_location, const Location& to_location,
-    std::size_t bitmap_size);
+std::uint64_t generateBitmapKey(const Location &from_location,
+                                const Location &to_location,
+                                std::size_t bitmap_size);

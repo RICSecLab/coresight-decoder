@@ -3,31 +3,31 @@
 
 #pragma once
 
-#include <capstone/platform.h>
 #include <capstone/capstone.h>
+#include <capstone/platform.h>
 
 #include "common.hpp"
 
-enum BranchType {
-    DIRECT_BRANCH,
-    INDIRECT_BRANCH,
-    ISB_BRANCH,
-    NOT_BRANCH,
+enum class BranchType {
+  DIRECT_BRANCH,
+  INDIRECT_BRANCH,
+  ISB_BRANCH,
+  NOT_BRANCH,
 };
 
 struct BranchInsn {
-    BranchType type;
+  BranchType type;
 
-    addr_t offset;
+  addr_t offset;
 
-    addr_t taken_offset;
-    addr_t not_taken_offset;
+  addr_t taken_offset;
+  addr_t not_taken_offset;
 
-    image_id_t id;
+  image_id_t id;
 };
 
-
-void disassembleInit(csh* handle);
-void disassembleDelete(csh* handle);
-BranchInsn getNextBranchInsn(const csh &handle, const Location &location, const std::vector<MemoryImage> &memory_images);
+void disassembleInit(csh *handle);
+void disassembleDelete(csh *handle);
+BranchInsn getNextBranchInsn(const csh &handle, const Location &location,
+                             const std::vector<MemoryImage> &memory_images);
 void checkCapstoneVersion();
