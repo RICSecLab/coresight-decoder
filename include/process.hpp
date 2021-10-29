@@ -19,21 +19,13 @@ enum class ProcessResultType {
     PROCESS_ERROR_PAGE_FAULT,
 };
 
-
-// デコード処理に永続的に使われるデータ
 struct ProcessData {
-    // トレースする領域のバイナリファイルを保存
     std::vector<MemoryImage> memory_images;
 
-    // エッジカバレッジの計算結果を書き出すための
-    // bitmapのアドレスとサイズ
     const Bitmap bitmap;
-
-    // ディスアセンブル結果とトレースデータのデコード結果をキャッシュし、
-    // 将来のデコード時に使えるようにすることで、実行速度を高速化している。
     Cache cache;
 
-    // Capstoneにアクセスするためのハンドラ
+    // Handler for accessing Capstone
     csh handle;
 
     // Disable copy constructor.

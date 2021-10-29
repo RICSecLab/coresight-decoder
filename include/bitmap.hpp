@@ -11,9 +11,9 @@
 
 struct Bitmap
 {
-    // Bitmapを書き込むためのアドレス
+    // Address for writing the bitmap
     std::uint8_t* const data;
-    // Bitmapのサイズ
+    // Size of the bitmap
     const std::size_t size;
 
     Bitmap(uint8_t* data, std::size_t size);
