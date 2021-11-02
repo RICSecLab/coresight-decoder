@@ -18,10 +18,8 @@ void AtomTrace::addLocation(const Location &location)
     this->locations.emplace_back(location);
 }
 
-// ELFファイル上のオフセットとして記録してあるエッジカバレッジから、bitmapを計算する。
 void AtomTrace::calculateBitmapKeys(const std::size_t bitmap_size)
 {
-    // Direct Branchのトレースから、bitmapキーを作成する
     for (std::size_t i = 0, len = this->locations.size() - 1; i < len; ++i) {
         const Location from_location = this->locations[i];
         const Location to_location   = this->locations[i + 1];
@@ -32,9 +30,7 @@ void AtomTrace::calculateBitmapKeys(const std::size_t bitmap_size)
 
 void AtomTrace::writeBitmapKeys(const Bitmap &bitmap) const
 {
-    // Direct branchのbitmapをコピーする
     for (const std::uint64_t key : this->bitmap_keys) {
-        // bitmapのキーの値から、対応する位置の値を増やす。
         bitmap.data[key]++;
     }
 }
@@ -63,7 +59,6 @@ void AtomTrace::printTraceLocations(const std::vector<MemoryMap> &memory_map) co
 AddressTrace::AddressTrace(const Location &src_location, const Location &dest_location)
     : src_location(src_location), dest_location(dest_location), bitmap_key(0) {}
 
-// ELFファイル上のオフセットとして記録してあるエッジカバレッジから、bitmapを計算する。
 void AddressTrace::calculateBitmapKey(const std::size_t bitmap_size)
 {
     const Location from_location = this->src_location;
@@ -74,7 +69,6 @@ void AddressTrace::calculateBitmapKey(const std::size_t bitmap_size)
 
 void AddressTrace::writeBitmapKey(const Bitmap &bitmap) const
 {
-    // Indirect branchのbitmapをコピーする
     bitmap.data[this->bitmap_key]++;
 }
 

@@ -21,8 +21,9 @@ uint64_t getAddressFromInsn(const cs_insn *insn);
 BranchType decodeInstOpecode(const cs_insn *insn);
 
 
-// Arm Embedded Trace Macrocell Architecture Specification ETMv4.0 to ETMv4.6
-// F.1 Branch instructionsを参考に、必要になる分岐命令を選ぶ。
+// According to the Arm Embedded Trace Macrocell Architecture Specification ETMv4.0 to ETMv4.6
+// F.1 Branch instructions, a list of branch instructions is as follows. Currently, some
+// instructions are not supported.
 //
 // A64 instruction set, direct branches:
 //     - B
@@ -31,18 +32,12 @@ BranchType decodeInstOpecode(const cs_insn *insn);
 //     - TBZ/BNZ
 //     - BL
 //     - ISB
-// ※WFI, WFEはThunderX2のTRCIDR2.WFXMODEが0なので、分岐命令に分類されない。
-//
 //
 // A64 instruction set, indirect branches:
 //     - RET
 //     - BR
 //     - BLR
-// ※ERETはユーザ空間のプログラムでは呼ばれないため、とりあえず外している。
-// ※ERETAA/ERETAB, RETAA/RETAB, BRAA/BRAB, BRAAZ/BRABZ, BLRAA/BLRAB, BLRAAZ/BLRABZは
-// ThunderX2がポインタ認証未対応のため、外している。
 //
-// 参考: https://www.mztn.org/dragon/arm6408cond.html
 
 static const uint16_t direct_branch_opcode[] = {
     // unconditional direct branch
@@ -82,22 +77,17 @@ void disassembleDelete(csh* handle)
     cs_close(handle);
 }
 
-// base_address以降のアドレスで、最も近い分岐命令を探す
 BranchInsn getNextBranchInsn(const csh &handle, const Location &location, const std::vector<MemoryImage> &memory_images)
 {
+    // Find the first branch instruction after the address indicated by location.
     cs_insn *insn = disassembleNextBranchInsn(&handle,
         memory_images[location.id].data, location.offset);
 
     const BranchType type = decodeInstOpecode(insn);
-
     const addr_t offset  = insn->address;
 
-    // 分岐命令のtaken時に、分岐先のアドレスを計算する
     const addr_t taken_offset  = (type == DIRECT_BRANCH) ? getAddressFromInsn(insn) :
                                  (type == ISB_BRANCH) ? insn->address + insn->size : 0;
-
-    // Conditonal branchのとき、分岐命令でnot takenがある。
-    // それ以外の場合、分岐命令でnot takenの場合はない。
     const addr_t not_taken_offset  = (type == DIRECT_BRANCH) ? offset + insn->size : 0;
 
     const BranchInsn branch_insn {
@@ -158,13 +148,13 @@ cs_insn* disassembleNextBranchInsn(const csh* handle, const std::vector<uint8_t>
 
 uint64_t getAddressFromInsn(const cs_insn *insn)
 {
-    // insn->op_strに命令のオペランドが格納されている。
-    // op_strのフォーマットは分岐命令の種類によって異なる。
-    //     ex) blやb.ne命令のop_str  -> #0x1b40
-    //     ex) cbzやcbnz命令のop_str -> x0, #0x1c08
-    //     ex) tbzやtbnz命令のop_str -> w24, #0x1d, #0xb01c
-    // 一番最後の'#'のインデックスを求めて、その後ろを16進数のアドレスとして読みとる。
+    // The operand of the instruction is stored in insn->op_str.
+    // The format of op_str varies depending on the type of branch instruction.
+    //     - In the case of bl and b.ne instructions, op_str is "#0x1b40".
+    //     - In the case of cbz and cbnz instructions, op_str is "x0, #0x1c08".
+    //     - In the case of tbz and tbnz instructions, op_str is "w24, #0x1d, #0xb01c"
 
+    // Find the index of the last '#' and read the end of it as a hexadecimal address.
     size_t address_index = std::strlen(insn->op_str) - 1;
     while (insn->op_str[address_index] != '#') {
         address_index--;
@@ -198,8 +188,8 @@ BranchType decodeInstOpecode(const cs_insn *insn)
     return NOT_BRANCH;
 }
 
-// Capstoneライブラリのバージョンを確認する。
-// 古いバージョンにはバグがあり、tag:v4.0以降では解決されている。
+// Check the version of the Capstone library.
+// There is a bug in older versions, which has been resolved in tag:v4.0 and later.
 // https://github.com/aquynh/capstone/pull/1213
 void checkCapstoneVersion() {
     int major = 0, minor = 0;

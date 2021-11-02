@@ -22,14 +22,6 @@ std::size_t std::hash<TraceKey>::operator()(const TraceKey &key) const {
     return h1 ^ h2 ^ h3;
 }
 
-
-// 一度ディスアセンブルした分岐命令をキャッシュする。
-// keyが示す命令から一番近い分岐命令の情報をキャッシュしている。
-// key:
-//     - バイナリファイル内のオフセット
-//     - バイナリファイルのインデックス
-// value:
-//     - BranchInsn
 BranchInsn Cache::getBranchInsnCache(const Location &key) const
 {
     return this->branch_insn_cache.at(key);
@@ -45,14 +37,6 @@ bool Cache::isCachedBranchInsn(const Location &key) const
     return this->branch_insn_cache.count(key) > 0;
 }
 
-
-// 一度デコードしたAtom Packetのトレース情報をキャッシュする。
-// key:
-//     - バイナリファイル内のオフセット
-//     - バイナリファイルのインデックス
-//     - トレースデータのAtomパケットの情報
-// value:
-//     - AtomTrace
 AtomTrace Cache::getTraceCache(const TraceKey &key) const
 {
     return this->trace_cache.at(key);

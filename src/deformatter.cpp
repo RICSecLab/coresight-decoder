@@ -7,13 +7,9 @@
 #include "deformatter.hpp"
 
 
-// フォーマッタはトレースIDをトレースデータに埋め込むために使用される。
-// そのため、フォーマッタに従い、指定されたトレースIDのトレースデータのみを
-// 取り出す必要がある。
-//
-// 参考: ARM CoreSight Architecture Specification v3.0 - Chapter D4 Trace Formatter
+// Extract only the trace data corresponding to the specified trace ID.
+// Reference: ARM CoreSight Architecture Specification v3.0 - Chapter D4 Trace Formatter
 // https://developer.arm.com/documentation/ihi0029/e
-
 void Deformatter::deformatTraceData(
     const std::uint8_t *data, const std::size_t data_size,
     std::vector<std::uint8_t> &deformat_data)
