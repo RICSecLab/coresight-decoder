@@ -365,6 +365,50 @@ BranchInsn Process::processNextBranchInsn(const Location &base_location)
     return insn;
 }
 
+// SDBM Hash Function ref: http://www.cse.yorku.ca/~oz/hash.html
+std::uint64_t hashBuffer(std::uint64_t hash, char *buf, std::size_t size)
+{
+    for (std::size_t i = 0; i < size; i++) {
+        hash = (std::uint64_t)buf[i] + (hash << 6) + (hash << 16) - hash;
+    }
+    return hash;
+}
+
+std::uint64_t hashString(std::uint64_t hash, std::string &str)
+{
+    return hashBuffer(hash, (char *)str.c_str(), str.size());
+}
+
+std::uint64_t hashLocation(std::uint64_t hash, const Location &loc)
+{
+    hash = hashBuffer(hash, (char *)&loc.offset, sizeof(loc.offset));
+    hash = hashBuffer(hash, (char *)&loc.id, sizeof(loc.id));
+    return hash;
+}
+
+// XXX: In the PTrix paper, the Algorithm 2 is used to map hash values to
+// index so that they are mapped into [0, bitmap_size) with uniform
+// distribution. However, this algorithm is NOT implemented in their source
+// code. Instead, the mapping is done by referring the random value map or
+// just masking like:
+//
+// ```
+// return ((u32)val) & ((u32)(val>>32)) & BIT_RANGE;
+// ```
+//
+// It's hard to determine what the implementation should be, but mapping
+// hashes to index values with uniform distribution is most important.
+// Therefore, we use xorshift64 pseudorandom number generator.
+std::uint64_t mapHash(std::uint64_t hash, std::size_t bitmap_size)
+{
+    std::uint64_t x = hash;
+    x ^= x << 13;
+    x ^= x >> 7;
+    x ^= x << 17;
+
+    // Assuming bitmap_size is power of 2.
+    return x & (bitmap_size - 1);
+}
 
 ProcessResultType PathProcess::run(
     const std::uint8_t* trace_data_addr, const std::size_t trace_data_size)
@@ -396,7 +440,7 @@ ProcessResultType PathProcess::run(
                     case ETM4_PKT_I_ATOM_F5:
                     case ETM4_PKT_I_ATOM_F6: {
                         // Convert EN bits to binary string
-                        std::size_t size = std::min(packet.en_bits_len, MAX_ADDRESS_LEN - this->ctx_en_bits_len);
+                        std::size_t size = std::min(packet.en_bits_len, MAX_ATOM_LEN - this->ctx_en_bits_len);
                         for (std::size_t i = 0; i < size; ++i) {
                             this->ctx_en_bits += (packet.en_bits & (1 << i)) ? '1' : '0';
                         }
@@ -418,25 +462,26 @@ ProcessResultType PathProcess::run(
                         // ATOMのEN列でhashを更新
                         if (this->ctx_en_bits_len != 0) {
                             DEBUG("Update hash by EN bits: %s\n", this->ctx_en_bits.c_str());
-                            this->ctx_hash ^= std::hash<std::string>()(ctx_en_bits);
+                            this->ctx_hash = hashString(this->ctx_hash, ctx_en_bits);
                             this->ctx_en_bits = "";
                             this->ctx_en_bits_len = 0;
                         }
 
                         // Addressでhashを更新
                         DEBUG("Update hash by Address: (%ld, 0x%lx)\n", target_location.id, target_location.offset);
-                        this->ctx_hash ^= std::hash<Location>()(target_location);
-                        this->ctx_address_cnt++;
+                        this->ctx_hash = hashLocation(this->ctx_hash, target_location);
 
-                        if (this->ctx_address_cnt >= MAX_ADDRESS_LEN) {
-                            // bitmapのindexを計算する
-                            std::size_t index = this->ctx_hash & (this->bitmap.size - 1);
-                            // bitmapを更新する
-                            this->bitmap.data[index]++;
+                        // XXX: We experimentally found that updating the bitmap
+                        // only when the address count hits MAX_ADDRESS_LEN
+                        // does not increase coverage. We modified the algorithm
+                        // to update the bitmap every Address packet processing.
+                        // bitmapのindexを計算する
+                        std::size_t index = mapHash(this->ctx_hash, this->bitmap.size);
+                        // bitmapを更新する
+                        this->bitmap.data[index]++;
 
-                            this->ctx_address_cnt = 0;
-                            this->ctx_hash = 0;
-                        }
+                        // Reset hash
+                        this->ctx_hash = 0;
                         break;
                     }
 
@@ -504,7 +549,6 @@ void PathProcess::reset(std::vector<MemoryMap> &&memory_maps, std::uint8_t targe
 
     this->ctx_en_bits = "";
     this->ctx_en_bits_len = 0;
-    this->ctx_address_cnt = 0;
     this->ctx_hash = 0;
 }
 
