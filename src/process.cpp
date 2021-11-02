@@ -365,6 +365,26 @@ BranchInsn Process::processNextBranchInsn(const Location &base_location)
     return insn;
 }
 
+// SDBM Hash Function ref: http://www.cse.yorku.ca/~oz/hash.html
+std::uint64_t hashBuffer(std::uint64_t hash, char *buf, std::size_t size)
+{
+    for (std::size_t i = 0; i < size; i++) {
+        hash = (std::uint64_t)buf[i] + (hash << 6) + (hash << 16) - hash;
+    }
+    return hash;
+}
+
+std::uint64_t hashString(std::uint64_t hash, std::string &str)
+{
+    return hashBuffer(hash, (char *)str.c_str(), str.size());
+}
+
+std::uint64_t hashLocation(std::uint64_t hash, const Location &loc)
+{
+    hash = hashBuffer(hash, (char *)&loc.offset, sizeof(loc.offset));
+    hash = hashBuffer(hash, (char *)&loc.id, sizeof(loc.id));
+    return hash;
+}
 
 ProcessResultType PathProcess::run(
     const std::uint8_t* trace_data_addr, const std::size_t trace_data_size)
@@ -418,14 +438,14 @@ ProcessResultType PathProcess::run(
                         // ATOMのEN列でhashを更新
                         if (this->ctx_en_bits_len != 0) {
                             DEBUG("Update hash by EN bits: %s\n", this->ctx_en_bits.c_str());
-                            this->ctx_hash ^= std::hash<std::string>()(ctx_en_bits);
+                            this->ctx_hash = hashString(this->ctx_hash, ctx_en_bits);
                             this->ctx_en_bits = "";
                             this->ctx_en_bits_len = 0;
                         }
 
                         // Addressでhashを更新
                         DEBUG("Update hash by Address: (%ld, 0x%lx)\n", target_location.id, target_location.offset);
-                        this->ctx_hash ^= std::hash<Location>()(target_location);
+                        this->ctx_hash = hashLocation(this->ctx_hash, target_location);
                         this->ctx_address_cnt++;
 
                         if (this->ctx_address_cnt >= MAX_ADDRESS_LEN) {
