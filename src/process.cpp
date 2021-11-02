@@ -386,6 +386,30 @@ std::uint64_t hashLocation(std::uint64_t hash, const Location &loc)
     return hash;
 }
 
+// XXX: In the PTrix paper, the Algorithm 2 is used to map hash values to
+// index so that they are mapped into [0, bitmap_size) with uniform
+// distribution. However, this algorithm is NOT implemented in their source
+// code. Instead, the mapping is done by referring the random value map or
+// just masking like:
+//
+// ```
+// return ((u32)val) & ((u32)(val>>32)) & BIT_RANGE;
+// ```
+//
+// It's hard to determine what the implementation should be, but mapping
+// hashes to index values with uniform distribution is most important.
+// Therefore, we use xorshift64 pseudorandom number generator.
+std::uint64_t mapHash(std::uint64_t hash, std::size_t bitmap_size)
+{
+    std::uint64_t x = hash;
+    x ^= x << 13;
+    x ^= x >> 7;
+    x ^= x << 17;
+
+    // Assuming bitmap_size is power of 2.
+    return x & (bitmap_size - 1);
+}
+
 ProcessResultType PathProcess::run(
     const std::uint8_t* trace_data_addr, const std::size_t trace_data_size)
 {
@@ -450,7 +474,7 @@ ProcessResultType PathProcess::run(
 
                         if (this->ctx_address_cnt >= MAX_ADDRESS_LEN) {
                             // bitmapのindexを計算する
-                            std::size_t index = this->ctx_hash & (this->bitmap.size - 1);
+                            std::size_t index = mapHash(this->ctx_hash, this->bitmap.size);
                             // bitmapを更新する
                             this->bitmap.data[index]++;
 
