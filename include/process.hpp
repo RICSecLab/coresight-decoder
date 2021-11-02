@@ -109,7 +109,6 @@ struct PathProcess {
 
     std::string ctx_en_bits;
     std::size_t ctx_en_bits_len;
-    std::size_t ctx_address_cnt;
     std::uint64_t ctx_hash;
 
     PathProcess(std::vector<MemoryImage> &&memory_images, const Bitmap &bitmap)

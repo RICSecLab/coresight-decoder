@@ -470,7 +470,6 @@ ProcessResultType PathProcess::run(
                         // Addressでhashを更新
                         DEBUG("Update hash by Address: (%ld, 0x%lx)\n", target_location.id, target_location.offset);
                         this->ctx_hash = hashLocation(this->ctx_hash, target_location);
-                        this->ctx_address_cnt++;
 
                         // XXX: We experimentally found that updating the bitmap
                         // only when the address count hits MAX_ADDRESS_LEN
@@ -481,10 +480,8 @@ ProcessResultType PathProcess::run(
                         // bitmapを更新する
                         this->bitmap.data[index]++;
 
-                        if (this->ctx_address_cnt >= MAX_ADDRESS_LEN) {
-                            this->ctx_address_cnt = 0;
-                            this->ctx_hash = 0;
-                        }
+                        // Reset hash
+                        this->ctx_hash = 0;
                         break;
                     }
 
@@ -552,7 +549,6 @@ void PathProcess::reset(std::vector<MemoryMap> &&memory_maps, std::uint8_t targe
 
     this->ctx_en_bits = "";
     this->ctx_en_bits_len = 0;
-    this->ctx_address_cnt = 0;
     this->ctx_hash = 0;
 }
 
