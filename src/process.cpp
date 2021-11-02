@@ -472,12 +472,16 @@ ProcessResultType PathProcess::run(
                         this->ctx_hash = hashLocation(this->ctx_hash, target_location);
                         this->ctx_address_cnt++;
 
-                        if (this->ctx_address_cnt >= MAX_ADDRESS_LEN) {
-                            // bitmapのindexを計算する
-                            std::size_t index = mapHash(this->ctx_hash, this->bitmap.size);
-                            // bitmapを更新する
-                            this->bitmap.data[index]++;
+                        // XXX: We experimentally found that updating the bitmap
+                        // only when the address count hits MAX_ADDRESS_LEN
+                        // does not increase coverage. We modified the algorithm
+                        // to update the bitmap every Address packet processing.
+                        // bitmapのindexを計算する
+                        std::size_t index = mapHash(this->ctx_hash, this->bitmap.size);
+                        // bitmapを更新する
+                        this->bitmap.data[index]++;
 
+                        if (this->ctx_address_cnt >= MAX_ADDRESS_LEN) {
                             this->ctx_address_cnt = 0;
                             this->ctx_hash = 0;
                         }
