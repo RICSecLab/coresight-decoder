@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2021 Ricerca Security, Inc. All rights reserved. */
+
 // gcc -O0 branches.c -o branches
 
 // A64 instruction set, direct branches:
