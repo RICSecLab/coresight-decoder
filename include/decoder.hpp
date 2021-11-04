@@ -3,96 +3,91 @@
 
 #pragma once
 
-enum PacketType
-{
-    // Extension header
-    ETM4_PKT_I_EXTENSION,
+enum PacketType {
+  // Extension header
+  ETM4_PKT_I_EXTENSION,
 
-    // Sync
-    ETM4_PKT_I_TRACE_INFO,
-    ETM4_PKT_I_TIMESTAMP,
-    ETM4_PKT_I_TRACE_ON,
+  // Sync
+  ETM4_PKT_I_TRACE_INFO,
+  ETM4_PKT_I_TIMESTAMP,
+  ETM4_PKT_I_TRACE_ON,
 
-    // Exceptions
-    ETM4_PKT_I_EXCEPT,
+  // Exceptions
+  ETM4_PKT_I_EXCEPT,
 
-    // Address and Context
-    ETM4_PKT_I_CTXT,
-    ETM4_PKT_I_ADDR_S_IS0,
-    ETM4_PKT_I_ADDR_L_64IS0,
-    ETM4_PKT_I_ADDR_CTXT_L_64IS0,
+  // Address and Context
+  ETM4_PKT_I_CTXT,
+  ETM4_PKT_I_ADDR_S_IS0,
+  ETM4_PKT_I_ADDR_L_64IS0,
+  ETM4_PKT_I_ADDR_CTXT_L_64IS0,
 
-    // Atom
-    ETM4_PKT_I_ATOM_F1,
-    ETM4_PKT_I_ATOM_F2,
-    ETM4_PKT_I_ATOM_F3,
-    ETM4_PKT_I_ATOM_F4,
-    ETM4_PKT_I_ATOM_F5,
-    ETM4_PKT_I_ATOM_F6,
+  // Atom
+  ETM4_PKT_I_ATOM_F1,
+  ETM4_PKT_I_ATOM_F2,
+  ETM4_PKT_I_ATOM_F3,
+  ETM4_PKT_I_ATOM_F4,
+  ETM4_PKT_I_ATOM_F5,
+  ETM4_PKT_I_ATOM_F6,
 
-    // Extension packets - follow 0x00 header
-    ETM4_PKT_I_ASYNC,
-    ETM4_PKT_I_OVERFLOW,
+  // Extension packets - follow 0x00 header
+  ETM4_PKT_I_ASYNC,
+  ETM4_PKT_I_OVERFLOW,
 
-    PKT_UNKNOWN,
-    PKT_INCOMPLETE,
+  PKT_UNKNOWN,
+  PKT_INCOMPLETE,
 };
 
-struct Packet
-{
-    // Packet type
-    PacketType type;
-    // Packet size
-    size_t size;
+struct Packet {
+  PacketType type;
+  size_t size;
 
-    // Atom packet
-    uint32_t en_bits;
-    size_t en_bits_len;
+  // Atom packet
+  uint32_t en_bits;
+  size_t en_bits_len;
 
-    // Address packet
-    uint64_t addr;
+  // Address packet
+  uint64_t addr;
 
-    std::string toString() const;
+  std::string toString() const;
 };
 
 enum class DecodeState {
-    START,
-    RESTART,
-    TRACE,
-    EXCEPTION_ADDR1,
-    EXCEPTION_ADDR2,
-    WAIT_ADDR_AFTER_TRACE_ON
+  START,
+  RESTART,
+  TRACE,
+  EXCEPTION_ADDR1,
+  EXCEPTION_ADDR2,
+  WAIT_ADDR_AFTER_TRACE_ON
 };
 
-struct Decoder
-{
-    std::vector<std::uint8_t> trace_data;
-    std::size_t trace_data_offset;
-    DecodeState state;
+struct Decoder {
+  std::vector<std::uint8_t> trace_data;
+  std::size_t trace_data_offset;
+  DecodeState state;
 
-    std::uint64_t address_reg;
+  std::uint64_t address_reg;
 
-    Packet decodePacket();
-    void reset();
+  Packet decodePacket();
+  void reset();
 
 private:
-    Packet decodeExtensionPacket();
+  Packet decodeExtensionPacket();
 
-    Packet decodeTraceInfoPacket();
-    Packet decodeTimestampPacket();
-    Packet decodeTraceOnPacket();
-    Packet decodeContextPacket();
+  Packet decodeTraceInfoPacket();
+  Packet decodeTimestampPacket();
+  Packet decodeTraceOnPacket();
+  Packet decodeContextPacket();
 
-    Packet decodeExceptionPacket();
+  Packet decodeExceptionPacket();
 
-    Packet decodeAddressShortIS0Packet();
-    Packet decodeAddressLong64IS0Packet();
-    Packet decodeAddressLong64IS0WithContextPacket();
+  Packet decodeAddressShortIS0Packet();
+  Packet decodeAddressLong64IS0Packet();
+  Packet decodeAddressLong64IS0WithContextPacket();
 
-    Packet decodeAtomF1Packet();
-    Packet decodeAtomF2Packet();
-    Packet decodeAtomF3Packet();
-    Packet decodeAtomF4Packet();
-    Packet decodeAtomF5Packet();
-    Packet decodeAtomF6Packet();
+  Packet decodeAtomF1Packet();
+  Packet decodeAtomF2Packet();
+  Packet decodeAtomF3Packet();
+  Packet decodeAtomF4Packet();
+  Packet decodeAtomF5Packet();
+  Packet decodeAtomF6Packet();
 };
