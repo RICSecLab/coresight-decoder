@@ -1,11 +1,11 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* Copyright 2021 Ricerca Security, Inc. All rights reserved. */
 
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string>
 #include <vector>
 
@@ -16,9 +16,9 @@
 #endif
 
 cs_insn *disassembleNextBranchInsn(const csh *handle,
-                                   const std::vector<uint8_t> &code,
-                                   const uint64_t offset);
-uint64_t getAddressFromInsn(const cs_insn *insn);
+                                   const std::vector<std::uint8_t> &code,
+                                   const std::uint64_t offset);
+std::uint64_t getAddressFromInsn(const cs_insn *insn);
 BranchType decodeInstOpecode(const cs_insn *insn);
 
 // According to the Arm Embedded Trace Macrocell Architecture Specification
@@ -39,7 +39,7 @@ BranchType decodeInstOpecode(const cs_insn *insn);
 //     - BLR
 //
 
-static const uint16_t direct_branch_opcode[] = {
+static const std::uint16_t direct_branch_opcode[] = {
     // unconditional direct branch
     ARM64_INS_B, // B, B.cond
     ARM64_INS_BL,
@@ -51,13 +51,13 @@ static const uint16_t direct_branch_opcode[] = {
     ARM64_INS_TBNZ,
 };
 
-static const uint16_t indirect_branch_opcode[] = {
+static const std::uint16_t indirect_branch_opcode[] = {
     ARM64_INS_BR,
     ARM64_INS_BLR,
     ARM64_INS_RET,
 };
 
-static const uint16_t isb_branch_opcode[] = {
+static const std::uint16_t isb_branch_opcode[] = {
     ARM64_INS_ISB,
 };
 
@@ -101,11 +101,13 @@ BranchInsn getNextBranchInsn(const csh &handle, const Location &location,
 
 // https://www.capstone-engine.org/iteration.html
 cs_insn *disassembleNextBranchInsn(const csh *handle,
-                                   const std::vector<uint8_t> &code,
-                                   const uint64_t offset) {
-  const uint8_t *code_ptr = &code[0] + offset;
+                                   const std::vector<std::uint8_t> &code,
+                                   const std::uint64_t offset) {
+  const std::uint8_t *code_ptr = &code[0] + offset;
   size_t code_size = code.size() - offset;
-  uint64_t address = offset; // address of first instruction to be disassembled
+
+  // address of first instruction to be disassembled
+  std::uint64_t address = offset;
 
   // allocate memory cache for 1 instruction, to be used by cs_disasm_iter
   // later.
@@ -144,7 +146,7 @@ cs_insn *disassembleNextBranchInsn(const csh *handle,
   std::exit(1);
 }
 
-uint64_t getAddressFromInsn(const cs_insn *insn) {
+std::uint64_t getAddressFromInsn(const cs_insn *insn) {
   // The operand of the instruction is stored in insn->op_str.
   // The format of op_str varies depending on the type of branch instruction.
   //   - In the case of bl and b.ne instructions, op_str is "#0x1b40".
@@ -160,26 +162,26 @@ uint64_t getAddressFromInsn(const cs_insn *insn) {
   }
   address_index++;
 
-  const uint64_t address = std::stol(insn->op_str + address_index, nullptr, 16);
+  const std::uint64_t address =
+      std::stol(insn->op_str + address_index, nullptr, 16);
   return address;
 }
 
 BranchType decodeInstOpecode(const cs_insn *insn) {
-  for (size_t i = 0; i < sizeof(direct_branch_opcode) / sizeof(uint16_t); ++i) {
-    if (insn->id == direct_branch_opcode[i]) {
+  for (const std::uint16_t opcode : direct_branch_opcode) {
+    if (insn->id == opcode) {
       return DIRECT_BRANCH;
     }
   }
 
-  for (size_t i = 0; i < sizeof(indirect_branch_opcode) / sizeof(uint16_t);
-       ++i) {
-    if (insn->id == indirect_branch_opcode[i]) {
+  for (const std::uint16_t opcode : indirect_branch_opcode) {
+    if (insn->id == opcode) {
       return INDIRECT_BRANCH;
     }
   }
 
-  for (size_t i = 0; i < sizeof(isb_branch_opcode) / sizeof(uint16_t); ++i) {
-    if (insn->id == isb_branch_opcode[i]) {
+  for (const std::uint16_t opcode : isb_branch_opcode) {
+    if (insn->id == opcode) {
       return ISB_BRANCH;
     }
   }

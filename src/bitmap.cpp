@@ -21,5 +21,5 @@ std::uint64_t generateBitmapKey(const Location &from_location,
                                 const std::size_t bitmap_size) {
   const std::uint64_t to_h = std::hash<Location>()(from_location);
   const std::uint64_t from_h = std::hash<Location>()(to_location);
-  return (to_h ^ (from_h >> 1)) & (bitmap_size - 1);
+  return (to_h ^ (from_h >> 1U)) & (bitmap_size - 1);
 }
