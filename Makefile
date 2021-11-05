@@ -38,17 +38,17 @@ ifneq ($(strip $(MAX_ATOM_LEN)),)
 endif
 
 
-SRCS := $(SRC_DIR)/decoder.cpp \
+SRCS := $(SRC_DIR)/bitmap.cpp \
+	$(SRC_DIR)/cache.cpp \
+	$(SRC_DIR)/common.cpp \
+	$(SRC_DIR)/decoder.cpp \
 	$(SRC_DIR)/deformatter.cpp \
 	$(SRC_DIR)/disassembler.cpp \
-	$(SRC_DIR)/utils.cpp \
-	$(SRC_DIR)/bitmap.cpp \
-	$(SRC_DIR)/common.cpp \
-	$(SRC_DIR)/cache.cpp \
-	$(SRC_DIR)/trace.cpp \
-	$(SRC_DIR)/process.cpp \
 	$(SRC_DIR)/libcsdec.cpp \
-	$(SRC_DIR)/processor.cpp
+	$(SRC_DIR)/process.cpp \
+	$(SRC_DIR)/processor.cpp \
+	$(SRC_DIR)/trace.cpp \
+	$(SRC_DIR)/utils.cpp
 
 OBJS := $(SRCS:.cpp=.o)
 
@@ -60,9 +60,8 @@ all: CXXFLAGS += -O3
 all: CXXFLAGS += -DNDEBUG # Disable calls to assert()
 all: $(TARGET) $(LIBTARGET)
 
-# FIXME: Enabling UBSAN and GLIBCXX_DEBUG is not compatible with proc-trace
 debug: CXXFLAGS += -DDEBUG_BUILD
-debug: CXXFLAGS += -g -fsanitize=undefined -D_GLIBCXX_DEBUG
+debug: CXXFLAGS += -g
 debug: $(TARGET) $(LIBTARGET)
 
 $(TARGET): $(OBJS)
@@ -80,7 +79,7 @@ branches-test:
 	make -C $(BRANCHES_TEST) test
 
 format:
-	clang-format -i src/*.cpp include/*.hpp include/*.h tests/*.cpp
+	clang-format-10 -i src/*.cpp include/*.hpp include/*.h tests/*.cpp
 
 clean:
 	rm -rf $(OBJS) $(TARGET) $(LIBTARGET)
