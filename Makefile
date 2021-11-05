@@ -81,6 +81,13 @@ branches-test:
 format:
 	clang-format -i src/*.cpp include/*.hpp include/*.h tests/*.cpp
 
+tidy:
+	clang-tidy-10 $(SRCS) \
+		--checks='-*,boost-*,bugprone-*,cert-*,cppcoreguidelines-*, \
+				  hicpp-*,modernize-*,performance-*,portability-*, \
+				  readability-*,misc-*' \
+		-- -$(CXXFLAGS)
+
 clean:
 	rm -rf $(OBJS) $(TARGET) $(LIBTARGET)
 
