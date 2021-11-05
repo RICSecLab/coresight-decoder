@@ -65,7 +65,7 @@ int main(int argc, char const *argv[]) {
   std::string bitmap_type = "edge";
   std::vector<std::string> trace_binary_filenames;
   for (int i = binary_file_num * 3 + 4; i < argc; ++i) {
-    std::uint64_t size;
+    std::uint64_t size = 0;
     char buf[PATH_MAX];
     if (sscanf(argv[i], "--bitmap-size=%lx", &size) == 1) {
       // Check if the size is a power of two.

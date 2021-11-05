@@ -32,10 +32,10 @@ std::size_t std::hash<Location>::operator()(const Location &key) const {
 
 std::optional<image_id_t> getImageId(const std::vector<MemoryMap> &memory_maps,
                                      const addr_t address) {
-  for (size_t i = 0; i < memory_maps.size(); i++) {
-    if (memory_maps[i].start_address <= address and
-        address < memory_maps[i].end_address) {
-      return memory_maps[i].id;
+  for (const MemoryMap memory_map : memory_maps) {
+    if (memory_map.start_address <= address and
+        address < memory_map.end_address) {
+      return memory_map.id;
     }
   }
 

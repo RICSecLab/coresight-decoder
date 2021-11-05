@@ -13,7 +13,7 @@
 
 Packet Decoder::decodePacket() {
   const uint8_t header = this->trace_data[this->trace_data_offset];
-  Packet result;
+  Packet result{};
 
   switch (header) {
   // Extension packet header: 0b00000000
