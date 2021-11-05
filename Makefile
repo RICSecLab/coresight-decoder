@@ -79,7 +79,7 @@ branches-test:
 	make -C $(BRANCHES_TEST) test
 
 format:
-	clang-format-10 -i src/*.cpp include/*.hpp include/*.h tests/*.cpp
+	clang-format -i src/*.cpp include/*.hpp include/*.h tests/*.cpp
 
 clean:
 	rm -rf $(OBJS) $(TARGET) $(LIBTARGET)
