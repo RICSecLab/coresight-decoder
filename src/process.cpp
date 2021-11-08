@@ -330,7 +330,7 @@ Process::processAddressPacket(const Packet &address_packet) {
 
 BranchInsn Process::processNextBranchInsn(const Location &base_location) {
   // Find the next branch instruction.
-  BranchInsn insn;
+  BranchInsn insn{};
   {
 #if defined(CACHE_MODE)
     // Create a key to access the cache.
@@ -348,7 +348,7 @@ BranchInsn Process::processNextBranchInsn(const Location &base_location) {
       insn = getNextBranchInsn(this->data.handle, base_location,
                                this->data.memory_images);
       // Add the result of disassembling the branch instruction to the cache
-      this->data.cache.addBranchInsnCache(std::move(insn_key), insn);
+      this->data.cache.addBranchInsnCache(insn_key, insn);
     }
 #else
     // Disassemble the instruction sequence and find a branch instruction.

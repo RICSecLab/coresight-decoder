@@ -92,7 +92,7 @@ libcsdec_reset_edge(const libcsdec_t libcsdec, const char trace_id,
     return LIBCSDEC_ERROR;
   }
 
-  Process *process = reinterpret_cast<Process *>(libcsdec);
+  auto process = reinterpret_cast<Process *>(libcsdec);
 
   std::vector<MemoryMap> memory_maps;
   {
@@ -127,7 +127,7 @@ libcsdec_reset_edge(const libcsdec_t libcsdec, const char trace_id,
 libcsdec_result_t libcsdec_run_edge(const libcsdec_t libcsdec,
                                     const void *trace_data_addr,
                                     const size_t trace_data_size) {
-  Process *process = reinterpret_cast<Process *>(libcsdec);
+  auto process = reinterpret_cast<Process *>(libcsdec);
 
   ProcessResultType result = process->run(
       reinterpret_cast<const std::uint8_t *>(trace_data_addr), trace_data_size);
@@ -148,7 +148,7 @@ libcsdec_result_t libcsdec_run_edge(const libcsdec_t libcsdec,
                                                     trace data is incomplete.
 **/
 libcsdec_result_t libcsdec_finish_edge(const libcsdec_t libcsdec) {
-  Process *process = reinterpret_cast<Process *>(libcsdec);
+  auto process = reinterpret_cast<Process *>(libcsdec);
 
   ProcessResultType result = process->final();
   return covert_result_type(result);
@@ -216,7 +216,7 @@ libcsdec_reset_path(const libcsdec_t libcsdec, const char trace_id,
     return LIBCSDEC_ERROR;
   }
 
-  PathProcess *process = reinterpret_cast<PathProcess *>(libcsdec);
+  auto process = reinterpret_cast<PathProcess *>(libcsdec);
 
   std::vector<MemoryMap> memory_maps;
   {
@@ -251,8 +251,7 @@ libcsdec_reset_path(const libcsdec_t libcsdec, const char trace_id,
 libcsdec_result_t libcsdec_run_path(const libcsdec_t libcsdec,
                                     const void *trace_data_addr,
                                     const size_t trace_data_size) {
-  // Cast
-  PathProcess *process = reinterpret_cast<PathProcess *>(libcsdec);
+  auto process = reinterpret_cast<PathProcess *>(libcsdec);
 
   ProcessResultType result = process->run(
       reinterpret_cast<const std::uint8_t *>(trace_data_addr), trace_data_size);
@@ -273,7 +272,7 @@ libcsdec_result_t libcsdec_run_path(const libcsdec_t libcsdec,
                                                     trace data is incomplete.
 **/
 libcsdec_result_t libcsdec_finish_path(const libcsdec_t libcsdec) {
-  PathProcess *process = reinterpret_cast<PathProcess *>(libcsdec);
+  auto process = reinterpret_cast<PathProcess *>(libcsdec);
 
   ProcessResultType result = process->final();
   return covert_result_type(result);
