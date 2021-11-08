@@ -82,7 +82,7 @@ format:
 	clang-format -i src/*.cpp include/*.hpp include/*.h tests/*.cpp
 
 tidy:
-	clang-tidy-10 $(SRCS) \
+	clang-tidy $(SRCS) \
 		--checks='-*,boost-*,bugprone-*,cert-*,cppcoreguidelines-*, \
 				  hicpp-*,modernize-*,performance-*,portability-*, \
 				  readability-*,misc-*' \
