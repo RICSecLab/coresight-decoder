@@ -12,7 +12,7 @@
 #include "utils.hpp"
 
 Packet Decoder::decodePacket() {
-  const uint8_t header = this->trace_data[this->trace_data_offset];
+  const std::uint8_t header = this->trace_data[this->trace_data_offset];
   Packet result{};
 
   switch (header) {
@@ -102,7 +102,7 @@ Packet Decoder::decodePacket() {
     break;
 
   default:
-    result = {PKT_UNKNOWN, 1, 0, 0, 0};
+    result = {PacketType::PKT_UNKNOWN, 1, 0, 0, 0};
     break;
   }
 
@@ -116,27 +116,27 @@ void Decoder::reset() {
 }
 
 Packet Decoder::decodeExtensionPacket() {
-  const size_t rest_data_size =
+  const std::size_t rest_data_size =
       this->trace_data.size() - this->trace_data_offset;
 
   // Header is correct, but packet size is incomplete.
   if (rest_data_size < 2) {
-    return Packet{PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
+    return Packet{PacketType::PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
   }
 
   // Overflow packet
   if (this->trace_data[this->trace_data_offset + 1] == 0x5) {
-    return Packet{ETM4_PKT_I_OVERFLOW, 2, 0, 0, 0};
+    return Packet{PacketType::ETM4_PKT_I_OVERFLOW, 2, 0, 0, 0};
   }
 
   // Header is correct, but packet size is incomplete.
   if (rest_data_size < 12) {
-    return Packet{PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
+    return Packet{PacketType::PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
   }
 
   // Check Async packet
   bool is_async = true;
-  for (size_t i = 0; i <= 10; i++) {
+  for (std::size_t i = 0; i <= 10; i++) {
     if (this->trace_data[this->trace_data_offset + i] != 0) {
       is_async = false;
     }
@@ -145,8 +145,9 @@ Packet Decoder::decodeExtensionPacket() {
     is_async = false;
   }
 
-  const PacketType type = is_async ? ETM4_PKT_I_ASYNC : PKT_UNKNOWN;
-  const size_t size = is_async ? 12 : 1;
+  const PacketType type =
+      is_async ? PacketType::ETM4_PKT_I_ASYNC : PacketType::PKT_UNKNOWN;
+  const std::size_t size = is_async ? 12 : 1;
 
   Packet packet = {type, size, 0, 0, 0};
   return packet;
@@ -154,41 +155,41 @@ Packet Decoder::decodeExtensionPacket() {
 
 Packet Decoder::decodeTraceInfoPacket() {
   // Header is correct, but packet size is incomplete.
-  const size_t rest_data_size =
+  const std::size_t rest_data_size =
       this->trace_data.size() - this->trace_data_offset;
   if (rest_data_size < 2) {
-    return Packet{PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
+    return Packet{PacketType::PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
   }
 
-  size_t packet_size = 2;
+  std::size_t packet_size = 2;
   while (this->trace_data[packet_size - 1] & 0b10000000) {
     break;
   }
 
   const Packet packet = {
-      ETM4_PKT_I_TRACE_INFO, packet_size, 0, 0, 0,
+      PacketType::ETM4_PKT_I_TRACE_INFO, packet_size, 0, 0, 0,
   };
   return packet;
 }
 
 Packet Decoder::decodeTimestampPacket() {
-  const size_t packet_size =
+  const std::size_t packet_size =
       (this->trace_data[this->trace_data_offset] & 0x1) ? 11 : 8;
 
   // Header is correct, but packet size is incomplete.
-  const size_t rest_data_size =
+  const std::size_t rest_data_size =
       this->trace_data.size() - this->trace_data_offset;
   if (rest_data_size < packet_size) {
-    return Packet{PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
+    return Packet{PacketType::PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
   }
 
-  Packet packet = {ETM4_PKT_I_TIMESTAMP, packet_size, 0, 0, 0};
+  Packet packet = {PacketType::ETM4_PKT_I_TIMESTAMP, packet_size, 0, 0, 0};
   return packet;
 }
 
 Packet Decoder::decodeTraceOnPacket() {
   const Packet packet = {
-      ETM4_PKT_I_TRACE_ON, 1, 0, 0, 0,
+      PacketType::ETM4_PKT_I_TRACE_ON, 1, 0, 0, 0,
   };
   return packet;
 }
@@ -200,16 +201,16 @@ Packet Decoder::decodeContextPacket() {
 
   if (not has_payload) {
     return Packet{
-        ETM4_PKT_I_CTXT, 1, 0, 0, 0,
+        PacketType::ETM4_PKT_I_CTXT, 1, 0, 0, 0,
     };
   }
 
   // A payload is present in the packet. The payload consists of at least an
   // information byte. However, there is no 1-byte information byte.
-  const size_t rest_data_size =
+  const std::size_t rest_data_size =
       this->trace_data.size() - this->trace_data_offset;
   if (rest_data_size < 2) {
-    return Packet{PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
+    return Packet{PacketType::PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
   }
 
   // Indicates whether the Virtual context identifier section is present in the
@@ -222,28 +223,28 @@ Packet Decoder::decodeContextPacket() {
       (this->trace_data[this->trace_data_offset + 1] & 0b10000000) ? true
                                                                    : false;
 
-  const size_t packet_size =
+  const std::size_t packet_size =
       (has_virtual_context and has_context_id)
           ? 10
           : (has_virtual_context or has_context_id) ? 6 : 2;
 
   // There is not enough payload following the information byte.
   if (rest_data_size < packet_size) {
-    return Packet{PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
+    return Packet{PacketType::PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
   }
 
   const Packet packet = {
-      ETM4_PKT_I_CTXT, packet_size, 0, 0, 0,
+      PacketType::ETM4_PKT_I_CTXT, packet_size, 0, 0, 0,
   };
   return packet;
 }
 
 Packet Decoder::decodeExceptionPacket() {
-  const size_t rest_data_size =
+  const std::size_t rest_data_size =
       this->trace_data.size() - this->trace_data_offset;
 
   if (rest_data_size < 2) {
-    return Packet{PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
+    return Packet{PacketType::PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
   }
 
   // If c is set, then a second exception information byte follows.
@@ -251,25 +252,25 @@ Packet Decoder::decodeExceptionPacket() {
   // in the packet.
   bool c = (this->trace_data[this->trace_data_offset + 1] & 0b10000000) ? true
                                                                         : false;
-  size_t packet_size = c ? 3 : 2;
+  std::size_t packet_size = c ? 3 : 2;
 
   // Header is correct, but packet size is incomplete.
   if (rest_data_size < packet_size) {
-    return Packet{PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
+    return Packet{PacketType::PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
   }
 
   const Packet packet = {
-      ETM4_PKT_I_EXCEPT, packet_size, 0, 0, 0,
+      PacketType::ETM4_PKT_I_EXCEPT, packet_size, 0, 0, 0,
   };
   return packet;
 }
 
 Packet Decoder::decodeAddressShortIS0Packet() {
-  const size_t rest_data_size =
+  const std::size_t rest_data_size =
       this->trace_data.size() - this->trace_data_offset;
 
   if (rest_data_size < 2) {
-    return Packet{PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
+    return Packet{PacketType::PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
   }
 
   uint64_t address = this->address_reg;
@@ -279,11 +280,11 @@ Packet Decoder::decodeAddressShortIS0Packet() {
 
   bool c = (this->trace_data[this->trace_data_offset + 1] & 0b10000000) ? true
                                                                         : false;
-  size_t packet_size = c ? 3 : 2;
+  std::size_t packet_size = c ? 3 : 2;
 
   // Header is correct, but packet size is incomplete.
   if (rest_data_size < packet_size) {
-    return Packet{PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
+    return Packet{PacketType::PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
   }
 
   if (c) {
@@ -294,17 +295,17 @@ Packet Decoder::decodeAddressShortIS0Packet() {
   this->address_reg = address;
 
   const Packet packet = {
-      ETM4_PKT_I_ADDR_S_IS0, packet_size, 0, 0, address,
+      PacketType::ETM4_PKT_I_ADDR_S_IS0, packet_size, 0, 0, address,
   };
   return packet;
 }
 
 Packet Decoder::decodeAddressLong64IS0Packet() {
-  const size_t rest_data_size =
+  const std::size_t rest_data_size =
       this->trace_data.size() - this->trace_data_offset;
   // Header is correct, but packet size is incomplete.
   if (rest_data_size < 9) {
-    return Packet{PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
+    return Packet{PacketType::PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
   }
 
   // trace_data[this->trace_data_offset] is header
@@ -320,16 +321,16 @@ Packet Decoder::decodeAddressLong64IS0Packet() {
 
   this->address_reg = address;
 
-  Packet packet = {ETM4_PKT_I_ADDR_L_64IS0, 9, 0, 0, address};
+  Packet packet = {PacketType::ETM4_PKT_I_ADDR_L_64IS0, 9, 0, 0, address};
   return packet;
 }
 
 Packet Decoder::decodeAddressLong64IS0WithContextPacket() {
-  const size_t rest_data_size =
+  const std::size_t rest_data_size =
       this->trace_data.size() - this->trace_data_offset;
   // Header is correct, but packet size is incomplete.
   if (rest_data_size < 10) {
-    return Packet{PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
+    return Packet{PacketType::PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
   }
 
   const uint64_t address =
@@ -352,83 +353,83 @@ Packet Decoder::decodeAddressLong64IS0WithContextPacket() {
       (this->trace_data[this->trace_data_offset + 9] & 0b10000000) ? true
                                                                    : false;
 
-  const size_t context_packet_size =
+  const std::size_t context_packet_size =
       (has_virtual_context and has_context_id)
           ? 9
           : (has_virtual_context or has_context_id) ? 5 : 1;
 
   // There is not enough payload following the information byte.
   if (rest_data_size < 9 + context_packet_size) {
-    return Packet{PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
+    return Packet{PacketType::PKT_INCOMPLETE, rest_data_size, 0, 0, 0};
   }
 
   address_reg = address;
 
-  const Packet packet = {ETM4_PKT_I_ADDR_CTXT_L_64IS0, 9 + context_packet_size,
-                         0, 0, address};
+  const Packet packet = {PacketType::ETM4_PKT_I_ADDR_CTXT_L_64IS0,
+                         9 + context_packet_size, 0, 0, address};
   return packet;
 }
 
 Packet Decoder::decodeAtomF1Packet() {
-  const uint8_t data = this->trace_data[this->trace_data_offset];
+  const std::uint8_t data = this->trace_data[this->trace_data_offset];
 
-  const uint32_t en_bits = data & 0b1; // 1x (E or N)
-  const size_t en_bits_len = 1;
+  const std::uint32_t en_bits = data & 0b1; // 1x (E or N)
+  const std::size_t en_bits_len = 1;
 
-  Packet packet = {ETM4_PKT_I_ATOM_F1, 1, en_bits, en_bits_len, 0};
+  Packet packet = {PacketType::ETM4_PKT_I_ATOM_F1, 1, en_bits, en_bits_len, 0};
   return packet;
 }
 
 Packet Decoder::decodeAtomF2Packet() {
-  const uint8_t data = this->trace_data[this->trace_data_offset];
+  const std::uint8_t data = this->trace_data[this->trace_data_offset];
 
-  const uint32_t en_bits = data & 0b11; // 2x (E or N)
-  const size_t en_bits_len = 2;
+  const std::uint32_t en_bits = data & 0b11; // 2x (E or N)
+  const std::size_t en_bits_len = 2;
 
   Packet packet = {
-      ETM4_PKT_I_ATOM_F2, 1, en_bits, en_bits_len, 0,
+      PacketType::ETM4_PKT_I_ATOM_F2, 1, en_bits, en_bits_len, 0,
   };
   return packet;
 }
 
 Packet Decoder::decodeAtomF3Packet() {
-  const uint8_t data = this->trace_data[this->trace_data_offset];
+  const std::uint8_t data = this->trace_data[this->trace_data_offset];
 
-  const uint32_t en_bits = data & 0b111; // 3x (E or N)
-  const size_t en_bits_len = 3;
+  const std::uint32_t en_bits = data & 0b111; // 3x (E or N)
+  const std::size_t en_bits_len = 3;
 
   Packet packet = {
-      ETM4_PKT_I_ATOM_F3, 1, en_bits, en_bits_len, 0,
+      PacketType::ETM4_PKT_I_ATOM_F3, 1, en_bits, en_bits_len, 0,
   };
   return packet;
 }
 
 Packet Decoder::decodeAtomF4Packet() {
-  const uint8_t data = this->trace_data[this->trace_data_offset];
+  const std::uint8_t data = this->trace_data[this->trace_data_offset];
 
-  static const uint32_t f4_patterns[] = {
+  static const std::uint32_t f4_patterns[] = {
       0b1110, // EEEN
       0b0000, // NNNN
       0b1010, // ENEN
       0b0101  // NENE
   };
 
-  const uint32_t en_bits = f4_patterns[data & 0b11]; // 4 atom pattern
-  const size_t en_bits_len = 4;
+  const std::uint32_t en_bits = f4_patterns[data & 0b11]; // 4 atom pattern
+  const std::size_t en_bits_len = 4;
 
   Packet packet = {
-      ETM4_PKT_I_ATOM_F4, 1, en_bits, en_bits_len, 0,
+      PacketType::ETM4_PKT_I_ATOM_F4, 1, en_bits, en_bits_len, 0,
   };
   return packet;
 }
 
 Packet Decoder::decodeAtomF5Packet() {
-  const uint8_t data = this->trace_data[this->trace_data_offset];
-  const uint8_t pattern_idx = ((data & 0b00100000) >> 3) | (data & 0b11);
+  const std::uint8_t data = this->trace_data[this->trace_data_offset];
+  const std::uint8_t pattern_idx = ((data & 0b00100000) >> 3) | (data & 0b11);
 
-  uint32_t en_bits = 0;
-  size_t en_bits_len = 0;
-  PacketType type = ETM4_PKT_I_ATOM_F5;
+  std::uint32_t en_bits = 0;
+  std::size_t en_bits_len = 0;
+  PacketType type = PacketType::ETM4_PKT_I_ATOM_F5;
 
   switch (pattern_idx) {
   case 0b101:
@@ -456,7 +457,7 @@ Packet Decoder::decodeAtomF5Packet() {
     break;
 
   default:
-    type = PKT_UNKNOWN;
+    type = PacketType::PKT_UNKNOWN;
     en_bits = 0;
     en_bits_len = 0;
     break;
@@ -470,19 +471,22 @@ Packet Decoder::decodeAtomF5Packet() {
 }
 
 Packet Decoder::decodeAtomF6Packet() {
-  const uint8_t data = this->trace_data[trace_data_offset];
+  const std::uint8_t data = this->trace_data[trace_data_offset];
 
-  size_t e_cnt = (data & 0b11111) + 3; // count of E's
-  uint32_t en_bits =
-      ((uint32_t)0x1 << e_cnt) - 1; // set pattern to string of E's
-  if ((data & 0b100000) == 0x00) {  // last atom is E?
-    en_bits |= ((uint32_t)0x1 << e_cnt);
+  std::size_t e_cnt = (data & 0b11111) + 3; // count of E's
+  std::uint32_t en_bits =
+      ((std::uint32_t)0x1 << e_cnt) - 1; // set pattern to string of E's
+
+  // Check if the last branch is E.
+  if ((data & 0b100000) == 0x00) {
+    en_bits |= ((std::uint32_t)0x1 << e_cnt);
   }
-  const size_t en_bits_len = e_cnt + 1;
+
+  const std::size_t en_bits_len = e_cnt + 1;
   assert(4 <= en_bits_len and en_bits_len <= 24);
 
   Packet packet = {
-      ETM4_PKT_I_ATOM_F6, 1, en_bits, en_bits_len, 0,
+      PacketType::ETM4_PKT_I_ATOM_F6, 1, en_bits, en_bits_len, 0,
   };
   return packet;
 }
@@ -499,82 +503,82 @@ std::string Packet::toString() const {
   std::stringstream stream;
 
   switch (this->type) {
-  case ETM4_PKT_I_TRACE_INFO:
+  case PacketType::ETM4_PKT_I_TRACE_INFO:
     stream << "ETM4_PKT_I_TRACE_INFO";
     break;
 
-  case ETM4_PKT_I_TIMESTAMP:
+  case PacketType::ETM4_PKT_I_TIMESTAMP:
     stream << "ETM4_PKT_I_TIMESTAMP";
     break;
 
-  case ETM4_PKT_I_TRACE_ON:
+  case PacketType::ETM4_PKT_I_TRACE_ON:
     stream << "ETM4_PKT_I_TRACE_ON";
     break;
 
-  case ETM4_PKT_I_CTXT:
+  case PacketType::ETM4_PKT_I_CTXT:
     stream << "ETM4_PKT_I_CTXT";
     break;
 
-  case ETM4_PKT_I_EXCEPT:
+  case PacketType::ETM4_PKT_I_EXCEPT:
     stream << "ETM4_PKT_I_EXCEPT";
     break;
 
-  case ETM4_PKT_I_ADDR_S_IS0:
+  case PacketType::ETM4_PKT_I_ADDR_S_IS0:
     stream << "ETM4_PKT_I_ADDR_S_IS0 Addr=" << std::hex << "0x" << this->addr;
     break;
 
-  case ETM4_PKT_I_ADDR_L_64IS0:
+  case PacketType::ETM4_PKT_I_ADDR_L_64IS0:
     stream << "ETM4_PKT_I_ADDR_L_64IS0 Addr=" << std::hex << "0x" << this->addr;
     break;
 
-  case ETM4_PKT_I_ADDR_CTXT_L_64IS0:
+  case PacketType::ETM4_PKT_I_ADDR_CTXT_L_64IS0:
     stream << "ETM4_PKT_I_ADDR_CTXT_L_64IS0 Addr=" << std::hex << "0x"
            << this->addr;
     break;
 
-  case ETM4_PKT_I_ATOM_F1:
+  case PacketType::ETM4_PKT_I_ATOM_F1:
     stream << "ETM4_PKT_I_ATOM_F1 "
            << atomBitsToString(this->en_bits, this->en_bits_len);
     break;
 
-  case ETM4_PKT_I_ATOM_F2:
+  case PacketType::ETM4_PKT_I_ATOM_F2:
     stream << "ETM4_PKT_I_ATOM_F2 "
            << atomBitsToString(this->en_bits, this->en_bits_len);
     break;
 
-  case ETM4_PKT_I_ATOM_F3:
+  case PacketType::ETM4_PKT_I_ATOM_F3:
     stream << "ETM4_PKT_I_ATOM_F3 "
            << atomBitsToString(this->en_bits, this->en_bits_len);
     break;
 
-  case ETM4_PKT_I_ATOM_F4:
+  case PacketType::ETM4_PKT_I_ATOM_F4:
     stream << "ETM4_PKT_I_ATOM_F4 "
            << atomBitsToString(this->en_bits, this->en_bits_len);
     break;
 
-  case ETM4_PKT_I_ATOM_F5:
+  case PacketType::ETM4_PKT_I_ATOM_F5:
     stream << "ETM4_PKT_I_ATOM_F5 "
            << atomBitsToString(this->en_bits, this->en_bits_len);
     break;
 
-  case ETM4_PKT_I_ATOM_F6:
+  case PacketType::ETM4_PKT_I_ATOM_F6:
     stream << "ETM4_PKT_I_ATOM_F6 "
            << atomBitsToString(this->en_bits, this->en_bits_len);
     break;
 
-  case ETM4_PKT_I_ASYNC:
+  case PacketType::ETM4_PKT_I_ASYNC:
     stream << "ETM4_PKT_I_ASYNC";
     break;
 
-  case ETM4_PKT_I_OVERFLOW:
+  case PacketType::ETM4_PKT_I_OVERFLOW:
     stream << "ETM4_PKT_I_OVERFLOW";
     break;
 
-  case PKT_UNKNOWN:
+  case PacketType::PKT_UNKNOWN:
     stream << "PKT_UNKNOWN";
     break;
 
-  case PKT_INCOMPLETE:
+  case PacketType::PKT_INCOMPLETE:
     stream << "PKT_INCOMPLETE";
     break;
 

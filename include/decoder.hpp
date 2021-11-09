@@ -3,7 +3,7 @@
 
 #pragma once
 
-enum PacketType {
+enum class PacketType {
   // Extension header
   ETM4_PKT_I_EXTENSION,
 
@@ -39,14 +39,14 @@ enum PacketType {
 
 struct Packet {
   PacketType type;
-  size_t size;
+  std::size_t size;
 
   // Atom packet
-  uint32_t en_bits;
-  size_t en_bits_len;
+  std::uint32_t en_bits;
+  std::size_t en_bits_len;
 
   // Address packet
-  uint64_t addr;
+  std::uint64_t addr;
 
   std::string toString() const;
 };

@@ -38,7 +38,7 @@ int load_bin(const char *path, void **buf, size_t *size) {
     std::exit(1);
   }
 
-  struct stat sb{};
+  struct stat sb {};
   fstat(fd, &sb);
 
   char *addr = (char *)mmap(nullptr, sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
