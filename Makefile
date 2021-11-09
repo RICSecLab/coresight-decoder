@@ -83,7 +83,7 @@ format:
 
 tidy:
 	clang-tidy $(SRCS) \
-		--checks='-*,boost-*,bugprone-*,cert-*,cppcoreguidelines-*, \
+		--checks='-*,bugprone-*,cert-*,cppcoreguidelines-*, \
 				  hicpp-*,modernize-*,performance-*,portability-*, \
 				  readability-*,misc-*' \
 		-- -$(CXXFLAGS)
