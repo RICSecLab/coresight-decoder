@@ -52,8 +52,10 @@ SRCS := $(SRC_DIR)/bitmap.cpp \
 
 OBJS := $(SRCS:.cpp=.o)
 
-FIB_TEST := tests/fib
-BRANCHES_TEST := tests/branches
+
+TEST_DIR := tests
+FIB_TEST := $(TEST_DIR)/fib
+BRANCHES_TEST := $(TEST_DIR)/branches
 
 
 all: CXXFLAGS += -O3
@@ -92,6 +94,7 @@ clean:
 	rm -rf $(OBJS) $(TARGET) $(LIBTARGET)
 
 dist-clean: clean
+	make -C $(TEST_DIR) clean
 	make -C $(FIB_TEST) clean
 	make -C $(BRANCHES_TEST) clean
 
