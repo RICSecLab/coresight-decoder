@@ -12,7 +12,7 @@ struct Bitmap {
   std::uint8_t *const data;
   const std::size_t size;
 
-  Bitmap(uint8_t *data, std::size_t size);
+  Bitmap(std::uint8_t *data, std::size_t size);
 
   void reset() const;
 };

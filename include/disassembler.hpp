@@ -8,7 +8,7 @@
 
 #include "common.hpp"
 
-enum BranchType {
+enum class BranchType {
   DIRECT_BRANCH,
   INDIRECT_BRANCH,
   ISB_BRANCH,

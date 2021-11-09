@@ -9,7 +9,7 @@
 #include "bitmap.hpp"
 #include "trace.hpp"
 
-Bitmap::Bitmap(uint8_t *data, std::size_t size) : data(data), size(size) {}
+Bitmap::Bitmap(std::uint8_t *data, std::size_t size) : data(data), size(size) {}
 
 void Bitmap::reset() const {
   // Fill the bitmap with zeros.

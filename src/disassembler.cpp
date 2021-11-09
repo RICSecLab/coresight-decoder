@@ -83,11 +83,11 @@ BranchInsn getNextBranchInsn(const csh &handle, const Location &location,
   const addr_t offset = insn->address;
 
   const addr_t taken_offset =
-      (type == DIRECT_BRANCH)
+      (type == BranchType::DIRECT_BRANCH)
           ? getAddressFromInsn(insn)
-          : (type == ISB_BRANCH) ? insn->address + insn->size : 0;
+          : (type == BranchType::ISB_BRANCH) ? insn->address + insn->size : 0;
   const addr_t not_taken_offset =
-      (type == DIRECT_BRANCH) ? offset + insn->size : 0;
+      (type == BranchType::DIRECT_BRANCH) ? offset + insn->size : 0;
 
   const BranchInsn branch_insn{
       type, offset, taken_offset, not_taken_offset, location.id,
@@ -104,7 +104,7 @@ cs_insn *disassembleNextBranchInsn(const csh *handle,
                                    const std::vector<std::uint8_t> &code,
                                    const std::uint64_t offset) {
   const std::uint8_t *code_ptr = &code[0] + offset;
-  size_t code_size = code.size() - offset;
+  std::size_t code_size = code.size() - offset;
 
   // address of first instruction to be disassembled
   std::uint64_t address = offset;
@@ -124,13 +124,13 @@ cs_insn *disassembleNextBranchInsn(const csh *handle,
     BranchType type = decodeInstOpecode(insn);
 
     switch (type) {
-    case DIRECT_BRANCH:
+    case BranchType::DIRECT_BRANCH:
       DEBUG("Found the direct branch instruction\n");
       return insn;
-    case INDIRECT_BRANCH:
+    case BranchType::INDIRECT_BRANCH:
       DEBUG("Found the indirect branch instruction\n");
       return insn;
-    case ISB_BRANCH:
+    case BranchType::ISB_BRANCH:
       DEBUG("Found the isb instruction\n");
       return insn;
     default:
@@ -156,7 +156,7 @@ std::uint64_t getAddressFromInsn(const cs_insn *insn) {
 
   // Find the index of the last '#' and read the end of it as a hexadecimal
   // address.
-  size_t address_index = std::strlen(insn->op_str) - 1;
+  std::size_t address_index = std::strlen(insn->op_str) - 1;
   while (insn->op_str[address_index] != '#') {
     address_index--;
   }
@@ -170,23 +170,23 @@ std::uint64_t getAddressFromInsn(const cs_insn *insn) {
 BranchType decodeInstOpecode(const cs_insn *insn) {
   for (const std::uint16_t opcode : direct_branch_opcode) {
     if (insn->id == opcode) {
-      return DIRECT_BRANCH;
+      return BranchType::DIRECT_BRANCH;
     }
   }
 
   for (const std::uint16_t opcode : indirect_branch_opcode) {
     if (insn->id == opcode) {
-      return INDIRECT_BRANCH;
+      return BranchType::INDIRECT_BRANCH;
     }
   }
 
   for (const std::uint16_t opcode : isb_branch_opcode) {
     if (insn->id == opcode) {
-      return ISB_BRANCH;
+      return BranchType::ISB_BRANCH;
     }
   }
 
-  return NOT_BRANCH;
+  return BranchType::NOT_BRANCH;
 }
 
 // Check the version of the Capstone library.
