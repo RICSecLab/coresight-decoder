@@ -38,10 +38,10 @@ int load_bin(const char *path, void **buf, size_t *size) {
     std::exit(1);
   }
 
-  struct stat sb;
+  struct stat sb{};
   fstat(fd, &sb);
 
-  char *addr = (char *)mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
+  char *addr = (char *)mmap(nullptr, sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
   if (addr == MAP_FAILED) {
     std::perror("mmap");
     std::exit(EXIT_FAILURE);
@@ -98,11 +98,11 @@ std::optional<double> run_decoder(libcsdec_t &libcsdec,
                                   const int bitmap_size, bool has_new_cov) {
   char trace_data_filepath[PATH_MAX];
   int trace_id = 0;
-  int memory_map_num;
+  int memory_map_num = 0;
   struct libcsdec_memory_map *memory_map = read_memory_map(
       decoder_args_path, trace_data_filepath, trace_id, memory_map_num);
 
-  void *trace_data_addr = NULL;
+  void *trace_data_addr = nullptr;
   size_t trace_data_size = 0;
   load_bin(trace_data_filepath, &trace_data_addr, &trace_data_size);
 
@@ -164,7 +164,7 @@ std::optional<double> run_decoder(libcsdec_t &libcsdec,
 }
 
 void save_exeuction_times(std::vector<double> &execution_times,
-                          std::string filename) {
+                          const std::string &filename) {
   std::ofstream ofs(filename);
   if (!ofs) {
     std::cerr << "Failed to open " << filename << std::endl;
@@ -240,11 +240,10 @@ int main(int argc, char const *argv[]) {
     }
   }
 
-  // Read options.
   std::optional<std::string> output_filename;
   int loop_cnt = 1;
   for (int i = 3 + trace_data_num + memory_image_num; i < argc; ++i) {
-    int cnt;
+    int cnt = 0;
     char buf[PATH_MAX];
     if (sscanf(argv[i], "--output-filename=%s", buf) == 1) {
       output_filename = std::string(buf);
@@ -256,7 +255,7 @@ int main(int argc, char const *argv[]) {
     }
   }
 
-  libcsdec_t libcsdec;
+  libcsdec_t libcsdec = nullptr;
   {
     if (cov == Cov::Edge) {
       libcsdec = libcsdec_init_edge(local_bitmap, bitmap_size, memory_image_num,
@@ -269,7 +268,7 @@ int main(int argc, char const *argv[]) {
     }
   }
 
-  if (libcsdec == NULL) {
+  if (libcsdec == nullptr) {
     std::cerr << "Failed to initialize libcsdec." << std::endl;
     std::exit(EXIT_FAILURE);
   }
