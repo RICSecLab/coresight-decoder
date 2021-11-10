@@ -34,6 +34,14 @@ Refer to [HOWTO](HOWTO.md) for the library usage example.
 
 To use `libcsdec.a`, link it with the `-lcapstone` flag to the Capstone shared library. The `processor` application will show usage when no argument is supplied.
 
+## Contributing
+
+Please open GitHub Issues and Pull Requests. All commits must include a `Signed-off-by` line using `git commit --signoff` to enforce the [Developer Certificate of Origin (DCO)](https://developercertificate.org).
+
 ## License
 
 coresight-decoder is released under the [Apache License, Version 2.0](https://opensource.org/licenses/Apache-2.0).
+
+## Acknowledgements
+
+This project has received funding from the Acquisition, Technology & Logistics Agency (ATLA) under the National Security Technology Research Promotion Fund 2021 (JPJ004596).
