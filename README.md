@@ -44,4 +44,4 @@ coresight-decoder is released under the [Apache License, Version 2.0](https://op
 
 ## Acknowledgements
 
-This project has received funding from the Acquisition, Technology & Logistics Agency (ATLA) under the National Security Technology Research Promotion Fund 2021 (JPJ004596).
+This project has received funding from the Acquisition, Technology & Logistics Agency (ATLA) under the Innovative Science and Technology Initiative for Security 2020 (JPJ004596).
