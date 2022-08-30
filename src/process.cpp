@@ -68,7 +68,7 @@ ProcessResultType Process::run(const std::uint8_t *trace_data_addr,
         // Otherwise, the trace start address is not known.
         std::cerr << "The first branch packet is always an address pocket."
                   << std::endl;
-        std::exit(EXIT_FAILURE);
+        return ProcessResultType::PROCESS_ERROR_TRACE_DATA_INCOMPLETE;
       }
 
       case PacketType::ETM4_PKT_I_ADDR_S_IS0:
